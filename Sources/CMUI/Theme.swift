@@ -1,5 +1,6 @@
 #if os(macOS)
 import AppKit
+import CMCore
 
 /// Monochrome design tokens (spec 2.1): black, white and greys only; dark appearance always.
 enum Theme {
@@ -18,24 +19,28 @@ enum Theme {
     static let statusLineFont = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular)
 
     /// Hover chrome geometry (spec 2.3).
-    static let toolbarHeight: CGFloat = 44
-    static let statusLineHeight: CGFloat = 14
-    static let chromeMargin: CGFloat = 10
-    static let hoverZoneHeight: CGFloat = 28
+    static let toolbarHeight = CGFloat(ChromeGeometry.toolbarHeight)
+    static let statusLineHeight = CGFloat(ChromeGeometry.statusLineHeight)
+    static let chromeMargin = CGFloat(ChromeGeometry.margin)
     static let revealDuration: TimeInterval = 0.2
     static let hideDelay: TimeInterval = 1.2
 
     /// Glyph size inside status screens and toolbar.
     static let statusGlyphPointSize: CGFloat = 40
     static let toolbarGlyphPointSize: CGFloat = 13
-    static let toolbarButtonSize: CGFloat = 22
-    static let toolbarSpacing: CGFloat = 2
 
     static let darkAppearance = NSAppearance(named: .darkAqua)
 
-    /// Space the chrome adds around the screen while revealed.
-    static var chromeInsets: NSEdgeInsets {
-        NSEdgeInsets(top: toolbarHeight + statusLineHeight, left: chromeMargin, bottom: chromeMargin, right: chromeMargin)
+    /// Space the chrome adds around the screen for a reveal progress 0…1.
+    static func chromeInsets(progress: CGFloat) -> NSEdgeInsets {
+        let i = ChromeGeometry.insets(progress: Double(progress))
+        return NSEdgeInsets(top: i.top, left: i.left, bottom: i.bottom, right: i.right)
+    }
+
+    /// Monochrome SF Symbol image at a point size.
+    static func symbol(_ name: String, size: CGFloat, weight: NSFont.Weight = .regular) -> NSImage? {
+        NSImage(systemSymbolName: name, accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: size, weight: weight))
     }
 
     /// One device pixel for hairlines.
