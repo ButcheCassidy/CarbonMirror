@@ -1,0 +1,47 @@
+{
+  "cases": [
+    {
+      "name": "usb pixel",
+      "input": "List of devices attached\n3A091FDJH00ABC         device usb:1-1 product:mustang model:Pixel_10_Pro_XL device:mustang transport_id:3\n\n",
+      "expect": ["3A091FDJH00ABC\tdevice\tPixel_10_Pro_XL\t3\tusb"]
+    },
+    {
+      "name": "wireless mdns + ip",
+      "input": "List of devices attached\nadb-3A091FDJH00ABC-Ab12Cd._adb-tls-connect._tcp device product:mustang model:Pixel_10_Pro_XL device:mustang transport_id:4\n192.168.1.20:37099 device product:mustang model:Pixel_10_Pro_XL device:mustang transport_id:5\n",
+      "expect": [
+        "adb-3A091FDJH00ABC-Ab12Cd._adb-tls-connect._tcp\tdevice\tPixel_10_Pro_XL\t4\twireless",
+        "192.168.1.20:37099\tdevice\tPixel_10_Pro_XL\t5\twireless"
+      ]
+    },
+    {
+      "name": "unauthorized has no model",
+      "input": "List of devices attached\n3A091FDJH00ABC unauthorized usb:1-1 transport_id:7\n",
+      "expect": ["3A091FDJH00ABC\tunauthorized\t\t7\tusb"]
+    },
+    {
+      "name": "hostile model and serial dropped",
+      "input": "List of devices attached\n3A09 device model:Pixel;rm_-rf transport_id:1\n-evil device transport_id:2\nGOOD1 device model:$(reboot) transport_id:3\nGOOD2 device model:Ok transport_id:99999999999\nGOOD3 weird_state transport_id:4\nGOOD4 device transport_id:5\n",
+      "expect": ["GOOD4\tdevice\t\t5\twireless"]
+    },
+    {
+      "name": "daemon start lines skipped",
+      "input": "* daemon not running; starting now at tcp:127.0.0.1:20417\n* daemon started successfully\nList of devices attached\n",
+      "expect": []
+    },
+    {
+      "name": "invalid utf8",
+      "input_hex": "4c697374ff0a",
+      "expect_status": "InvalidUtf8"
+    }
+  ],
+  "track_frames": [
+    { "input": "", "expect_status": "NeedMoreData" },
+    { "input": "00", "expect_status": "NeedMoreData" },
+    { "input": "0005abc", "expect_status": "NeedMoreData" },
+    { "input": "0005abcde", "expect_offset": 4, "expect_len": 5 },
+    { "input": "0000", "expect_offset": 4, "expect_len": 0 },
+    { "input": "zzzz", "expect_status": "ParseMalformed" },
+    { "input": "-001", "expect_status": "ParseMalformed" }
+  ],
+  "too_large_bytes": 65537
+}

@@ -25,3 +25,8 @@ DerivedData/
 xcuserdata/
 *.xcarchive
 .build/
+
+# Build outputs
+rust/target/
+dist/
+deps/

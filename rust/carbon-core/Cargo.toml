@@ -1,0 +1,21 @@
+[package]
+name = "carbon-core"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0"
+description = "CarbonMirror security core: protocol parsing, policy and TLS, shared by the Mac app and the phone server."
+publish = false
+
+[lib]
+name = "carbon_core"
+crate-type = ["lib", "staticlib", "cdylib"]
+
+[dependencies]
+aws-lc-rs = "1"
+
+[dev-dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+proptest = "1"
+
