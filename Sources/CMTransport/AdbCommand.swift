@@ -46,7 +46,7 @@ public struct ServerOptions: Equatable, Sendable {
             "video_source=display", "display_id=0", "video_codec=\(codec.rawValue)", "max_size=\(maxSize)",
             "max_fps=\(maxFPS)", "video_bit_rate=\(bitRate)", "clipboard_autosync=\(clipboardAutosync)",
             "stay_awake=\(stayAwake)", "send_device_meta=true", "send_frame_meta=true", "send_dummy_byte=true",
-            "send_codec_meta=true", "cleanup=true", "power_on=true",
+            "send_stream_meta=true", "cleanup=true", "power_on=true",
         ]
     }
 }

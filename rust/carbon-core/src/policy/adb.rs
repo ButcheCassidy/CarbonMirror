@@ -94,16 +94,14 @@ fn check_server_param(param: &str) -> CmResult<&str> {
         "log_level" => one_of(value, &["verbose", "debug", "info", "warn", "error"])?,
         "audio" => one_of(value, &["false"])?,
         "video" | "control" | "tunnel_forward" | "send_device_meta" | "send_frame_meta" | "send_dummy_byte"
-        | "send_codec_meta" | "cleanup" | "power_on" => one_of(value, &["true"])?,
-        "clipboard_autosync" | "stay_awake" | "show_touches" | "power_off_on_close" | "downsize_on_error" => {
-            one_of(value, &bools)?
-        }
+        | "send_stream_meta" | "cleanup" | "power_on" => one_of(value, &["true"])?,
+        "clipboard_autosync" | "stay_awake" => one_of(value, &bools)?,
         "video_codec" => one_of(value, &["h264", "h265"])?,
         "video_source" => one_of(value, &["display"])?,
         "display_id" => one_of(value, &["0"])?,
-        "max_size" => parse_uint(value, 0, 8192).map(|_| ())?,
+        "max_size" => parse_uint(value, 0, 4096).map(|_| ())?,
         "max_fps" => parse_uint(value, 1, 240).map(|_| ())?,
-        "video_bit_rate" => parse_uint(value, 100_000, 200_000_000).map(|_| ())?,
+        "video_bit_rate" => parse_uint(value, 100_000, 100_000_000).map(|_| ())?,
         _ => return Err(CmStatus::AdbBadArgument),
     }
     Ok(key)
