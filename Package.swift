@@ -37,7 +37,7 @@ let package = Package(
         .executableTarget(name: "CarbonMirrorApp", dependencies: ["CMUI", "CMCore", "CMTransport"]),
         .testTarget(
             name: "CMTests",
-            dependencies: ["CMCore", "CMCoreBridge", "CMTransport", "CMInput", "CMSecurity"],
+            dependencies: ["CMCore", "CMCoreBridge", "CMTransport", "CMInput", "CMSecurity", "CMMedia"],
             exclude: ["Fixtures"]
         ),
     ]
