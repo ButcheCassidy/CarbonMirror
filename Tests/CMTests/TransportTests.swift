@@ -132,7 +132,7 @@ struct TransportTests {
     @Test func supervisorRestartsAfterCrash() async throws {
         let fake = try FakeAdb()
         defer { fake.remove() }
-        FileManager.default.createFile(atPath: fake.directory.appendingPathComponent("crash-once").path, contents: Data())
+        #expect(FileManager.default.createFile(atPath: fake.directory.appendingPathComponent("crash-once").path, contents: Data()))
         let supervisor = AdbSupervisor(runner: fake.runner)
         try await supervisor.start()
         let deadline = Date().addingTimeInterval(5)

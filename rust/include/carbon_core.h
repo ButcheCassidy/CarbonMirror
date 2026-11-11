@@ -9,7 +9,7 @@
 /**
  * Version of the C ABI in `rust/include/carbon_core.h`; bump on any signature change.
  */
-#define ABI_VERSION 1
+#define ABI_VERSION 2
 
 /**
  * SHA-256 output length.
@@ -35,6 +35,18 @@
  * Legacy plaintext `adb tcpip` port — refused outright (Wireless debugging uses TLS on random ports).
  */
 #define LEGACY_TCPIP_PORT 5555
+
+/**
+ * QR codes are valid this long.
+ */
+#define CODE_LIFETIME_SECS 120
+
+/**
+ * Random service-name suffix length and password length (base-62 → ≥ 130 bits).
+ */
+#define SERVICE_SUFFIX_LEN 10
+
+#define PASSWORD_LEN 22
 
 /**
  * Smallest window relative to the real phone.
@@ -67,6 +79,169 @@
 #define MAX_DEVICES 32
 
 /**
+ * adb packet header length.
+ */
+#define HEADER_LEN 24
+
+#define A_CNXN 1314410051
+
+#define A_AUTH 1213486401
+
+#define A_STLS 1397511251
+
+/**
+ * adb protocol version that understands STLS.
+ */
+#define A_VERSION 16777217
+
+#define A_STLS_VERSION 16777216
+
+/**
+ * scrcpy message type ids.
+ */
+#define TYPE_INJECT_KEYCODE 0
+
+#define TYPE_INJECT_TEXT 1
+
+#define TYPE_INJECT_TOUCH 2
+
+#define TYPE_INJECT_SCROLL 3
+
+#define TYPE_BACK_OR_SCREEN_ON 4
+
+#define TYPE_EXPAND_NOTIFICATIONS 5
+
+#define TYPE_EXPAND_SETTINGS 6
+
+#define TYPE_COLLAPSE_PANELS 7
+
+#define TYPE_GET_CLIPBOARD 8
+
+#define TYPE_SET_CLIPBOARD 9
+
+#define TYPE_SET_DISPLAY_POWER 10
+
+#define TYPE_ROTATE_DEVICE 11
+
+#define TYPE_UHID_CREATE 12
+
+#define TYPE_UHID_INPUT 13
+
+#define TYPE_UHID_DESTROY 14
+
+#define TYPE_OPEN_HARD_KEYBOARD_SETTINGS 15
+
+#define TYPE_START_APP 16
+
+#define TYPE_RESET_VIDEO 17
+
+/**
+ * The server's own cap on injected text (scrcpy `INJECT_TEXT_MAX_LENGTH`).
+ */
+#define MAX_INJECT_TEXT 300
+
+/**
+ * Package names for "start app" (scrcpy uses a 1-byte length).
+ */
+#define MAX_APP_NAME 255
+
+/**
+ * UHID descriptor/report caps (scrcpy uses 2-byte lengths; keyboards need far less).
+ */
+#define MAX_UHID_DATA 1024
+
+#define MAX_UHID_NAME 127
+
+/**
+ * `dumpsys display` is a few hundred KB at most.
+ */
+#define MAX_DUMPSYS_BYTES ((4 * 1024) * 1024)
+
+/**
+ * Plausible corner radius range, pixels.
+ */
+#define MAX_RADIUS_PX 1000
+
+/**
+ * Points of trackpad scrolling that make one scrcpy scroll unit.
+ */
+#define PRECISE_POINTS_PER_UNIT 24.0
+
+/**
+ * scrcpy's scroll range per event.
+ */
+#define MAX_SCROLL_UNITS 16.0
+
+/**
+ * NSEvent.ModifierFlags raw bits.
+ */
+#define MAC_SHIFT (1 << 17)
+
+#define MAC_CONTROL (1 << 18)
+
+#define MAC_OPTION (1 << 19)
+
+#define MAC_COMMAND (1 << 20)
+
+/**
+ * HID boot-keyboard report: 1 modifier byte, 1 reserved, 6 key slots.
+ */
+#define HID_REPORT_LEN 8
+
+/**
+ * Device-name field at the start of the first socket.
+ */
+#define DEVICE_NAME_LEN 64
+
+/**
+ * Video packet header: 8-byte PTS + flags, 4-byte size (session packets: flags, width, height).
+ */
+#define VIDEO_HEADER_LEN 12
+
+/**
+ * Largest video packet accepted (a 1344×2992 H.264 keyframe at 32 Mbit/s is far smaller).
+ */
+#define MAX_VIDEO_PACKET ((8 * 1024) * 1024)
+
+/**
+ * Largest frame dimension accepted from a session packet.
+ */
+#define MAX_DIMENSION 8192
+
+/**
+ * Clipboard text cap in both directions (spec A7: 1 MB).
+ */
+#define MAX_CLIPBOARD_BYTES (1024 * 1024)
+
+/**
+ * Largest UHID output report accepted from the phone.
+ */
+#define MAX_UHID_OUTPUT 64
+
+/**
+ * Device-message types the Mac accepts (everything else ends the session).
+ */
+#define DEVICE_MSG_CLIPBOARD 0
+
+#define DEVICE_MSG_ACK_CLIPBOARD 1
+
+#define DEVICE_MSG_UHID_OUTPUT 2
+
+/**
+ * CarbonMirror fork: fixed-size battery status (level 0–100, charging 0/1).
+ */
+#define DEVICE_MSG_BATTERY 64
+
+#define KEY_UPDATE_BYTES (((4 * 1024) * 1024) * 1024)
+
+/**
+ * TLS status flags returned by [`Session::status`].
+ */
+#define STATUS_HANDSHAKING 1
+
+#define STATUS_WANTS_WRITE (1 << 1)
+
+/**
  * Result code of every carbon-core operation. `Ok` is zero; everything else is a refusal or error.
  */
 enum CmStatus
@@ -97,6 +272,19 @@ enum CmStatus
   CmStatus_DigestMismatch = 50,
   CmStatus_ParseMalformed = 60,
   CmStatus_ParseTooLarge = 61,
+  CmStatus_InputOutside = 70,
+  CmStatus_TlsHandshakeFailed = 80,
+  CmStatus_TlsPinMismatch = 81,
+  CmStatus_TlsPolicyViolation = 82,
+  CmStatus_TlsClosed = 83,
+  CmStatus_TlsTimeout = 84,
+  CmStatus_TlsFailed = 85,
+  CmStatus_PairingCodeExpired = 90,
+  CmStatus_PairingCodeUsed = 91,
+  CmStatus_TrustNotPaired = 92,
+  CmStatus_TrustUnknownDevice = 93,
+  CmStatus_TrustIdentityChanged = 94,
+  CmStatus_AdbProbeMalformed = 100,
 };
 #if __STDC_VERSION__ >= 202311L
 typedef enum CmStatus CmStatus;
@@ -161,6 +349,21 @@ typedef uint32_t CmUiState;
 #endif // __STDC_VERSION__ >= 202311L
 
 /**
+ * A single-use QR pairing code (opaque).
+ */
+typedef struct CmPairing CmPairing;
+
+/**
+ * One side's TLS configuration (opaque).
+ */
+typedef struct CmTlsIdentity CmTlsIdentity;
+
+/**
+ * One TLS connection (opaque). Not thread-safe: use from one thread at a time.
+ */
+typedef struct CmTlsSession CmTlsSession;
+
+/**
  * Width/height pair in points or pixels.
  */
 typedef struct CmSize {
@@ -177,6 +380,67 @@ typedef struct CmInsets {
   double bottom;
   double right;
 } CmInsets;
+
+/**
+ * Video header as seen by C: `kind` 1 session, 2 config, 3 frame.
+ */
+typedef struct CmVideoHeader {
+  uint32_t kind;
+  uint32_t key_frame;
+  uint64_t pts;
+  uint32_t size;
+  uint32_t width;
+  uint32_t height;
+} CmVideoHeader;
+
+/**
+ * Device message as seen by C: `kind` is the scrcpy type byte; payload at `offset`/`len` in the input.
+ */
+typedef struct CmDeviceMessage {
+  uint32_t kind;
+  size_t consumed;
+  size_t offset;
+  size_t len;
+  uint64_t sequence;
+  uint16_t id;
+  uint8_t level;
+  uint8_t charging;
+} CmDeviceMessage;
+
+/**
+ * A touch/scroll position: phone pixel coordinates plus the frame size they refer to.
+ */
+typedef struct CmPosition {
+  int32_t x;
+  int32_t y;
+  uint16_t frame_width;
+  uint16_t frame_height;
+} CmPosition;
+
+/**
+ * Rectangle in view points, origin top-left.
+ */
+typedef struct CmRect {
+  double x;
+  double y;
+  double w;
+  double h;
+} CmRect;
+
+/**
+ * Signs `msg` with the Mac identity key; writes a DER ECDSA signature. Returns 0 on success.
+ */
+typedef int32_t (*CmSignCallback)(void *ctx,
+                                  const uint8_t *msg,
+                                  size_t msg_len,
+                                  uint8_t *out,
+                                  size_t out_cap,
+                                  size_t *out_len);
+
+/**
+ * Report descriptor of the virtual keyboard (boot keyboard with LED output report).
+ */
+#define HID_KEYBOARD_DESCRIPTOR { 5, 1, 9, 6, 161, 1, 5, 7, 25, 224, 41, 231, 21, 0, 37, 1, 117, 1, 149, 8, 129, 2, 117, 8, 149, 1, 129, 1, 5, 8, 25, 1, 41, 5, 117, 1, 149, 5, 145, 2, 117, 3, 149, 1, 145, 1, 5, 7, 25, 0, 41, 101, 21, 0, 37, 101, 117, 8, 149, 6, 129, 0, 192, }
 
 /**
  * Version of this C ABI; the Swift bridge refuses to run against a different one.
@@ -327,5 +591,475 @@ int32_t cm_sha256_verify(const uint8_t *data,
  * `out` writable for `len` bytes.
  */
 int32_t cm_random(uint8_t *out, size_t len);
+
+/**
+ * Length of the UTF-8 device name at the start of the 64-byte meta field.
+ *
+ * # Safety
+ * `buf` readable for `buf_len`; `out_len` a valid writable `size_t`.
+ */
+int32_t cm_proto_device_name(const uint8_t *buf, size_t buf_len, size_t *out_len);
+
+/**
+ * Codec id after the device meta: 1 H.264, 2 H.265.
+ *
+ * # Safety
+ * `buf` readable for `buf_len`; `out_codec` a valid writable `uint32_t`.
+ */
+int32_t cm_proto_codec(const uint8_t *buf, size_t buf_len, uint32_t *out_codec);
+
+/**
+ * Parses one 12-byte video header.
+ *
+ * # Safety
+ * `buf` readable for `buf_len`; `out` a valid writable `CmVideoHeader`.
+ */
+int32_t cm_proto_video_header(const uint8_t *buf, size_t buf_len, struct CmVideoHeader *out);
+
+/**
+ * Parses one device message (allowlist: clipboard text, clipboard ack, UHID output, battery).
+ *
+ * # Safety
+ * `buf` readable for `buf_len`; `out` a valid writable `CmDeviceMessage`.
+ */
+int32_t cm_proto_device_message(const uint8_t *buf, size_t buf_len, struct CmDeviceMessage *out);
+
+/**
+ * Rounded-corner radius (pixels) from `dumpsys display` text.
+ *
+ * # Safety
+ * `text` readable for `text_len`; `out` a valid writable `uint32_t`.
+ */
+int32_t cm_display_corner_radius(const uint8_t *text, size_t text_len, uint32_t *out);
+
+/**
+ * Clipboard filter: plain UTF-8 text, no NUL, ≤ 1 MB.
+ *
+ * # Safety
+ * `text` readable for `text_len`.
+ */
+int32_t cm_clipboard_check(const uint8_t *text, size_t text_len);
+
+/**
+ * Payload-free or single-byte control message (`kind` = `Simple` value).
+ *
+ * # Safety
+ * `out` writable for `cap`; `written` a valid writable `size_t`.
+ */
+int32_t cm_ctrl_simple(uint32_t kind, uint8_t *out, size_t cap, size_t *written);
+
+/**
+ * Android key event.
+ *
+ * # Safety
+ * As [`cm_ctrl_simple`].
+ */
+int32_t cm_ctrl_keycode(uint8_t action,
+                        int32_t keycode,
+                        int32_t repeat,
+                        int32_t meta,
+                        uint8_t *out,
+                        size_t cap,
+                        size_t *written);
+
+/**
+ * Injected text (≤ 300 bytes).
+ *
+ * # Safety
+ * `text` readable for `text_len`; otherwise as [`cm_ctrl_simple`].
+ */
+int32_t cm_ctrl_text(const uint8_t *text,
+                     size_t text_len,
+                     uint8_t *out,
+                     size_t cap,
+                     size_t *written);
+
+/**
+ * Touch event.
+ *
+ * # Safety
+ * As [`cm_ctrl_simple`].
+ */
+int32_t cm_ctrl_touch(uint8_t action,
+                      int64_t pointer_id,
+                      struct CmPosition position,
+                      float pressure,
+                      int32_t action_button,
+                      int32_t buttons,
+                      uint8_t *out,
+                      size_t cap,
+                      size_t *written);
+
+/**
+ * Scroll event (`h`/`v` in scrcpy units).
+ *
+ * # Safety
+ * As [`cm_ctrl_simple`].
+ */
+int32_t cm_ctrl_scroll(struct CmPosition position,
+                       float h,
+                       float v,
+                       int32_t buttons,
+                       uint8_t *out,
+                       size_t cap,
+                       size_t *written);
+
+/**
+ * Sets the phone clipboard (filtered: plain text ≤ 1 MB).
+ *
+ * # Safety
+ * `text` readable for `text_len`; otherwise as [`cm_ctrl_simple`].
+ */
+int32_t cm_ctrl_set_clipboard(int64_t sequence,
+                              uint8_t paste,
+                              const uint8_t *text,
+                              size_t text_len,
+                              uint8_t *out,
+                              size_t cap,
+                              size_t *written);
+
+/**
+ * Creates the virtual UHID keyboard.
+ *
+ * # Safety
+ * `name`/`descriptor` readable for their lengths; otherwise as [`cm_ctrl_simple`].
+ */
+int32_t cm_ctrl_uhid_create(uint16_t id,
+                            uint16_t vendor,
+                            uint16_t product,
+                            const uint8_t *name,
+                            size_t name_len,
+                            const uint8_t *descriptor,
+                            size_t descriptor_len,
+                            uint8_t *out,
+                            size_t cap,
+                            size_t *written);
+
+/**
+ * Sends one UHID input report.
+ *
+ * # Safety
+ * `report` readable for `report_len`; otherwise as [`cm_ctrl_simple`].
+ */
+int32_t cm_ctrl_uhid_input(uint16_t id,
+                           const uint8_t *report,
+                           size_t report_len,
+                           uint8_t *out,
+                           size_t cap,
+                           size_t *written);
+
+/**
+ * Removes the virtual UHID keyboard.
+ *
+ * # Safety
+ * As [`cm_ctrl_simple`].
+ */
+int32_t cm_ctrl_uhid_destroy(uint16_t id, uint8_t *out, size_t cap, size_t *written);
+
+/**
+ * Launches an app by package name.
+ *
+ * # Safety
+ * `package` readable for `package_len`; otherwise as [`cm_ctrl_simple`].
+ */
+int32_t cm_ctrl_start_app(const uint8_t *package,
+                          size_t package_len,
+                          uint8_t *out,
+                          size_t cap,
+                          size_t *written);
+
+/**
+ * Where the video sits inside the view (aspect fit).
+ *
+ * # Safety
+ * `out` a valid writable `CmRect`.
+ */
+int32_t cm_input_letterbox(double view_w,
+                           double view_h,
+                           uint16_t frame_w,
+                           uint16_t frame_h,
+                           struct CmRect *out);
+
+/**
+ * View point → phone pixels (`clamp` non-zero while dragging).
+ *
+ * # Safety
+ * `out` a valid writable `CmPosition`.
+ */
+int32_t cm_input_map_point(struct CmRect content,
+                           double x,
+                           double y,
+                           uint16_t frame_w,
+                           uint16_t frame_h,
+                           uint8_t clamp,
+                           struct CmPosition *out);
+
+/**
+ * Mac scroll delta → scrcpy scroll units.
+ *
+ * # Safety
+ * `out` a valid writable `float`.
+ */
+int32_t cm_input_scroll_units(double delta, uint8_t precise, float *out);
+
+/**
+ * Two-finger pinch positions around `center`.
+ *
+ * # Safety
+ * `out_a`/`out_b` valid writable `CmPosition`s.
+ */
+int32_t cm_input_pinch(struct CmPosition center,
+                       double spread,
+                       struct CmPosition *out_a,
+                       struct CmPosition *out_b);
+
+/**
+ * 8-byte HID keyboard report for modifier flags + held macOS key codes (≤ 64).
+ *
+ * # Safety
+ * `held` null or readable, aligned for `held_count` `uint16_t`; `out` writable for 8 bytes.
+ */
+int32_t cm_key_hid_report(uint32_t mac_flags,
+                          const uint16_t *held,
+                          size_t held_count,
+                          uint8_t *out);
+
+/**
+ * The virtual keyboard's HID report descriptor.
+ *
+ * # Safety
+ * `out` writable for `cap`; `out_len` a valid writable `size_t`.
+ */
+int32_t cm_key_hid_descriptor(uint8_t *out, size_t cap, size_t *out_len);
+
+/**
+ * macOS key code → Android key code and meta state ("Phone keyboard" mode).
+ *
+ * # Safety
+ * `out_keycode`/`out_meta` valid writable `int32_t`s.
+ */
+int32_t cm_key_android(uint16_t mac_code,
+                       uint32_t mac_flags,
+                       int32_t *out_keycode,
+                       int32_t *out_meta);
+
+/**
+ * adb `CNXN` hello for the plaintext/TLS probe.
+ *
+ * # Safety
+ * `out` writable for `cap`; `written` a valid writable `size_t`.
+ */
+int32_t cm_adb_probe_hello(uint8_t *out, size_t cap, size_t *written);
+
+/**
+ * adb `STLS` reply that starts TLS (fingerprint probe only).
+ *
+ * # Safety
+ * As [`cm_adb_probe_hello`].
+ */
+int32_t cm_adb_probe_stls(uint8_t *out, size_t cap, size_t *written);
+
+/**
+ * Classifies the phone's first adb packet: 1 TLS required (allowed), 2 plaintext (refused).
+ *
+ * # Safety
+ * `buf` readable for `buf_len`; `out_answer` a valid writable `uint32_t`.
+ */
+int32_t cm_adb_probe_classify(const uint8_t *buf, size_t buf_len, uint32_t *out_answer);
+
+/**
+ * New random pairing code created at `now` (Unix seconds).
+ *
+ * # Safety
+ * `out` a valid writable pointer; free the result with [`cm_pairing_free`].
+ */
+int32_t cm_pairing_new(uint64_t now, struct CmPairing **out);
+
+/**
+ * `field`: 0 QR payload, 1 service name, 2 password.
+ *
+ * # Safety
+ * `code` from [`cm_pairing_new`]; `out` writable for `cap`; `out_len` a valid writable `size_t`.
+ */
+int32_t cm_pairing_field(const struct CmPairing *code,
+                         uint32_t field,
+                         uint8_t *out,
+                         size_t cap,
+                         size_t *out_len);
+
+/**
+ * Uses the code once; fails when used before or older than 120 s.
+ *
+ * # Safety
+ * `code` null or a live handle from [`cm_pairing_new`].
+ */
+int32_t cm_pairing_consume(struct CmPairing *code, uint64_t now);
+
+/**
+ * Frees a pairing code.
+ *
+ * # Safety
+ * `code` null or a handle from [`cm_pairing_new`] not used afterwards.
+ */
+void cm_pairing_free(struct CmPairing *code);
+
+/**
+ * Pin check: a zero `pinned_serial_len` means nothing is paired; a zero `key_hash_len` means USB (no key).
+ *
+ * # Safety
+ * Every pointer readable for its length.
+ */
+int32_t cm_trust_check(const uint8_t *pinned_serial,
+                       size_t pinned_serial_len,
+                       const uint8_t *pinned_hash,
+                       size_t pinned_hash_len,
+                       const uint8_t *serial,
+                       size_t serial_len,
+                       const uint8_t *key_hash,
+                       size_t key_hash_len);
+
+/**
+ * Self-signed CA certificate for the Mac identity key (made once per key).
+ *
+ * # Safety
+ * As [`signer`]; `out` writable for `cap`; `out_len` a valid writable `size_t`.
+ */
+int32_t cm_tls_make_identity_ca(const uint8_t *public_key,
+                                size_t public_key_len,
+                                CmSignCallback callback,
+                                void *ctx,
+                                uint8_t *out,
+                                size_t cap,
+                                size_t *out_len);
+
+/**
+ * Mac: per-session client identity, pinning the phone's session key hash (32 bytes).
+ *
+ * # Safety
+ * As [`signer`]; `phone_pin` readable for 32 bytes; `out` a valid writable pointer.
+ */
+int32_t cm_tls_client_identity_new(const uint8_t *public_key,
+                                   size_t public_key_len,
+                                   CmSignCallback callback,
+                                   void *ctx,
+                                   const uint8_t *phone_pin,
+                                   struct CmTlsIdentity **out);
+
+/**
+ * Phone (and test peer): per-start server identity that trusts only the pinned Mac CA.
+ *
+ * # Safety
+ * `mac_ca` readable for `mac_ca_len`; `out` a valid writable pointer.
+ */
+int32_t cm_tls_server_identity_new(const uint8_t *mac_ca,
+                                   size_t mac_ca_len,
+                                   struct CmTlsIdentity **out);
+
+/**
+ * Server identity's public-key hash (32 bytes) for the Mac to pin.
+ *
+ * # Safety
+ * `identity` null or live; `out` writable for 32 bytes.
+ */
+int32_t cm_tls_identity_pin(const struct CmTlsIdentity *identity, uint8_t *out);
+
+/**
+ * Frees an identity (sessions made from it stay valid).
+ *
+ * # Safety
+ * `identity` null or a handle not used afterwards.
+ */
+void cm_tls_identity_free(struct CmTlsIdentity *identity);
+
+/**
+ * New TLS connection for an identity.
+ *
+ * # Safety
+ * `identity` null or live; `out` a valid writable pointer.
+ */
+int32_t cm_tls_session_new(const struct CmTlsIdentity *identity, struct CmTlsSession **out);
+
+/**
+ * Capture-only client for the adb TLS key probe.
+ *
+ * # Safety
+ * `out` a valid writable pointer.
+ */
+int32_t cm_tls_capture_new(struct CmTlsSession **out);
+
+/**
+ * Feeds received ciphertext.
+ *
+ * # Safety
+ * `s` live; `data` readable for `len`.
+ */
+int32_t cm_tls_read_tls(struct CmTlsSession *s, const uint8_t *data, size_t len);
+
+/**
+ * Takes ciphertext to send.
+ *
+ * # Safety
+ * `s` live; `out` writable for `cap`; `written` a valid writable `size_t`.
+ */
+int32_t cm_tls_write_tls(struct CmTlsSession *s, uint8_t *out, size_t cap, size_t *written);
+
+/**
+ * Takes decrypted application data (0 bytes when none is pending).
+ *
+ * # Safety
+ * As [`cm_tls_write_tls`].
+ */
+int32_t cm_tls_read_plain(struct CmTlsSession *s, uint8_t *out, size_t cap, size_t *read);
+
+/**
+ * Queues application data for encryption.
+ *
+ * # Safety
+ * `s` live; `data` readable for `len`; `consumed` a valid writable `size_t`.
+ */
+int32_t cm_tls_write_plain(struct CmTlsSession *s,
+                           const uint8_t *data,
+                           size_t len,
+                           size_t *consumed);
+
+/**
+ * Status flags: 1 handshaking, 2 wants write.
+ *
+ * # Safety
+ * `s` live; `out` a valid writable `uint32_t`.
+ */
+int32_t cm_tls_status(struct CmTlsSession *s, uint32_t *out);
+
+/**
+ * Negotiated suite and group (IANA ids).
+ *
+ * # Safety
+ * `s` live; out-pointers valid writable `uint16_t`s.
+ */
+int32_t cm_tls_negotiated(struct CmTlsSession *s, uint16_t *suite, uint16_t *group);
+
+/**
+ * Public-key hash captured by a probe session (32 bytes).
+ *
+ * # Safety
+ * `s` live; `out` writable for 32 bytes.
+ */
+int32_t cm_tls_captured_pin(struct CmTlsSession *s, uint8_t *out);
+
+/**
+ * Queues close_notify.
+ *
+ * # Safety
+ * `s` live.
+ */
+int32_t cm_tls_close(struct CmTlsSession *s);
+
+/**
+ * Frees a session and wipes its keys.
+ *
+ * # Safety
+ * `s` null or a handle not used afterwards.
+ */
+void cm_tls_session_free(struct CmTlsSession *s);
 
 #endif  /* CARBON_CORE_H */
