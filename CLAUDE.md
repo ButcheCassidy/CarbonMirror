@@ -13,8 +13,8 @@ git config user.email "354005634+ButcheCassidy@users.noreply.github.com"
 - No "Generated with Claude Code" lines, session IDs or claude.ai session links in commits, code, docs, PR titles/bodies or comments.
 
 ## Workflow
-- Never commit directly to `main`. Branch → push → draft PR.
-- Merge only when the owner says so.
+- All work is committed and pushed directly to `main`. No feature branches, no PRs.
+- Before committing: `git pull --ff-only origin main`; run the relevant build/tests; never force-push `main`.
 - Releases: see `docs/RELEASING.md` (tag `vX.Y.Z` or run the Release workflow).
 
 ## Security / encryption
