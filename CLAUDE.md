@@ -1,0 +1,23 @@
+# CarbonMirror — project rules
+
+Android → Mac screen mirroring, full duplex. Layout: `android/` (Gradle, Kotlin), `macos/` (Xcode, Swift).
+
+## Git identity (mandatory)
+Before any commit, run:
+```bash
+git config user.name "ButcheCassidy"
+git config user.email "354005634+ButcheCassidy@users.noreply.github.com"
+```
+- All commits and tags are authored as ButcheCassidy with the GitHub noreply email.
+- No `Co-Authored-By` or other AI attribution trailers in commit messages.
+
+## Workflow
+- Never commit directly to `main`. Branch → push → draft PR.
+- Merge only when the owner says so.
+- Releases: see `docs/RELEASING.md` (tag `vX.Y.Z` or run the Release workflow).
+
+## Security / encryption
+- Never commit secrets, keystores, `.p12`, `.env`, `local.properties`. Secrets live in GitHub Environment `release`.
+- Mirroring/control channels must be encrypted and authenticated (e.g. TLS 1.3 / DTLS or Noise with pinned keys from a pairing step). No plaintext transport, including on LAN.
+- Use platform keystores (Android Keystore, macOS Keychain) for long-term keys.
+- Responses: structured, concise, no filler.

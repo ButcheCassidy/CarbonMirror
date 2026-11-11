@@ -1,0 +1,27 @@
+# Secrets / signing material
+*.jks
+*.keystore
+*.p12
+*.mobileprovision
+*.provisionprofile
+.env
+.env.*
+local.properties
+google-services.json
+GoogleService-Info.plist
+
+# Android
+.gradle/
+build/
+captures/
+*.apk
+*.aab
+.idea/
+*.iml
+
+# macOS / Xcode
+.DS_Store
+DerivedData/
+xcuserdata/
+*.xcarchive
+.build/
