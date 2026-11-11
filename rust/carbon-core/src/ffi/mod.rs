@@ -430,6 +430,9 @@ pub unsafe extern "C" fn cm_proto_device_message(buf: *const u8, buf_len: usize,
             scrcpy::DeviceMessage::UhidOutput { id, offset, len } => {
                 CmDeviceMessage { kind: u32::from(scrcpy::DEVICE_MSG_UHID_OUTPUT), consumed, offset, len, id, ..Default::default() }
             }
+            scrcpy::DeviceMessage::Pong { value } => {
+                CmDeviceMessage { kind: u32::from(scrcpy::DEVICE_MSG_PONG), consumed, sequence: value, ..Default::default() }
+            }
             scrcpy::DeviceMessage::Battery { level, charging } => CmDeviceMessage {
                 kind: u32::from(scrcpy::DEVICE_MSG_BATTERY),
                 consumed,
@@ -602,6 +605,16 @@ pub unsafe extern "C" fn cm_ctrl_uhid_input(id: u16, report: *const u8, report_l
 pub unsafe extern "C" fn cm_ctrl_uhid_destroy(id: u16, out: *mut u8, cap: usize, written: *mut usize) -> i32 {
     // SAFETY: caller contract on `out` and `written`.
     guard(|| unsafe { encode(out, cap, written, |b| control::uhid_destroy(id, b)) })
+}
+
+/// Control-channel ping (answered by a pong device message).
+///
+/// # Safety
+/// As [`cm_ctrl_simple`].
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn cm_ctrl_ping(value: u64, out: *mut u8, cap: usize, written: *mut usize) -> i32 {
+    // SAFETY: caller contract on `out` and `written`.
+    guard(|| unsafe { encode(out, cap, written, |b| control::ping(value, b)) })
 }
 
 /// Launches an app by package name.

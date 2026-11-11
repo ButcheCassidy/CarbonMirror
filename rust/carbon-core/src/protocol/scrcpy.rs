@@ -14,11 +14,11 @@ pub const CODEC_H265: u32 = u32::from_be_bytes(*b"h265");
 /// Video packet header: 8-byte PTS + flags, 4-byte size (session packets: flags, width, height).
 pub const VIDEO_HEADER_LEN: usize = 12;
 /// Largest video packet accepted (a 1344×2992 H.264 keyframe at 32 Mbit/s is far smaller).
-pub const MAX_VIDEO_PACKET: u32 = 8 * 1024 * 1024;
+pub const MAX_VIDEO_PACKET: u32 = 8 << 20;
 /// Largest frame dimension accepted from a session packet.
 pub const MAX_DIMENSION: u32 = 8192;
 /// Clipboard text cap in both directions (spec A7: 1 MB).
-pub const MAX_CLIPBOARD_BYTES: usize = 1024 * 1024;
+pub const MAX_CLIPBOARD_BYTES: usize = 1 << 20;
 /// Largest UHID output report accepted from the phone.
 pub const MAX_UHID_OUTPUT: usize = 64;
 
@@ -33,6 +33,8 @@ pub const DEVICE_MSG_ACK_CLIPBOARD: u8 = 1;
 pub const DEVICE_MSG_UHID_OUTPUT: u8 = 2;
 /// CarbonMirror fork: fixed-size battery status (level 0–100, charging 0/1).
 pub const DEVICE_MSG_BATTERY: u8 = 0x40;
+/// CarbonMirror fork: answer to a control-channel ping (round-trip latency).
+pub const DEVICE_MSG_PONG: u8 = 0x41;
 
 /// Video codec announced by the server.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -116,6 +118,7 @@ pub enum DeviceMessage {
     AckClipboard { sequence: u64 },
     UhidOutput { id: u16, offset: usize, len: usize },
     Battery { level: u8, charging: bool },
+    Pong { value: u64 },
 }
 
 /// Parses one device message at the start of `buf`; returns it and the bytes it used.
@@ -141,6 +144,7 @@ pub fn parse_device_message(buf: &[u8]) -> CmResult<(DeviceMessage, usize)> {
             buf.get(5..5 + len).ok_or(CmStatus::NeedMoreData)?;
             Ok((DeviceMessage::UhidOutput { id, offset: 5, len }, 5 + len))
         }
+        DEVICE_MSG_PONG => Ok((DeviceMessage::Pong { value: read_u64(buf, 1)? }, 9)),
         DEVICE_MSG_BATTERY => {
             let fields = buf.get(1..3).ok_or(CmStatus::NeedMoreData)?;
             let (level, charging) = (fields[0], fields[1]);

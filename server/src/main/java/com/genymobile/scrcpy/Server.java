@@ -1,5 +1,7 @@
 package com.genymobile.scrcpy;
 
+import com.genymobile.scrcpy.carbon.BatteryMonitor;
+import com.genymobile.scrcpy.carbon.SessionSetup;
 import com.genymobile.scrcpy.control.ControlChannel;
 import com.genymobile.scrcpy.control.Controller;
 import com.genymobile.scrcpy.device.DesktopConnection;
@@ -69,7 +71,14 @@ public final class Server {
 
         List<AsyncProcessor> asyncProcessors = new ArrayList<>();
 
-        DesktopConnection connection = DesktopConnection.open(scid, sendDummyByte);
+        SessionSetup setup = SessionSetup.read();
+        DesktopConnection connection;
+        try {
+            connection = DesktopConnection.open(scid, sendDummyByte, setup);
+        } finally {
+            setup.release();
+        }
+        BatteryMonitor batteryMonitor = null;
         try {
             if (options.getSendDeviceMeta()) {
                 connection.sendDeviceMeta(Device.getDeviceName());
@@ -78,8 +87,10 @@ public final class Server {
             ControlChannel controlChannel = connection.getControlChannel();
             Controller controller = new Controller(controlChannel, cleanUp, options);
             asyncProcessors.add(controller);
+            batteryMonitor = new BatteryMonitor(controller.getSender());
+            batteryMonitor.start();
 
-            Streamer videoStreamer = new Streamer(connection.getVideoFd(), options.getVideoCodec(), options.getSendStreamMeta(),
+            Streamer videoStreamer = new Streamer(connection.getVideoOutput(), options.getVideoCodec(), options.getSendStreamMeta(),
                     options.getSendFrameMeta());
             ScreenCapture screenCapture = new ScreenCapture(controller, options);
             SurfaceEncoder surfaceEncoder = new SurfaceEncoder(screenCapture, videoStreamer, options);
@@ -95,6 +106,9 @@ public final class Server {
 
             Looper.loop(); // interrupted by the Completion implementation
         } finally {
+            if (batteryMonitor != null) {
+                batteryMonitor.stop();
+            }
             if (cleanUp != null) {
                 cleanUp.interrupt();
             }

@@ -136,6 +136,11 @@
 #define TYPE_RESET_VIDEO 17
 
 /**
+ * CarbonMirror fork: ping carrying an opaque value, answered by a pong device message.
+ */
+#define TYPE_CARBON_PING 65
+
+/**
  * The server's own cap on injected text (scrcpy `INJECT_TEXT_MAX_LENGTH`).
  */
 #define MAX_INJECT_TEXT 300
@@ -201,7 +206,7 @@
 /**
  * Largest video packet accepted (a 1344×2992 H.264 keyframe at 32 Mbit/s is far smaller).
  */
-#define MAX_VIDEO_PACKET ((8 * 1024) * 1024)
+#define MAX_VIDEO_PACKET (8 << 20)
 
 /**
  * Largest frame dimension accepted from a session packet.
@@ -211,7 +216,7 @@
 /**
  * Clipboard text cap in both directions (spec A7: 1 MB).
  */
-#define MAX_CLIPBOARD_BYTES (1024 * 1024)
+#define MAX_CLIPBOARD_BYTES (1 << 20)
 
 /**
  * Largest UHID output report accepted from the phone.
@@ -231,6 +236,11 @@
  * CarbonMirror fork: fixed-size battery status (level 0–100, charging 0/1).
  */
 #define DEVICE_MSG_BATTERY 64
+
+/**
+ * CarbonMirror fork: answer to a control-channel ping (round-trip latency).
+ */
+#define DEVICE_MSG_PONG 65
 
 #define KEY_UPDATE_BYTES (((4 * 1024) * 1024) * 1024)
 
@@ -755,6 +765,14 @@ int32_t cm_ctrl_uhid_input(uint16_t id,
  * As [`cm_ctrl_simple`].
  */
 int32_t cm_ctrl_uhid_destroy(uint16_t id, uint8_t *out, size_t cap, size_t *written);
+
+/**
+ * Control-channel ping (answered by a pong device message).
+ *
+ * # Safety
+ * As [`cm_ctrl_simple`].
+ */
+int32_t cm_ctrl_ping(uint64_t value, uint8_t *out, size_t cap, size_t *written);
 
 /**
  * Launches an app by package name.

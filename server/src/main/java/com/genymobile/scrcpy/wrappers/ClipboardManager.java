@@ -3,6 +3,7 @@ package com.genymobile.scrcpy.wrappers;
 import com.genymobile.scrcpy.FakeContext;
 
 import android.content.ClipData;
+import android.content.ClipDescription;
 import android.content.Context;
 
 public final class ClipboardManager {
@@ -28,7 +29,14 @@ public final class ClipboardManager {
         if (clipData == null || clipData.getItemCount() == 0) {
             return null;
         }
-        return clipData.getItemAt(0).getText();
+        // CarbonMirror: plain text only — URIs, intents and other clip types are never read or sent
+        ClipDescription description = clipData.getDescription();
+        if (description == null || !(description.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)
+                || description.hasMimeType(ClipDescription.MIMETYPE_TEXT_HTML))) {
+            return null;
+        }
+        CharSequence text = clipData.getItemAt(0).getText();
+        return text == null ? null : text.toString();
     }
 
     public boolean setText(CharSequence text) {

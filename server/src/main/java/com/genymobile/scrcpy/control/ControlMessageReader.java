@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 
 public class ControlMessageReader {
 
-    private static final int MESSAGE_MAX_SIZE = 1 << 18; // 256k
+    private static final int MESSAGE_MAX_SIZE = (1 << 20) + 14; // CarbonMirror: clipboard text up to 1 MiB
 
     public static final int CLIPBOARD_TEXT_MAX_LENGTH = MESSAGE_MAX_SIZE - 14; // type: 1 byte; sequence: 8 bytes; paste flag: 1 byte; length: 4 bytes
     public static final int INJECT_TEXT_MAX_LENGTH = 300;
@@ -56,6 +56,8 @@ public class ControlMessageReader {
                 return parseUhidDestroy();
             case ControlMessage.TYPE_START_APP:
                 return parseStartApp();
+            case ControlMessage.TYPE_CARBON_PING:
+                return ControlMessage.createPing(dis.readLong());
             default:
                 throw new ControlProtocolException("Unknown event type: " + type);
         }
@@ -74,6 +76,9 @@ public class ControlMessageReader {
         int value = 0;
         for (int i = 0; i < sizeBytes; ++i) {
             value = (value << 8) | dis.readUnsignedByte();
+        }
+        if (value < 0 || value > MESSAGE_MAX_SIZE) {
+            throw new ControlProtocolException("Length out of range: " + value);
         }
         return value;
     }

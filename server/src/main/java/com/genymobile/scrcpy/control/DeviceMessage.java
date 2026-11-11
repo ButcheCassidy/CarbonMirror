@@ -5,12 +5,18 @@ public final class DeviceMessage {
     public static final int TYPE_CLIPBOARD = 0;
     public static final int TYPE_ACK_CLIPBOARD = 1;
     public static final int TYPE_UHID_OUTPUT = 2;
+    /** CarbonMirror fork: battery level 0–100 and charging flag. */
+    public static final int TYPE_BATTERY = 0x40;
+    /** CarbonMirror fork: answer to a control-channel ping (round-trip latency). */
+    public static final int TYPE_PONG = 0x41;
 
     private int type;
     private String text;
     private long sequence;
     private int id;
     private byte[] data;
+    private int level;
+    private boolean charging;
 
     private DeviceMessage() {
     }
@@ -35,6 +41,29 @@ public final class DeviceMessage {
         event.id = id;
         event.data = data;
         return event;
+    }
+
+    public static DeviceMessage createBattery(int level, boolean charging) {
+        DeviceMessage event = new DeviceMessage();
+        event.type = TYPE_BATTERY;
+        event.level = level;
+        event.charging = charging;
+        return event;
+    }
+
+    public static DeviceMessage createPong(long value) {
+        DeviceMessage event = new DeviceMessage();
+        event.type = TYPE_PONG;
+        event.sequence = value;
+        return event;
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public boolean getCharging() {
+        return charging;
     }
 
     public int getType() {

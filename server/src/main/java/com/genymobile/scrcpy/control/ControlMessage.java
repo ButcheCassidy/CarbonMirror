@@ -25,6 +25,8 @@ public final class ControlMessage {
     public static final int TYPE_OPEN_HARD_KEYBOARD_SETTINGS = 15;
     public static final int TYPE_START_APP = 16;
     public static final int TYPE_RESET_VIDEO = 17;
+    /** CarbonMirror fork: ping with an opaque 64-bit value, answered by a device-message pong. */
+    public static final int TYPE_CARBON_PING = 0x41;
     // 18–22 (camera torch/zoom, virtual-display resize, media scan of a file path) are removed in the
     // CarbonMirror fork: the reader treats them as unknown types and ends the session.
 
@@ -165,6 +167,13 @@ public final class ControlMessage {
         ControlMessage msg = new ControlMessage();
         msg.type = TYPE_START_APP;
         msg.text = name;
+        return msg;
+    }
+
+    public static ControlMessage createPing(long value) {
+        ControlMessage msg = new ControlMessage();
+        msg.type = TYPE_CARBON_PING;
+        msg.sequence = value;
         return msg;
     }
 
