@@ -1,0 +1,93 @@
+import CMCore
+import CMCoreBridge
+@testable import CMTransport
+import Foundation
+import Testing
+
+#if canImport(Glibc)
+import Glibc
+#elseif canImport(Darwin)
+import Darwin
+private typealias Glibc = Darwin
+#endif
+
+/// A fake adbd: either legacy plaintext (`adb tcpip`) or Wireless debugging (STLS, then TLS).
+final class FakeAdbd: @unchecked Sendable {
+    enum Mode { case plaintext, tls(TLSIdentity), garbage }
+
+    static func header(_ command: UInt32, _ arg0: UInt32) -> [UInt8] {
+        [command, arg0, 0, 0, 0, command ^ 0xFFFF_FFFF].flatMap { withUnsafeBytes(of: $0.littleEndian, Array.init) }
+    }
+
+    let port: UInt16
+    private let listener: Int32
+
+    init(port: UInt16, mode: Mode) throws {
+        self.port = port
+        let fd = socket(AF_INET, POSIXStream.streamType, 0)
+        var on: Int32 = 1
+        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, socklen_t(MemoryLayout<Int32>.size))
+        var address = POSIXStream.loopback(port: port)
+        let rc = withUnsafePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { bind(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) }
+        }
+        guard rc == 0, Glibc.listen(fd, 4) == 0 else { throw StreamError.connectFailed }
+        listener = fd
+        Thread.detachNewThread {
+            let client = Glibc.accept(fd, nil, nil)
+            guard client >= 0 else { return }
+            let stream = POSIXStream(fd: client)
+            Task {
+                _ = try? await stream.readExactly(31)
+                switch mode {
+                case .plaintext:
+                    stream.send(Self.header(0x4854_5541, 1) )
+                case .garbage:
+                    stream.send(Array("HTTP/1.1 400 Bad Request\r\n\r\n".utf8))
+                case let .tls(identity):
+                    stream.send(Self.header(0x534C_5453, 0x0100_0000))
+                    _ = try? await stream.readExactly(24)
+                    if let session = try? TLSSession(identity: identity) {
+                        try? await SecureStream(inner: stream, session: session).handshake()
+                    }
+                }
+                try? await Task.sleep(for: .milliseconds(200))
+                stream.close()
+            }
+        }
+    }
+
+    deinit {
+        sysClose(listener)
+    }
+}
+
+@Suite("Wireless probe (6.1, 7.2)", .serialized)
+struct ProbeTests {
+    @Test func plaintextAdbTcpipIsRefused() async throws {
+        let adbd = try FakeAdbd(port: 28_801, mode: .plaintext)
+        let result = await WirelessProbe.run(over: try await POSIXStream.connect(port: adbd.port))
+        #expect(result == .plaintextRefused)
+    }
+
+    @Test func wirelessDebuggingKeyIsCaptured() async throws {
+        let signer = try OpenSSLSigner()
+        let identity = try TLSIdentity.server(macCA: try InnerTLS.makeIdentityCA(signer: signer))
+        let adbd = try FakeAdbd(port: 28_802, mode: .tls(identity))
+        let result = await WirelessProbe.run(over: try await POSIXStream.connect(port: adbd.port))
+        #expect(result == .wirelessDebugging(keyHash: try identity.pin()), "the phone's TLS key hash is what gets pinned")
+    }
+
+    @Test func nonAdbServiceIsRejected() async throws {
+        let adbd = try FakeAdbd(port: 28_803, mode: .garbage)
+        #expect(await WirelessProbe.run(over: try await POSIXStream.connect(port: adbd.port)) == .notAdb)
+    }
+
+    @Test func addressPolicyRunsBeforeAnyConnection() {
+        #expect(WirelessProbe.check(ip: "192.168.1.20", port: 37_099) == nil)
+        #expect(WirelessProbe.check(ip: "192.168.1.20", port: 5555) == .plaintextRefused)
+        #expect(WirelessProbe.check(ip: "8.8.8.8", port: 37_099) == .refusedAddress(.ipPublicRefused))
+        #expect(WirelessProbe.check(ip: "10.64.0.1", port: 37_099) == .refusedAddress(.ipTunnelRangeRefused), "Mullvad tunnel range")
+        #expect(WirelessProbe.check(ip: "phone.local", port: 37_099) == .refusedAddress(.ipHostnameRefused))
+    }
+}
