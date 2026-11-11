@@ -18,11 +18,15 @@ public final class NWByteStream: ByteStream, @unchecked Sendable {
         guard let nwPort = NWEndpoint.Port(rawValue: port) else { throw StreamError.connectFailed }
         let parameters = NWParameters.tcp
         parameters.requiredInterfaceType = .loopback
-        parameters.prohibitExpensivePaths = false
+        return try await connect(endpoint: .hostPort(host: .ipv4(.loopback), port: nwPort), parameters: parameters, timeout: timeout)
+    }
+
+    /// Connects to `endpoint` with `parameters` (TCP_NODELAY on); fails after `timeout`.
+    static func connect(endpoint: NWEndpoint, parameters: NWParameters, timeout: TimeInterval) async throws -> NWByteStream {
         if let tcp = parameters.defaultProtocolStack.transportProtocol as? NWProtocolTCP.Options {
             tcp.noDelay = true
         }
-        let connection = NWConnection(host: .ipv4(.loopback), port: nwPort, using: parameters)
+        let connection = NWConnection(to: endpoint, using: parameters)
         let stream = NWByteStream(connection: connection)
         let resumed = Mutex(false)
         return try await withCheckedThrowingContinuation { continuation in
@@ -31,12 +35,15 @@ public final class NWByteStream: ByteStream, @unchecked Sendable {
                     defer { done = true }
                     return !done
                 }
-                if first { continuation.resume(with: result) }
+                guard first else { return }
+                if case .failure = result { connection.cancel() }
+                continuation.resume(with: result)
             }
             connection.stateUpdateHandler = { state in
                 switch state {
                 case .ready: finish(.success(stream))
                 case .failed, .cancelled: finish(.failure(StreamError.connectFailed))
+                case .waiting: finish(.failure(StreamError.connectFailed))
                 default: break
                 }
             }
@@ -45,6 +52,11 @@ public final class NWByteStream: ByteStream, @unchecked Sendable {
                 finish(.failure(StreamError.timedOut))
             }
         }
+    }
+
+    /// Name of the interface the connection's route uses (e.g. `en0`, or `utun4` behind a VPN).
+    var interfaceName: String? {
+        connection.currentPath?.availableInterfaces.first?.name
     }
 
     public func read(max: Int) async throws -> [UInt8] {

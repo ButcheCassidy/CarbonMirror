@@ -15,6 +15,8 @@ pub const FLAG_USER_CONFIRMED: u32 = 1 << 1;
 pub const REMOTE_SERVER_PATH: &str = "/data/local/tmp/carbonmirror-server.jar";
 /// Fixed on-device path of the Rust core for the server.
 pub const REMOTE_CORE_LIB_PATH: &str = "/data/local/tmp/libcarbon_core.so";
+/// The phone server's record of the pinned Mac identity (removed only by "Create new key").
+pub const REMOTE_MAC_PIN_PATH: &str = "/data/local/tmp/carbonmirror-mac.pin";
 /// Bundled file names; local push/install paths must end in exactly these.
 pub const LOCAL_SERVER_NAME: &str = "carbonmirror-server";
 pub const LOCAL_CORE_LIB_NAME: &str = "libcarbon_core.so";
@@ -141,6 +143,7 @@ fn check_shell(rest: &[&str]) -> CmResult<()> {
         ["pm", "grant", pkg, perm] if *pkg == COMPANION_PACKAGE && *perm == COMPANION_PERMISSION => Ok(()),
         ["dumpsys", "display"] => Ok(()),
         ["rm", "-f", a, b] if *a == REMOTE_SERVER_PATH && *b == REMOTE_CORE_LIB_PATH => Ok(()),
+        ["rm", "-f", a] if *a == REMOTE_MAC_PIN_PATH => Ok(()),
         [first, ..] if first.starts_with("CLASSPATH=") => check_start_server(rest),
         _ => Err(CmStatus::AdbUnknownCommand),
     }

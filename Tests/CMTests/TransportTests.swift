@@ -43,6 +43,7 @@ struct TransportTests {
             (.startMirrorServer(serial: Self.serial, options: options), false, false),
             (.disableWirelessDebugging(serial: Self.serial), false, false), (.grantCompanionPermission(serial: Self.serial), false, false),
             (.readDisplayInfo(serial: Self.serial), false, false), (.removeServerFiles(serial: Self.serial), false, false),
+            (.removeMacPin(serial: Self.serial), false, false),
             (.installCompanion(serial: Self.serial, apkPath: "\(Self.resources)/CarbonMirrorCompanion.apk"), true, true),
         ]
         for (command, usb, confirmed) in commands {

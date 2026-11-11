@@ -69,10 +69,13 @@ public enum AdbCommand: Equatable, Sendable {
     case grantCompanionPermission(serial: String)
     case readDisplayInfo(serial: String)
     case removeServerFiles(serial: String)
+    /// "Create new key": lets the phone pin the new Mac identity on the next session.
+    case removeMacPin(serial: String)
     case installCompanion(serial: String, apkPath: String)
 
     public static let remoteServerPath = "/data/local/tmp/carbonmirror-server.jar"
     public static let remoteCoreLibraryPath = "/data/local/tmp/libcarbon_core.so"
+    public static let remoteMacPinPath = "/data/local/tmp/carbonmirror-mac.pin"
     public static let companionPackage = "com.nomadicrebel.carbonmirror.companion"
     public static let serverClass = "com.genymobile.scrcpy.Server"
 
@@ -102,6 +105,7 @@ public enum AdbCommand: Equatable, Sendable {
             ["-s", serial, "shell", "pm", "grant", Self.companionPackage, "android.permission.WRITE_SECURE_SETTINGS"]
         case let .readDisplayInfo(serial): ["-s", serial, "shell", "dumpsys", "display"]
         case let .removeServerFiles(serial): ["-s", serial, "shell", "rm", "-f", Self.remoteServerPath, Self.remoteCoreLibraryPath]
+        case let .removeMacPin(serial): ["-s", serial, "shell", "rm", "-f", Self.remoteMacPinPath]
         case let .installCompanion(serial, path): ["-s", serial, "install", "-r", path]
         }
     }

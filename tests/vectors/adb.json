@@ -38,6 +38,8 @@
     { "argv": ["-s", "3A091FDJH00ABC", "shell", "dumpsys", "display"], "flags": [], "expect": "Ok" },
     { "argv": ["-s", "3A091FDJH00ABC", "shell", "rm", "-f", "/data/local/tmp/carbonmirror-server.jar", "/data/local/tmp/libcarbon_core.so"], "flags": [], "expect": "Ok" },
     { "argv": ["-s", "3A091FDJH00ABC", "shell", "rm", "-rf", "/"], "flags": [], "expect": "AdbUnknownCommand" },
+    { "argv": ["-s", "3A091FDJH00ABC", "shell", "rm", "-f", "/data/local/tmp/carbonmirror-mac.pin"], "flags": [], "expect": "Ok" },
+    { "argv": ["-s", "3A091FDJH00ABC", "shell", "rm", "-f", "/data/local/tmp/carbonmirror-mac.pin", "/sdcard"], "flags": [], "expect": "AdbUnknownCommand" },
     { "argv": ["-s", "3A091FDJH00ABC", "shell", "dumpsys", "display;", "rm", "-rf", "/sdcard"], "flags": [], "expect": "AdbUnknownCommand" },
     { "argv": ["-s", "3A091FDJH00ABC", "shell", "`reboot`"], "flags": [], "expect": "AdbUnknownCommand" },
     { "argv": ["-s", "3A091FDJH00ABC", "shell", "$(reboot)"], "flags": [], "expect": "AdbUnknownCommand" },
