@@ -1,100 +1,72 @@
 package com.genymobile.scrcpy.device;
 
+import com.genymobile.scrcpy.carbon.SecureChannel;
+import com.genymobile.scrcpy.carbon.SessionSetup;
 import com.genymobile.scrcpy.control.ControlChannel;
-import com.genymobile.scrcpy.util.IO;
 import com.genymobile.scrcpy.util.StringUtils;
 
 import android.net.LocalServerSocket;
 import android.net.LocalSocket;
 
 import java.io.Closeable;
-import java.io.FileDescriptor;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * The two sockets the Mac reaches through {@code adb forward}: video first, then control. Each is wrapped by
+ * {@link SessionSetup#accept} (inner TLS when enabled) and must present the session secret before anything
+ * is sent; a socket that fails is closed and the server stops.
+ */
 public final class DesktopConnection implements Closeable {
 
     private static final int DEVICE_NAME_FIELD_LENGTH = 64;
 
     private static final String SOCKET_NAME_PREFIX = "scrcpy";
 
-    private final LocalSocket videoSocket;
-    private final FileDescriptor videoFd;
-
-    private final LocalSocket controlSocket;
+    private final SecureChannel video;
+    private final SecureChannel control;
     private final ControlChannel controlChannel;
 
-    private DesktopConnection(LocalSocket videoSocket, LocalSocket controlSocket) throws IOException {
-        this.videoSocket = videoSocket;
-        this.controlSocket = controlSocket;
-
-        videoFd = videoSocket != null ? videoSocket.getFileDescriptor() : null;
-        controlChannel = controlSocket != null ? new ControlChannel(controlSocket) : null;
+    private DesktopConnection(SecureChannel video, SecureChannel control) {
+        this.video = video;
+        this.control = control;
+        controlChannel = new ControlChannel(control.getInputStream(), control.getOutputStream());
     }
 
     private static String getSocketName(int scid) {
-        if (scid == -1) {
-            // If no SCID is set, use "scrcpy" to simplify using scrcpy-server alone
-            return SOCKET_NAME_PREFIX;
-        }
-
         return SOCKET_NAME_PREFIX + String.format("_%08x", scid);
     }
 
-    /**
-     * Accepts the video socket, then the control socket, on the abstract socket the Mac reaches through
-     * {@code adb forward} (CarbonMirror never uses reverse tunnels).
-     */
-    public static DesktopConnection open(int scid, boolean sendDummyByte) throws IOException {
-        String socketName = getSocketName(scid);
-
-        LocalSocket videoSocket = null;
-        LocalSocket controlSocket = null;
-        try (LocalServerSocket localServerSocket = new LocalServerSocket(socketName)) {
-            videoSocket = localServerSocket.accept();
+    public static DesktopConnection open(int scid, boolean sendDummyByte, SessionSetup setup) throws IOException {
+        SecureChannel video = null;
+        try (LocalServerSocket localServerSocket = new LocalServerSocket(getSocketName(scid))) {
+            LocalSocket videoSocket = localServerSocket.accept();
+            video = setup.accept(videoSocket);
             if (sendDummyByte) {
                 // send one byte so the client may read() to detect a connection error
-                videoSocket.getOutputStream().write(0);
+                video.getOutputStream().write(0);
             }
-            controlSocket = localServerSocket.accept();
+            LocalSocket controlSocket = localServerSocket.accept();
+            SecureChannel control = setup.accept(controlSocket);
+            return new DesktopConnection(video, control);
         } catch (IOException | RuntimeException e) {
-            if (videoSocket != null) {
-                videoSocket.close();
-            }
-            if (controlSocket != null) {
-                controlSocket.close();
+            if (video != null) {
+                video.close();
             }
             throw e;
         }
-
-        return new DesktopConnection(videoSocket, controlSocket);
-    }
-
-    private LocalSocket getFirstSocket() {
-        if (videoSocket != null) {
-            return videoSocket;
-        }
-        return controlSocket;
     }
 
     public void shutdown() throws IOException {
-        if (videoSocket != null) {
-            videoSocket.shutdownInput();
-            videoSocket.shutdownOutput();
-        }
-        if (controlSocket != null) {
-            controlSocket.shutdownInput();
-            controlSocket.shutdownOutput();
-        }
+        video.shutdown();
+        control.shutdown();
     }
 
+    @Override
     public void close() throws IOException {
-        if (videoSocket != null) {
-            videoSocket.close();
-        }
-        if (controlSocket != null) {
-            controlSocket.close();
-        }
+        video.close();
+        control.close();
     }
 
     public void sendDeviceMeta(String deviceName) throws IOException {
@@ -105,12 +77,11 @@ public final class DesktopConnection implements Closeable {
         System.arraycopy(deviceNameBytes, 0, buffer, 0, len);
         // byte[] are always 0-initialized in java, no need to set '\0' explicitly
 
-        FileDescriptor fd = getFirstSocket().getFileDescriptor();
-        IO.writeFully(fd, buffer, 0, buffer.length);
+        video.getOutputStream().write(buffer, 0, buffer.length);
     }
 
-    public FileDescriptor getVideoFd() {
-        return videoFd;
+    public OutputStream getVideoOutput() {
+        return video.getOutputStream();
     }
 
     public ControlChannel getControlChannel() {

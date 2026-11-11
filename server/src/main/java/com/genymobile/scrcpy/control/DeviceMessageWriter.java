@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 
 public class DeviceMessageWriter {
 
-    private static final int MESSAGE_MAX_SIZE = 1 << 18; // 256k
+    private static final int MESSAGE_MAX_SIZE = (1 << 20) + 5; // CarbonMirror: clipboard text up to 1 MiB
     public static final int CLIPBOARD_TEXT_MAX_LENGTH = MESSAGE_MAX_SIZE - 5; // type: 1 byte; length: 4 bytes
 
     private final DataOutputStream dos;
@@ -38,6 +38,13 @@ public class DeviceMessageWriter {
                 byte[] data = msg.getData();
                 dos.writeShort(data.length);
                 dos.write(data);
+                break;
+            case DeviceMessage.TYPE_BATTERY:
+                dos.writeByte(msg.getLevel());
+                dos.writeByte(msg.getCharging() ? 1 : 0);
+                break;
+            case DeviceMessage.TYPE_PONG:
+                dos.writeLong(msg.getSequence());
                 break;
             default:
                 throw new ControlProtocolException("Unknown event type: " + type);

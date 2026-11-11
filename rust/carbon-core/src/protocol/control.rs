@@ -24,6 +24,8 @@ pub const TYPE_UHID_DESTROY: u8 = 14;
 pub const TYPE_OPEN_HARD_KEYBOARD_SETTINGS: u8 = 15;
 pub const TYPE_START_APP: u8 = 16;
 pub const TYPE_RESET_VIDEO: u8 = 17;
+/// CarbonMirror fork: ping carrying an opaque value, answered by a pong device message.
+pub const TYPE_CARBON_PING: u8 = 0x41;
 
 /// The server's own cap on injected text (scrcpy `INJECT_TEXT_MAX_LENGTH`).
 pub const MAX_INJECT_TEXT: usize = 300;
@@ -275,6 +277,14 @@ pub fn uhid_destroy(id: u16, out: &mut [u8]) -> CmResult<usize> {
     let mut w = Writer::new(out);
     w.u8(TYPE_UHID_DESTROY)?;
     w.u16(id)?;
+    Ok(w.done())
+}
+
+/// Round-trip probe for the status line's latency figure.
+pub fn ping(value: u64, out: &mut [u8]) -> CmResult<usize> {
+    let mut w = Writer::new(out);
+    w.u8(TYPE_CARBON_PING)?;
+    w.bytes(&value.to_be_bytes())?;
     Ok(w.done())
 }
 

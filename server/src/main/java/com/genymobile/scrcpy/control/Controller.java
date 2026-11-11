@@ -157,6 +157,11 @@ public class Controller implements AsyncProcessor, VirtualDisplayListener {
         }
     }
 
+    /** Queue for device messages (battery status uses it too). */
+    public DeviceMessageSender getSender() {
+        return sender;
+    }
+
     public void setSurfaceCapture(SurfaceCapture surfaceCapture) {
         this.surfaceCapture = surfaceCapture;
     }
@@ -384,6 +389,9 @@ public class Controller implements AsyncProcessor, VirtualDisplayListener {
                 return true;
             case ControlMessage.TYPE_START_APP:
                 startAppAsync(msg.getText());
+                return true;
+            case ControlMessage.TYPE_CARBON_PING:
+                sender.send(DeviceMessage.createPong(msg.getSequence()));
                 return true;
             default:
                 // fall through
