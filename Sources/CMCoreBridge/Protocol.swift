@@ -69,6 +69,45 @@ public enum ScrcpyProtocol {
         }
     }
 
+    /// Video header at `offset` in `buffer`.
+    public static func videoHeader(in buffer: [UInt8], at offset: Int) throws(CoreStatus) -> VideoHeader {
+        guard offset >= 0, offset <= buffer.count else { throw CoreStatus.invalidArgument }
+        var h = CmVideoHeader()
+        try check(buffer.withUnsafeBufferPointer { cm_proto_video_header($0.baseAddress.map { $0 + offset }, $0.count - offset, &h) })
+        switch h.kind {
+        case 1: return .session(width: Int(h.width), height: Int(h.height))
+        case 2: return .config(size: Int(h.size))
+        case 3: return .frame(pts: h.pts, keyFrame: h.key_frame != 0, size: Int(h.size))
+        default: throw CoreStatus.parseMalformed
+        }
+    }
+
+    /// Device message at the start of `buffer`; returns it and the bytes consumed.
+    public static func deviceMessage(in buffer: [UInt8]) throws(CoreStatus) -> (DeviceMessage, Int) {
+        var m = CmDeviceMessage()
+        try check(buffer.withUnsafeBufferPointer { cm_proto_device_message($0.baseAddress, $0.count, &m) })
+        let range = m.offset..<(m.offset + m.len)
+        switch m.kind {
+        case 0: return (.clipboard(range), m.consumed)
+        case 1: return (.ackClipboard(sequence: m.sequence), m.consumed)
+        case 2: return (.uhidOutput(id: m.id, range), m.consumed)
+        case 0x40: return (.battery(level: Int(m.level), charging: m.charging != 0), m.consumed)
+        case 0x41: return (.pong(value: m.sequence), m.consumed)
+        default: throw CoreStatus.parseMalformed
+        }
+    }
+
+    /// Device name and codec from the 68-byte stream preamble.
+    public static func preamble(_ buffer: [UInt8]) throws(CoreStatus) -> (name: String, codec: VideoCodecID) {
+        guard buffer.count >= deviceNameLength + 4 else { throw CoreStatus.needMoreData }
+        var len = 0
+        try check(buffer.withUnsafeBufferPointer { cm_proto_device_name($0.baseAddress, deviceNameLength, &len) })
+        var raw: UInt32 = 0
+        try check(buffer.withUnsafeBufferPointer { cm_proto_codec($0.baseAddress! + deviceNameLength, 4, &raw) })
+        guard let codec = VideoCodecID(rawValue: raw) else { throw CoreStatus.parseMalformed }
+        return (String(decoding: buffer[0..<len], as: UTF8.self), codec)
+    }
+
     /// Rounded-corner radius (pixels) from `dumpsys display` output.
     public static func cornerRadius(dumpsys: [UInt8]) throws(CoreStatus) -> Int {
         var radius: UInt32 = 0
