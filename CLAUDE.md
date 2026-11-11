@@ -10,6 +10,7 @@ git config user.email "354005634+ButcheCassidy@users.noreply.github.com"
 ```
 - All commits and tags are authored as ButcheCassidy with the GitHub noreply email.
 - No `Co-Authored-By` or other AI attribution trailers in commit messages.
+- No "Generated with Claude Code" lines, session IDs or claude.ai session links in commits, code, docs, PR titles/bodies or comments.
 
 ## Workflow
 - Never commit directly to `main`. Branch → push → draft PR.
