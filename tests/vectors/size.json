@@ -1,0 +1,38 @@
+{
+  "tolerance": 0.5,
+  "points_per_inch": [
+    { "display_width_pt": 1728, "display_width_mm": 345.6, "expect": 127.0 },
+    { "display_width_pt": 1496, "display_width_mm": 345.6, "expect": 109.95 },
+    { "display_width_pt": 0, "display_width_mm": 345.6, "expect_status": "InvalidArgument" }
+  ],
+  "real_size": [
+    { "phone_w_px": 1344, "phone_h_px": 2992, "phone_ppi": 486, "mac_pt_per_inch": 127, "expect_w": 351.2, "expect_h": 781.9 },
+    { "phone_w_px": 2992, "phone_h_px": 1344, "phone_ppi": 486, "mac_pt_per_inch": 127, "expect_w": 781.9, "expect_h": 351.2 },
+    { "phone_w_px": 1344, "phone_h_px": 2992, "phone_ppi": 0, "mac_pt_per_inch": 127, "expect_status": "InvalidArgument" }
+  ],
+  "clamp": [
+    { "name": "real size fits", "real_w": 351.2, "real_h": 781.9, "scale": 1.0, "insets": [0, 0, 0, 0], "visible_w": 1728, "visible_h": 1080, "expect_w": 351.2, "expect_h": 781.9, "expect_scale": 1.0 },
+    { "name": "below min clamps to 0.75", "real_w": 351.2, "real_h": 781.9, "scale": 0.5, "insets": [0, 0, 0, 0], "visible_w": 1728, "visible_h": 1080, "expect_w": 263.4, "expect_h": 586.4, "expect_scale": 0.75 },
+    { "name": "2.0x portrait clamps to visible height", "real_w": 351.2, "real_h": 781.9, "scale": 2.0, "insets": [0, 0, 0, 0], "visible_w": 1728, "visible_h": 1080, "expect_w": 485.1, "expect_h": 1080.0, "expect_scale": 1.3813 },
+    { "name": "2.0x landscape fits", "real_w": 781.9, "real_h": 351.2, "scale": 2.0, "insets": [0, 0, 0, 0], "visible_w": 1728, "visible_h": 1080, "expect_w": 1563.8, "expect_h": 702.4, "expect_scale": 2.0 },
+    { "name": "chrome insets count against the screen", "real_w": 351.2, "real_h": 781.9, "scale": 2.0, "insets": [44, 10, 10, 10], "visible_w": 1728, "visible_h": 1080, "expect_w": 460.8, "expect_h": 1026.0, "expect_scale": 1.3122 },
+    { "name": "above max clamps to 2.0", "real_w": 100, "real_h": 200, "scale": 9.0, "insets": [0, 0, 0, 0], "visible_w": 1728, "visible_h": 1080, "expect_w": 200, "expect_h": 400, "expect_scale": 2.0 },
+    { "name": "tiny screen wins over minimum", "real_w": 351.2, "real_h": 781.9, "scale": 1.0, "insets": [0, 0, 0, 0], "visible_w": 800, "visible_h": 500, "expect_w": 224.6, "expect_h": 500.0, "expect_scale": 0.6395 },
+    { "name": "NaN refused", "real_w": 351.2, "real_h": 781.9, "scale": "NaN", "insets": [0, 0, 0, 0], "visible_w": 1728, "visible_h": 1080, "expect_status": "InvalidArgument" }
+  ],
+  "locked_resize": [
+    { "name": "width drag", "cur_w": 351.2, "cur_h": 781.9, "proposed_w": 400, "proposed_h": 790, "insets": [0, 0, 0, 0], "real_w": 351.2, "real_h": 781.9, "visible_w": 1728, "visible_h": 1080, "expect_w": 400.0, "expect_h": 890.5 },
+    { "name": "height drag", "cur_w": 351.2, "cur_h": 781.9, "proposed_w": 352, "proposed_h": 700, "insets": [0, 0, 0, 0], "real_w": 351.2, "real_h": 781.9, "visible_w": 1728, "visible_h": 1080, "expect_w": 314.4, "expect_h": 700.0 },
+    { "name": "drag past max stops at visible", "cur_w": 351.2, "cur_h": 781.9, "proposed_w": 900, "proposed_h": 2000, "insets": [0, 0, 0, 0], "real_w": 351.2, "real_h": 781.9, "visible_w": 1728, "visible_h": 1080, "expect_w": 485.1, "expect_h": 1080.0 },
+    { "name": "drag below min stops at 0.75", "cur_w": 351.2, "cur_h": 781.9, "proposed_w": 100, "proposed_h": 200, "insets": [0, 0, 0, 0], "real_w": 351.2, "real_h": 781.9, "visible_w": 1728, "visible_h": 1080, "expect_w": 263.4, "expect_h": 586.4 },
+    { "name": "chrome shown keeps screen aspect", "cur_w": 351.2, "cur_h": 781.9, "proposed_w": 420, "proposed_h": 836, "insets": [44, 10, 10, 10], "real_w": 351.2, "real_h": 781.9, "visible_w": 1728, "visible_h": 1080, "expect_w": 420.0, "expect_h": 944.5 }
+  ],
+  "corner_radius": [
+    { "window_w": 351.2, "device_radius_px": 0, "phone_w_px": 1344, "fine_tune": 0, "expect": 33.36 },
+    { "window_w": 351.2, "device_radius_px": 140, "phone_w_px": 1344, "fine_tune": 0, "expect": 36.58 },
+    { "window_w": 351.2, "device_radius_px": 0, "phone_w_px": 1344, "fine_tune": 0.15, "expect": 38.37 },
+    { "window_w": 351.2, "device_radius_px": 0, "phone_w_px": 1344, "fine_tune": 0.9, "expect": 38.37 },
+    { "window_w": 351.2, "device_radius_px": 0, "phone_w_px": 1344, "fine_tune": -0.15, "expect": 28.36 },
+    { "window_w": 0, "device_radius_px": 0, "phone_w_px": 1344, "fine_tune": 0, "expect_status": "InvalidArgument" }
+  ]
+}

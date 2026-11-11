@@ -1,0 +1,4 @@
+module CarbonCoreC {
+    header "carbon_core.h"
+    export *
+}

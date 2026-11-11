@@ -1,0 +1,21 @@
+{
+  "cases": [
+    { "failure": "MacWifiOff", "attempt": 0, "expect": "WifiOff" },
+    { "failure": "DeviceNotFound", "attempt": 0, "expect": "Searching" },
+    { "failure": "NoPairing", "attempt": 0, "expect": "NotPaired" },
+    { "failure": "WirelessDebuggingOff", "attempt": 0, "expect": "WirelessDebuggingOff" },
+    { "failure": "LanUnreachable", "attempt": 0, "expect": "LanSharingBlocked" },
+    { "failure": "RouteViaTunnel", "attempt": 3, "expect": "LanSharingBlocked" },
+    { "failure": "ConnectionLost", "attempt": 0, "expect": "Disconnected" },
+    { "failure": "UnknownDevice", "attempt": 0, "expect": "UntrustedDevice" },
+    { "failure": "PinMismatchKnownDevice", "attempt": 0, "expect": "IdentityChanged" },
+    { "failure": "AdbUnauthorized", "attempt": 0, "expect": "RetryingSilently" },
+    { "failure": "AdbUnauthorized", "attempt": 1, "expect": "AuthenticationFailed" },
+    { "failure": "TlsHandshakeFailed", "attempt": 0, "expect": "RetryingSilently" },
+    { "failure": "TlsHandshakeFailed", "attempt": 1, "expect": "AuthenticationFailed" },
+    { "failure": "KeyFingerprintMismatch", "attempt": 0, "expect": "AuthenticationFailed" },
+    { "failure": "KeyMissing", "attempt": 0, "expect": "AuthenticationFailed" },
+    { "failure": "LegacyPlaintextOffered", "attempt": 0, "expect": "InsecureConnectionRefused" }
+  ],
+  "invalid_codes": [0, 15, 4294967295]
+}
