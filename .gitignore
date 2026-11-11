@@ -30,3 +30,11 @@ xcuserdata/
 rust/target/
 dist/
 deps/
+
+# Built inputs copied into the app bundle (never committed)
+Resources/adb
+Resources/carbonmirror-server
+Resources/libcarbon_core.so
+build.log
+server/build/
+companion/build/
