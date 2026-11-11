@@ -22,6 +22,12 @@ struct BridgeTests {
             (.adbEmpty, raw(CmStatus_AdbEmpty)), (.adbUnknownCommand, raw(CmStatus_AdbUnknownCommand)), (.adbBadArgument, raw(CmStatus_AdbBadArgument)),
             (.adbInstallNeedsUsb, raw(CmStatus_AdbInstallNeedsUsb)), (.adbInstallNeedsConfirmation, raw(CmStatus_AdbInstallNeedsConfirmation)),
             (.digestMismatch, raw(CmStatus_DigestMismatch)), (.parseMalformed, raw(CmStatus_ParseMalformed)), (.parseTooLarge, raw(CmStatus_ParseTooLarge)),
+            (.inputOutside, raw(CmStatus_InputOutside)), (.tlsHandshakeFailed, raw(CmStatus_TlsHandshakeFailed)),
+            (.tlsPinMismatch, raw(CmStatus_TlsPinMismatch)), (.tlsPolicyViolation, raw(CmStatus_TlsPolicyViolation)),
+            (.tlsClosed, raw(CmStatus_TlsClosed)), (.tlsTimeout, raw(CmStatus_TlsTimeout)), (.tlsFailed, raw(CmStatus_TlsFailed)),
+            (.pairingCodeExpired, raw(CmStatus_PairingCodeExpired)), (.pairingCodeUsed, raw(CmStatus_PairingCodeUsed)),
+            (.trustNotPaired, raw(CmStatus_TrustNotPaired)), (.trustUnknownDevice, raw(CmStatus_TrustUnknownDevice)),
+            (.trustIdentityChanged, raw(CmStatus_TrustIdentityChanged)), (.adbProbeMalformed, raw(CmStatus_AdbProbeMalformed)),
         ]
         for (swift, c) in header {
             #expect(Int64(swift.rawValue) == c, "\(swift)")

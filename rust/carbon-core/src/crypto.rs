@@ -24,6 +24,11 @@ pub fn sha256_verify(data: &[u8], expected: &[u8]) -> CmResult<()> {
     constant_time::verify_slices_are_equal(&sha256(data), expected).map_err(|_| CmStatus::DigestMismatch)
 }
 
+/// Constant-time equality of two byte strings (false when lengths differ).
+pub fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    constant_time::verify_slices_are_equal(a, b).is_ok()
+}
+
 /// Fills `out` from the operating system's CSPRNG.
 pub fn random(out: &mut [u8]) -> CmResult<()> {
     rand::fill(out).map_err(|_| CmStatus::InvalidArgument)

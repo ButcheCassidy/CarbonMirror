@@ -32,6 +32,23 @@ pub enum CmStatus {
 
     ParseMalformed = 60,
     ParseTooLarge = 61,
+
+    InputOutside = 70,
+
+    TlsHandshakeFailed = 80,
+    TlsPinMismatch = 81,
+    TlsPolicyViolation = 82,
+    TlsClosed = 83,
+    TlsTimeout = 84,
+    TlsFailed = 85,
+
+    PairingCodeExpired = 90,
+    PairingCodeUsed = 91,
+    TrustNotPaired = 92,
+    TrustUnknownDevice = 93,
+    TrustIdentityChanged = 94,
+
+    AdbProbeMalformed = 100,
 }
 
 impl CmStatus {

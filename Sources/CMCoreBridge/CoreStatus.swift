@@ -25,6 +25,19 @@ public enum CoreStatus: Int32, Error, Sendable, CaseIterable {
     case digestMismatch = 50
     case parseMalformed = 60
     case parseTooLarge = 61
+    case inputOutside = 70
+    case tlsHandshakeFailed = 80
+    case tlsPinMismatch = 81
+    case tlsPolicyViolation = 82
+    case tlsClosed = 83
+    case tlsTimeout = 84
+    case tlsFailed = 85
+    case pairingCodeExpired = 90
+    case pairingCodeUsed = 91
+    case trustNotPaired = 92
+    case trustUnknownDevice = 93
+    case trustIdentityChanged = 94
+    case adbProbeMalformed = 100
     /// A code this build of the bridge does not know — treated as a refusal.
     case unknown = -1
 
@@ -55,7 +68,7 @@ func withUTF8Bytes<R>(_ text: String, _ body: (UnsafePointer<UInt8>?, Int) -> R)
 /// Core library identity checks.
 public enum CarbonCore {
     /// ABI version the bridge was written against.
-    public static let expectedABIVersion: UInt32 = 1
+    public static let expectedABIVersion: UInt32 = 2
 
     /// True when the linked Rust core speaks the ABI this bridge expects.
     public static var abiMatches: Bool {
