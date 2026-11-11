@@ -22,3 +22,8 @@ git config user.email "354005634+ButcheCassidy@users.noreply.github.com"
 - Mirroring/control channels must be encrypted and authenticated (e.g. TLS 1.3 / DTLS or Noise with pinned keys from a pairing step). No plaintext transport, including on LAN.
 - Use platform keystores (Android Keystore, macOS Keychain) for long-term keys.
 - Responses: structured, concise, no filler.
+
+## Resume (project memory)
+- Build in progress. Read `HANDOFF.md` first and continue from its **Next steps**; the user supplies the full spec prompt (`CarbonMirror_Build_Prompt.md`) and the app logo.
+- Build only; fix bugs only when strictly necessary to continue. Test UI at every stage: elements exactly where the spec puts them, no overflow at any size.
+- Liquid Glass only for Settings and not-connected screens; mirroring UI fully opaque.
