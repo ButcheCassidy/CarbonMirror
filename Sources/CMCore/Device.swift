@@ -15,13 +15,13 @@ public struct Device: Equatable, Sendable, Codable, Identifiable {
         }
     }
 
-    /// Pinned identities (Phase 7): adb TLS certificate fingerprint and the serial it belongs to.
+    /// Pinned identities (spec 7.2): SHA-256 of the adb TLS public key (SubjectPublicKeyInfo) and the serial.
     public struct Pins: Equatable, Sendable, Codable {
-        public var adbCertificateSHA256: String
+        public var adbKeySHA256: String
         public var serial: String
 
-        public init(adbCertificateSHA256: String, serial: String) {
-            self.adbCertificateSHA256 = adbCertificateSHA256
+        public init(adbKeySHA256: String, serial: String) {
+            self.adbKeySHA256 = adbKeySHA256
             self.serial = serial
         }
     }
