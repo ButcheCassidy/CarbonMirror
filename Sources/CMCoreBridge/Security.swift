@@ -83,7 +83,7 @@ public enum TrustPolicy {
 }
 
 /// Signs with the Mac identity key (Keychain on the Mac; a software key in tests).
-public protocol IdentitySigning: AnyObject {
+public protocol IdentitySigning: AnyObject, Sendable {
     /// Uncompressed P-384 public point (97 bytes).
     var publicKey: [UInt8] { get }
     /// DER ECDSA-SHA384 signature of `message`.
@@ -230,6 +230,11 @@ public final class TLSSession: @unchecked Sendable {
     /// Feeds ciphertext from the socket.
     public func receive(_ ciphertext: UnsafeRawBufferPointer) throws(CoreStatus) {
         try check(cm_tls_read_tls(handle, ciphertext.bindMemory(to: UInt8.self).baseAddress, ciphertext.count))
+    }
+
+    /// Feeds ciphertext from the socket.
+    public func receive(_ ciphertext: [UInt8]) throws(CoreStatus) {
+        try check(ciphertext.withUnsafeBufferPointer { cm_tls_read_tls(handle, $0.baseAddress, $0.count) })
     }
 
     /// All ciphertext waiting to be sent.
