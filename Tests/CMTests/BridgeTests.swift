@@ -4,22 +4,27 @@ import CMCoreBridge
 import Foundation
 import Testing
 
+/// Raw value of a C enum constant (the header declares `CmStatus` both as enum and as int32_t typedef).
+private func raw<T: RawRepresentable>(_ value: T) -> Int64 where T.RawValue: BinaryInteger {
+    Int64(value.rawValue)
+}
+
 @Suite("Swift bridge and C ABI boundary")
 struct BridgeTests {
     @Test func swiftStatusCodesMatchHeader() {
-        let header: [(CoreStatus, CmStatus)] = [
-            (.ok, CmStatus_Ok), (.nullPointer, CmStatus_NullPointer), (.invalidUtf8, CmStatus_InvalidUtf8),
-            (.invalidArgument, CmStatus_InvalidArgument), (.bufferTooSmall, CmStatus_BufferTooSmall), (.panic, CmStatus_Panic),
-            (.needMoreData, CmStatus_NeedMoreData), (.ipMalformed, CmStatus_IpMalformed), (.ipHostnameRefused, CmStatus_IpHostnameRefused),
-            (.ipPublicRefused, CmStatus_IpPublicRefused), (.ipTunnelRangeRefused, CmStatus_IpTunnelRangeRefused),
-            (.ipReservedRefused, CmStatus_IpReservedRefused), (.interfaceTunnelRefused, CmStatus_InterfaceTunnelRefused),
-            (.portInvalid, CmStatus_PortInvalid), (.portLegacyTcpipRefused, CmStatus_PortLegacyTcpipRefused),
-            (.adbEmpty, CmStatus_AdbEmpty), (.adbUnknownCommand, CmStatus_AdbUnknownCommand), (.adbBadArgument, CmStatus_AdbBadArgument),
-            (.adbInstallNeedsUsb, CmStatus_AdbInstallNeedsUsb), (.adbInstallNeedsConfirmation, CmStatus_AdbInstallNeedsConfirmation),
-            (.digestMismatch, CmStatus_DigestMismatch), (.parseMalformed, CmStatus_ParseMalformed), (.parseTooLarge, CmStatus_ParseTooLarge),
+        let header: [(CoreStatus, Int64)] = [
+            (.ok, raw(CmStatus_Ok)), (.nullPointer, raw(CmStatus_NullPointer)), (.invalidUtf8, raw(CmStatus_InvalidUtf8)),
+            (.invalidArgument, raw(CmStatus_InvalidArgument)), (.bufferTooSmall, raw(CmStatus_BufferTooSmall)), (.panic, raw(CmStatus_Panic)),
+            (.needMoreData, raw(CmStatus_NeedMoreData)), (.ipMalformed, raw(CmStatus_IpMalformed)), (.ipHostnameRefused, raw(CmStatus_IpHostnameRefused)),
+            (.ipPublicRefused, raw(CmStatus_IpPublicRefused)), (.ipTunnelRangeRefused, raw(CmStatus_IpTunnelRangeRefused)),
+            (.ipReservedRefused, raw(CmStatus_IpReservedRefused)), (.interfaceTunnelRefused, raw(CmStatus_InterfaceTunnelRefused)),
+            (.portInvalid, raw(CmStatus_PortInvalid)), (.portLegacyTcpipRefused, raw(CmStatus_PortLegacyTcpipRefused)),
+            (.adbEmpty, raw(CmStatus_AdbEmpty)), (.adbUnknownCommand, raw(CmStatus_AdbUnknownCommand)), (.adbBadArgument, raw(CmStatus_AdbBadArgument)),
+            (.adbInstallNeedsUsb, raw(CmStatus_AdbInstallNeedsUsb)), (.adbInstallNeedsConfirmation, raw(CmStatus_AdbInstallNeedsConfirmation)),
+            (.digestMismatch, raw(CmStatus_DigestMismatch)), (.parseMalformed, raw(CmStatus_ParseMalformed)), (.parseTooLarge, raw(CmStatus_ParseTooLarge)),
         ]
         for (swift, c) in header {
-            #expect(Int64(swift.rawValue) == Int64(c.rawValue), "\(swift)")
+            #expect(Int64(swift.rawValue) == c, "\(swift)")
         }
         #expect(header.count == CoreStatus.allCases.count - 1)
     }
@@ -85,10 +90,13 @@ struct BridgeTests {
                 #expect(content == nil)
                 continue
             }
-            let c = try? #require(content)
-            #expect((c?.title.count ?? 99) <= 32, "title too long for 0.75x window: \(state)")
-            #expect((c?.subtitle.count ?? 99) <= 60, "subtitle should stay one or two short lines: \(state)")
-            #expect((1...2).contains(c?.buttons.count ?? 0), "\(state)")
+            guard let c = content else {
+                Issue.record("missing status content: \(state)")
+                continue
+            }
+            #expect(c.title.count <= 32, "title too long for 0.75x window: \(state)")
+            #expect(c.subtitle.count <= 60, "subtitle should stay one or two short lines: \(state)")
+            #expect((1...2).contains(c.buttons.count), "\(state)")
         }
     }
 }
