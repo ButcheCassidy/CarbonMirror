@@ -10,6 +10,10 @@ use crate::{crypto, ABI_VERSION};
 
 pub use size::{CmInsets, CmSize};
 
+/// Largest buffer accepted across the C ABI (16 MiB: above any H.265 keyframe at 32 Mbps and the
+/// 1 MB clipboard cap). Larger lengths are refused before any pointer is turned into a slice.
+const MAX_BUFFER_LEN: usize = 16 * 1024 * 1024;
+
 fn guard(f: impl FnOnce() -> CmResult<()>) -> i32 {
     match catch_unwind(AssertUnwindSafe(f)) {
         Ok(Ok(())) => CmStatus::Ok.code(),
@@ -27,10 +31,10 @@ unsafe fn input<'a>(ptr: *const u8, len: usize) -> CmResult<&'a [u8]> {
     if ptr.is_null() {
         return Err(CmStatus::NullPointer);
     }
-    if len > isize::MAX as usize {
+    if len > MAX_BUFFER_LEN {
         return Err(CmStatus::InvalidArgument);
     }
-    // SAFETY: non-null, length bounded by isize::MAX, and the caller guarantees `len` readable bytes.
+    // SAFETY: non-null, length bounded by MAX_BUFFER_LEN, and the caller guarantees `len` readable bytes.
     Ok(unsafe { std::slice::from_raw_parts(ptr, len) })
 }
 
@@ -48,7 +52,7 @@ unsafe fn output<'a>(ptr: *mut u8, len: usize) -> CmResult<&'a mut [u8]> {
     if ptr.is_null() {
         return Err(CmStatus::NullPointer);
     }
-    if len > isize::MAX as usize {
+    if len > MAX_BUFFER_LEN {
         return Err(CmStatus::InvalidArgument);
     }
     // SAFETY: non-null, bounded length, exclusive writable memory guaranteed by the caller.
