@@ -31,13 +31,13 @@ let package = Package(
         .target(name: "CMCore", dependencies: ["CMCoreBridge"]),
         .target(name: "CMSecurity", dependencies: ["CMCore", "CMCoreBridge"]),
         .target(name: "CMTransport", dependencies: ["CMCore", "CMCoreBridge", "CMSecurity"]),
-        .target(name: "CMMedia", dependencies: ["CMCore"]),
-        .target(name: "CMInput", dependencies: ["CMCore"]),
+        .target(name: "CMMedia", dependencies: ["CMCore", "CMCoreBridge"]),
+        .target(name: "CMInput", dependencies: ["CMCore", "CMCoreBridge"]),
         .target(name: "CMUI", dependencies: ["CMCore", "CMCoreBridge", "CMTransport", "CMMedia", "CMInput", "CMSecurity"]),
         .executableTarget(name: "CarbonMirrorApp", dependencies: ["CMUI", "CMCore", "CMTransport"]),
         .testTarget(
             name: "CMTests",
-            dependencies: ["CMCore", "CMCoreBridge", "CMTransport"],
+            dependencies: ["CMCore", "CMCoreBridge", "CMTransport", "CMInput", "CMSecurity"],
             exclude: ["Fixtures"]
         ),
     ]
