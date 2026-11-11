@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      android: ${{ steps.d.outputs.android }}
+      macos: ${{ steps.d.outputs.macos }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: d
+        run: |
+          [ -f android/gradlew ] && echo "android=true" >> "$GITHUB_OUTPUT" || echo "android=false" >> "$GITHUB_OUTPUT"
+          if ls macos/*.xcodeproj >/dev/null 2>&1 || [ -f macos/Package.swift ]; then
+            echo "macos=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "macos=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  android:
+    needs: detect
+    if: needs.detect.outputs.android == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew --no-daemon lint test assembleDebug
+
+  macos:
+    needs: detect
+    if: needs.detect.outputs.macos == 'true'
+    runs-on: macos-latest
+    env:
+      MACOS_SCHEME: ${{ vars.MACOS_SCHEME }}
+    defaults:
+      run:
+        working-directory: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test
+        run: |
+          if [ -f Package.swift ]; then
+            swift build && swift test
+          else
+            : "${MACOS_SCHEME:?Set repository variable MACOS_SCHEME}"
+            xcodebuild -scheme "$MACOS_SCHEME" -destination 'platform=macOS' \
+              CODE_SIGNING_ALLOWED=NO build test
+          fi
