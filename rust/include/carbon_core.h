@@ -635,6 +635,18 @@ int32_t cm_proto_video_header(const uint8_t *buf, size_t buf_len, struct CmVideo
 int32_t cm_proto_device_message(const uint8_t *buf, size_t buf_len, struct CmDeviceMessage *out);
 
 /**
+ * Annex B (start codes) → 4-byte length-prefixed NAL units for VideoToolbox.
+ *
+ * # Safety
+ * `annexb` readable for `annexb_len`; `out` writable for `cap`; `written` a valid writable `size_t`.
+ */
+int32_t cm_annexb_to_avcc(const uint8_t *annexb,
+                          size_t annexb_len,
+                          uint8_t *out,
+                          size_t cap,
+                          size_t *written);
+
+/**
  * Rounded-corner radius (pixels) from `dumpsys display` text.
  *
  * # Safety

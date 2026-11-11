@@ -108,6 +108,15 @@ public enum ScrcpyProtocol {
         return (String(decoding: buffer[0..<len], as: UTF8.self), codec)
     }
 
+    /// Converts Annex B `input` into 4-byte length-prefixed NAL units in `out` (reused by the caller);
+    /// returns the bytes written. `out` must hold at least `input.count + 4 * NAL count`.
+    public static func lengthPrefixed(_ input: UnsafeRawBufferPointer, into out: UnsafeMutableRawBufferPointer) throws(CoreStatus) -> Int {
+        var written = 0
+        try check(cm_annexb_to_avcc(input.bindMemory(to: UInt8.self).baseAddress, input.count,
+                                    out.bindMemory(to: UInt8.self).baseAddress, out.count, &written))
+        return written
+    }
+
     /// Rounded-corner radius (pixels) from `dumpsys display` output.
     public static func cornerRadius(dumpsys: [UInt8]) throws(CoreStatus) -> Int {
         var radius: UInt32 = 0

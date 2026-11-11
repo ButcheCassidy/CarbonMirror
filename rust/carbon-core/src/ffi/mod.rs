@@ -5,7 +5,7 @@ use std::ffi::c_void;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use crate::policy::{adb, clipboard, failure, net, pairing, size};
-use crate::protocol::{adb_devices, adb_wire, control, display_info, input as pinput, keymap, scrcpy};
+use crate::protocol::{adb_devices, adb_wire, annexb, control, display_info, input as pinput, keymap, scrcpy};
 use crate::status::{CmResult, CmStatus};
 use crate::tls::{self, Identity, IdentitySigner, Session};
 use crate::{crypto, ABI_VERSION};
@@ -443,6 +443,20 @@ pub unsafe extern "C" fn cm_proto_device_message(buf: *const u8, buf_len: usize,
         };
         // SAFETY: caller contract on `out`.
         unsafe { write(out, c) }
+    })
+}
+
+/// Annex B (start codes) → 4-byte length-prefixed NAL units for VideoToolbox.
+///
+/// # Safety
+/// `annexb` readable for `annexb_len`; `out` writable for `cap`; `written` a valid writable `size_t`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn cm_annexb_to_avcc(annexb: *const u8, annexb_len: usize, out: *mut u8, cap: usize, written: *mut usize) -> i32 {
+    guard(|| {
+        // SAFETY: caller contract on `annexb`.
+        let src = unsafe { input(annexb, annexb_len) }?;
+        // SAFETY: caller contract on `out` and `written`.
+        unsafe { encode(out, cap, written, |b| annexb::to_length_prefixed(src, b)) }
     })
 }
 
