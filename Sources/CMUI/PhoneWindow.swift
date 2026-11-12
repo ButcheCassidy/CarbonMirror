@@ -14,6 +14,8 @@ final class PhoneWindow: NSWindow {
         appearance = Theme.darkAppearance
         sharingType = .none
         isReleasedWhenClosed = false
+        // No "Resume" snapshot of the phone screen in ~/Library/Saved Application State (spec 7.6: no thumbnails).
+        isRestorable = false
         isMovableByWindowBackground = false
         collectionBehavior = [.managed, .fullScreenNone]
         title = "CarbonMirror"
