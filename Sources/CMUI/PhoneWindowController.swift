@@ -83,6 +83,7 @@ final class PhoneWindowController: NSObject, NSWindowDelegate {
         content.chrome.setToggle(.pinOnTop, on: settings.pinOnTop)
         content.chrome.setToggle(.clipboardSync, on: settings.clipboardSync)
         content.chrome.setTypingMode(settings.typingMode)
+        content.chrome.items = settings.toolbarItems
         content.needsLayout = true
     }
 
@@ -167,7 +168,7 @@ final class PhoneWindowController: NSObject, NSWindowDelegate {
         return "1:1 = \(Int(real.width.rounded())) × \(Int(real.height.rounded())) pt (\(Int(sizer.pointsPerInch(on: screen).rounded())) pt per inch)"
     }
 
-    /// ⌘0: real size.
+    /// View → Real Size.
     func snapToRealSize() {
         setScale(1)
     }

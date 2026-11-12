@@ -6,7 +6,7 @@ import CMCore
 import CMCoreBridge
 import CMTransport
 
-/// App entry: main menu with every shortcut (spec 5.4), the phone window, the session, pairing, Settings,
+/// App entry: main menu (standard macOS keys only; phone actions are toolbar buttons, Settings → Shortcuts), the phone window, the session, pairing, Settings,
 /// the menu-bar extra (8.3) and `--demo`.
 @MainActor
 public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
@@ -243,16 +243,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValid
 
         let phoneMenu = NSMenu(title: "Phone")
         for toolbarItem in ToolbarItem.allCases where toolbarItem != .connection && toolbarItem != .settings {
-            let entry = item(toolbarItem.menuTitle, #selector(toolbarMenuItem(_:)), toolbarItem.shortcut?.key ?? "", toolbarItem.shortcut?.modifiers ?? [])
+            let entry = item(toolbarItem.title, #selector(toolbarMenuItem(_:)))
             entry.representedObject = toolbarItem.rawValue
             phoneMenu.addItem(entry)
         }
-        phoneMenu.addItem(item("Screenshot on Phone", #selector(phoneScreenshot(_:)), "s", [.command, .shift]))
+        phoneMenu.addItem(item("Screenshot on Phone", #selector(phoneScreenshot(_:))))
         main.addItem(submenu: phoneMenu, title: "Phone")
 
         let view = NSMenu(title: "View")
-        view.addItem(item("Real Size", #selector(realSize(_:)), "0"))
-        view.addItem(item("Debug HUD", #selector(toggleHUD(_:)), "d", [.command, .option]))
+        view.addItem(item("Real Size", #selector(realSize(_:))))
+        view.addItem(item("Debug HUD", #selector(toggleHUD(_:))))
         main.addItem(submenu: view, title: "View")
 
         let windowMenu = NSMenu(title: "Window")
@@ -291,36 +291,6 @@ extension NSMenu {
         let holder = NSMenuItem(title: title, action: nil, keyEquivalent: "")
         holder.submenu = submenu
         addItem(holder)
-    }
-}
-
-extension ToolbarItem {
-    /// Menu title without the shortcut hint (the menu shows the key equivalent itself).
-    var menuTitle: String {
-        title.components(separatedBy: " (").first ?? title
-    }
-
-    /// Key equivalent from spec 5.4 / 8.2.
-    var shortcut: (key: String, modifiers: NSEvent.ModifierFlags)? {
-        switch self {
-        case .back: ("[", .command)
-        case .home: ("1", .command)
-        case .recents: ("2", .command)
-        case .appDrawer: ("3", .command)
-        case .notifications: ("4", .command)
-        case .quickSettings: ("5", .command)
-        case .screenshot: ("s", .command)
-        case .clipboardSync: ("c", [.command, .shift])
-        case .privacyBlur: ("h", [.command, .shift])
-        case .typingMode: ("k", [.command, .option])
-        case .rotate: ("r", .command)
-        case .volumeDown: (String(UnicodeScalar(NSDownArrowFunctionKey).map(Character.init) ?? "↓"), .command)
-        case .volumeUp: (String(UnicodeScalar(NSUpArrowFunctionKey).map(Character.init) ?? "↑"), .command)
-        case .lock: ("l", .command)
-        case .pinOnTop: ("p", .command)
-        case .settings: (",", .command)
-        case .mute, .connection: nil
-        }
     }
 }
 #endif

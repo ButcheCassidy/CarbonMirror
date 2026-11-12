@@ -19,6 +19,10 @@ final class ChromeView: NSView {
     private let overflowButton = NSButton()
     private let statusLine = NSTextField(labelWithString: "")
     private var overflowItems: [ToolbarItem] = []
+    /// Buttons in the toolbar (Settings → Shortcuts); the rest stay hidden.
+    var items: [ToolbarItem] = ToolbarItem.allCases.filter { $0.isFixed || ToolbarItem.defaultEnabled.contains($0) } {
+        didSet { needsLayout = true }
+    }
     private var toggles: Set<ToolbarItem> = []
     private var sessionActive = false
     private var typingMode: AppSettings.TypingMode = .hardware
@@ -47,6 +51,12 @@ final class ChromeView: NSView {
             button.target = self
             button.action = #selector(itemPressed(_:))
             button.identifier = NSUserInterfaceItemIdentifier(item.rawValue)
+            if item != .connection {
+                // Standard macOS toolbar feel: a soft rounded highlight only under the pointer.
+                button.isBordered = true
+                button.bezelStyle = .accessoryBarAction
+                button.showsBorderOnlyWhileMouseInside = true
+            }
             if item == .connection {
                 button.imagePosition = .imageTrailing
                 button.font = Theme.statusLineFont
@@ -55,7 +65,9 @@ final class ChromeView: NSView {
             buttons[item] = button
             addSubview(button)
         }
-        overflowButton.isBordered = false
+        overflowButton.isBordered = true
+        overflowButton.bezelStyle = .accessoryBarAction
+        overflowButton.showsBorderOnlyWhileMouseInside = true
         overflowButton.image = Theme.symbol("ellipsis", size: Theme.toolbarGlyphPointSize, weight: .semibold)
         overflowButton.contentTintColor = Theme.primaryText
         overflowButton.toolTip = "More"
@@ -93,7 +105,7 @@ final class ChromeView: NSView {
 
     func setTypingMode(_ mode: AppSettings.TypingMode) {
         typingMode = mode
-        buttons[.typingMode]?.toolTip = mode == .hardware ? "Typing: Hardware keyboard (⌥⌘K)" : "Typing: Phone keyboard (⌥⌘K)"
+        buttons[.typingMode]?.toolTip = mode == .hardware ? "Typing: Hardware keyboard" : "Typing: Phone keyboard"
         refreshImages()
     }
 
@@ -150,7 +162,7 @@ final class ChromeView: NSView {
             let size = light.frame.size == .zero ? NSSize(width: 14, height: 16) : light.frame.size
             light.setFrameOrigin(NSPoint(x: ChromeLayout.trafficLightX(index), y: (toolbarHeight - size.height) / 2))
         }
-        let result = ChromeLayout.layout(width: Double(bounds.width))
+        let result = ChromeLayout.layout(width: Double(bounds.width), items: items)
         let shown = Set(result.visible.map(\.item))
         let side = CGFloat(ChromeLayout.buttonSize)
         for placement in result.visible {

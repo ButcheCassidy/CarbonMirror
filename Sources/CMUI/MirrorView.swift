@@ -23,7 +23,7 @@ final class MirrorView: NSView {
     var onRevealRequest: (() -> Void)?
 
     private let lockGlyph = NSImageView()
-    /// Debug HUD (⌥⌘D, spec 4.6): hidden by default.
+    /// Debug HUD (View menu, spec 4.6): hidden by default.
     private let hud = NSTextField(wrappingLabelWithString: "")
     private let inputQueue = DispatchQueue(label: "com.nomadicrebel.carbonmirror.input", qos: .userInteractive)
     private var frameWidth = 0
@@ -88,7 +88,7 @@ final class MirrorView: NSView {
         deliver(engine.releaseAll())
     }
 
-    /// Sends messages produced outside the view (toolbar actions, shortcuts) through the same ordered queue.
+    /// Sends messages produced outside the view (toolbar and menu actions) through the same ordered queue.
     func deliver(_ messages: [[UInt8]]) {
         guard !messages.isEmpty, let sender else { return }
         inputQueue.async {
@@ -182,7 +182,7 @@ final class MirrorView: NSView {
         deliver(engine.flagsChanged(flags: Self.flags(event)))
     }
 
-    /// ⌘-combinations that are not CarbonMirror shortcuts go to the phone (⌘ is sent as Ctrl, so ⌘C/⌘V/⌘A/⌘Z
+    /// ⌘-combinations other than the standard macOS menu keys go to the phone (⌘ is sent as Ctrl, so ⌘C/⌘V/⌘A/⌘Z
     /// work as on a Mac). AppKit sends no key-up while ⌘ is held, so the release follows immediately.
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         guard window?.firstResponder === self, event.type == .keyDown, !AppShortcuts.matches(event) else {
@@ -201,19 +201,17 @@ final class MirrorView: NSView {
     }
 }
 
-/// Key equivalents that belong to CarbonMirror (menus), never forwarded to the phone.
+/// Key equivalents that belong to CarbonMirror (standard macOS menu keys), never forwarded to the phone.
 enum AppShortcuts {
-    /// App-level keys besides the toolbar shortcuts: About/Settings/Hide/Quit/Minimise/Real size/HUD/Close.
-    private static let fixed: [(key: String, modifiers: NSEvent.ModifierFlags)] = [
-        ("q", .command), ("h", .command), ("m", .command), ("w", .command), ("0", .command), (",", .command),
-        ("d", [.command, .option]), ("s", [.command, .shift]),
+    /// Quit, Hide, Minimise, Close and Settings.
+    private static let keys: [(key: String, modifiers: NSEvent.ModifierFlags)] = [
+        ("q", .command), ("h", .command), ("m", .command), ("w", .command), (",", .command),
     ]
 
     static func matches(_ event: NSEvent) -> Bool {
         let mods = event.modifierFlags.intersection([.command, .shift, .option, .control])
         guard let key = event.charactersIgnoringModifiers?.lowercased() else { return false }
-        let all = fixed + ToolbarItem.allCases.compactMap(\.shortcut)
-        return all.contains { $0.key.lowercased() == key && $0.modifiers == mods }
+        return keys.contains { $0.key == key && $0.modifiers == mods }
     }
 }
 #endif

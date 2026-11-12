@@ -13,11 +13,16 @@ All notable changes to CarbonMirror. Versions follow `CFBundleShortVersionString
 
 ### Added
 - Companion: *Pair with your Mac (QR code)* button.
+- **Settings → Shortcuts:** choose which buttons the toolbar shows. By default only **Home** (plus the connection badge and Settings); add Back, Recents, App drawer, Notifications, Quick Settings, Screenshot, Clipboard sync, Privacy blur, Typing mode, Rotate, Volume, Mute, Lock and Pin on top as you like.
+
+### Removed
+- App keyboard shortcuts for phone actions (⌘1, ⌘[, ⇧⌘H …); every action is a toolbar button and in the Phone menu. Standard macOS keys (⌘Q, ⌘H, ⌘M, ⌘W, ⌘,) stay; other ⌘ keys go to the phone as Ctrl.
 
 ### Licence
 - CarbonMirror is now licensed under the **PolyForm Shield License 1.0.0** (was PolyForm Noncommercial 1.0.0); every source file carries the SPDX identifier and the Required Notice. The forked scrcpy server files stay under Apache-2.0.
 
 ### Changed
+- Toolbar buttons show the standard macOS hover highlight.
 - Window corners: a standard macOS window radius (12 pt) while the toolbar shows, so the traffic lights and toolbar ends are no longer clipped; the resting window keeps the phone's shape.
 - Releases sign with your Developer ID certificate and are notarised when its secrets are in the `release` environment; `scripts/build.sh` does the same locally (`CM_SIGN_IDENTITY`, `CM_NOTARY_PROFILE`).
 - `scripts/build-mac.sh`: one command from the source folder to a signed app and DMG.

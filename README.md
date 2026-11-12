@@ -37,8 +37,8 @@ Move the pointer to the top of the window and a toolbar slides out around the sc
 ### Little things that iPhone Mirroring gets wrong
 - **Never pauses** when you switch Spaces, minimise or cover the window.
 - **Reconnects silently** after Wi-Fi blips or waking the Mac — no Connect button.
-- **Two typing modes:** *Hardware keyboard* (exact keys, works in password fields) or *Phone keyboard* (keeps the phone's suggestions). Toggle with **⌥⌘K**.
-- **Privacy blur** with **⇧⌘H**, optional auto-blur when you look away, optional Touch ID to reveal.
+- **Two typing modes:** *Hardware keyboard* (exact keys, works in password fields) or *Phone keyboard* (keeps the phone's suggestions). Toggle it from the toolbar.
+- **Privacy blur** from the toolbar, optional auto-blur when you look away, optional Touch ID to reveal.
 - **Landscape** when you want it: rotate the phone and choose *Switch to landscape* or *Not now*.
 
 ### Walled off from your Mac
@@ -46,21 +46,11 @@ Only the screen comes out and only your input goes in — plus plain-text clipbo
 
 ---
 
-## Keyboard shortcuts
+## Toolbar buttons
 
-| Action | Keys | Action | Keys |
-|---|---|---|---|
-| Home | ⌘1 | Rotate | ⌘R |
-| Back | ⌘[ | Lock (power) | ⌘L |
-| Recents | ⌘2 | Volume up / down | ⌘↑ / ⌘↓ |
-| App drawer | ⌘3 | Real size | ⌘0 |
-| Notifications | ⌘4 | Pin on top | ⌘P |
-| Quick Settings | ⌘5 | Typing mode | ⌥⌘K |
-| Screenshot to Mac | ⌘S | Privacy blur | ⇧⌘H |
-| Screenshot on phone | ⇧⌘S | Clipboard sync | ⇧⌘C |
-| Settings | ⌘, | Debug HUD | ⌥⌘D |
+Hover over the top of the window to show the toolbar. By default it holds **Home** (plus the connection badge and Settings), so getting back is always one click. Add any of these in **Settings → Shortcuts**: Back, Recents, App drawer, Notifications, Quick Settings, Screenshot to Mac, Clipboard sync, Privacy blur, Typing mode, Rotate, Volume down/up, Mute, Lock, Pin on top. When the window is narrow, buttons that don't fit move into the **…** menu. Every action is also in the **Phone** menu.
 
-Other ⌘ shortcuts (⌘C, ⌘V, ⌘A, ⌘Z …) go to the phone as Ctrl, so copy, paste and undo work the way you expect.
+There are no app keyboard shortcuts besides the standard macOS ones (⌘Q, ⌘H, ⌘M, ⌘W, ⌘,). Other ⌘ shortcuts (⌘C, ⌘V, ⌘A, ⌘Z …) go to the phone as Ctrl, so copy, paste and undo work the way you expect.
 
 ---
 

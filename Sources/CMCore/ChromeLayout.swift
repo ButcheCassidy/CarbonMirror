@@ -30,29 +30,42 @@ public enum ToolbarItem: String, CaseIterable, Sendable {
         }
     }
 
-    /// Tooltip and overflow-menu title, with the keyboard shortcut (spec 5.4 / 8.2).
+    /// Tooltip, overflow-menu and Settings title.
     public var title: String {
         switch self {
-        case .back: "Back (⌘[)"
-        case .home: "Home (⌘1)"
-        case .recents: "Recents (⌘2)"
-        case .appDrawer: "App drawer (⌘3)"
-        case .notifications: "Notifications (⌘4)"
-        case .quickSettings: "Quick Settings (⌘5)"
-        case .screenshot: "Screenshot to Mac (⌘S)"
-        case .clipboardSync: "Clipboard sync (⇧⌘C)"
-        case .privacyBlur: "Privacy blur (⇧⌘H)"
-        case .typingMode: "Typing mode (⌥⌘K)"
-        case .rotate: "Rotate (⌘R)"
-        case .volumeDown: "Volume down (⌘↓)"
-        case .volumeUp: "Volume up (⌘↑)"
+        case .back: "Back"
+        case .home: "Home"
+        case .recents: "Recents"
+        case .appDrawer: "App drawer"
+        case .notifications: "Notifications"
+        case .quickSettings: "Quick Settings"
+        case .screenshot: "Screenshot to Mac"
+        case .clipboardSync: "Clipboard sync"
+        case .privacyBlur: "Privacy blur"
+        case .typingMode: "Typing mode"
+        case .rotate: "Rotate"
+        case .volumeDown: "Volume down"
+        case .volumeUp: "Volume up"
         case .mute: "Mute"
-        case .lock: "Lock (⌘L)"
+        case .lock: "Lock"
         case .connection: "Connection"
-        case .pinOnTop: "Pin on top (⌘P)"
-        case .settings: "Settings (⌘,)"
+        case .pinOnTop: "Pin on top"
+        case .settings: "Settings"
         }
     }
+
+    /// Always in the toolbar: the connection badge and Settings (the way to change everything else).
+    public var isFixed: Bool {
+        self == .connection || self == .settings
+    }
+
+    /// Buttons the user can add in Settings → Shortcuts.
+    public static var optional: [ToolbarItem] {
+        allCases.filter { !$0.isFixed }
+    }
+
+    /// Shown by default: Home only, so getting back is always one click.
+    public static let defaultEnabled: Set<ToolbarItem> = [.home]
 
     /// Needs a live session (disabled while a status screen is shown).
     public var needsSession: Bool {

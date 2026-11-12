@@ -7,7 +7,7 @@ import CMCoreBridge
 
 /// Window sizing relative to the real phone (spec 2.5): real size from `CGDisplayScreenSize()` and the
 /// screen's point width (correct at any scaled resolution), 0.75×–2.0× clamped to the visible frame,
-/// aspect locked during live resize, ⌘0 real size, and size/position remembered per orientation.
+/// aspect locked during live resize, real size (View menu), and size/position remembered per orientation.
 @MainActor
 final class WindowSizer {
     /// Points per inch of the default 16" MacBook Pro "Looks like 1728×1117" — used only if a display

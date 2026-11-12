@@ -19,6 +19,7 @@ private final class Action: NSObject {
 @MainActor
 final class SettingsWindowController {
     enum Section: String, CaseIterable { case connection = "Connection", display = "Display", experience = "Experience",
+                                              shortcuts = "Shortcuts",
                                               security = "Security", screenshots = "Screenshots", general = "General", about = "About" }
 
     var onCreateNewKey: (() -> Void)?
@@ -108,6 +109,7 @@ final class SettingsWindowController {
         case .connection: rows = connectionRows()
         case .display: rows = displayRows()
         case .experience: rows = experienceRows()
+        case .shortcuts: rows = shortcutRows()
         case .security: rows = securityRows()
         case .screenshots: rows = [("Folder", button("Open Screenshots Folder") { _ in Self.openScreenshots() })]
         case .general: rows = generalRows()
@@ -220,10 +222,20 @@ final class SettingsWindowController {
         ]
     }
 
+    /// One switch per toolbar button, with its icon; Connection and Settings are always shown.
+    private func shortcutRows() -> [(String, NSView)] {
+        let s = settings
+        let shown = Set(s.toolbarItems)
+        return ToolbarItem.optional.enumerated().map { index, item in
+            let box = toggle(item.title, shown.contains(item)) { s.setToolbarItem(item, shown: $0) }
+            box.image = Theme.symbol(item.symbol, size: Theme.toolbarGlyphPointSize, weight: .regular)
+            box.imagePosition = .imageLeading
+            return (index == 0 ? "Toolbar" : "", box)
+        }
+    }
+
     private func generalRows() -> [(String, NSView)] {
-        let shortcuts = ToolbarItem.allCases.compactMap { item in item.shortcut.map { _ in item.title } }
-            + ["Real size (⌘0)", "Screenshot on the phone (⇧⌘S)", "Debug HUD (⌥⌘D)"]
-        return [
+        [
             ("", toggle("Launch at login", SMAppService.mainApp.status == .enabled) { on in
                 do {
                     if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
@@ -231,7 +243,6 @@ final class SettingsWindowController {
                     Log.error(.app, "login item change failed")
                 }
             }),
-            ("Shortcuts", label(shortcuts.joined(separator: "\n"), secondary: true)),
         ]
     }
 

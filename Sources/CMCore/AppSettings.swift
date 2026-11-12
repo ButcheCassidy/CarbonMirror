@@ -30,7 +30,7 @@ public final class AppSettings {
         case autoBlurSeconds, touchIDToReveal, typingMode, landscapeOffer, landscapeBehaviour, powerSavingWhenHidden
         case statusLine, pinAcrossSpaces, pinOnTop, phoneScreenOff, rightClickBack
         case encryptOverUSB, idleTimeoutMinutes, hideFromCapture, clipboardSync, rotationReminderDays, lastKeyRotation
-        case showDebugHUD, macPinResetPending, companionInstalled
+        case showDebugHUD, macPinResetPending, companionInstalled, toolbarItems
     }
 
     /// Allowed values offered in Settings.
@@ -82,6 +82,21 @@ public final class AppSettings {
     public var autoConnect: Bool {
         get { bool(.autoConnect, true) }
         set { set(newValue, .autoConnect) }
+    }
+
+    /// Toolbar buttons the user chose (Settings → Shortcuts), in toolbar order, plus the fixed ones.
+    public var toolbarItems: [ToolbarItem] {
+        let stored = defaults.stringArray(forKey: Key.toolbarItems.rawValue).map { Set($0.compactMap(ToolbarItem.init(rawValue:))) }
+        let enabled = stored ?? ToolbarItem.defaultEnabled
+        return ToolbarItem.allCases.filter { $0.isFixed || enabled.contains($0) }
+    }
+
+    /// Adds or removes one optional toolbar button.
+    public func setToolbarItem(_ item: ToolbarItem, shown: Bool) {
+        guard !item.isFixed else { return }
+        var enabled = Set(toolbarItems.filter { !$0.isFixed })
+        if shown { enabled.insert(item) } else { enabled.remove(item) }
+        set(ToolbarItem.optional.filter(enabled.contains).map(\.rawValue), .toolbarItems)
     }
 
     /// USB "Performance" profile (spec 4.5): 120 fps, H.264, 32 Mbps.

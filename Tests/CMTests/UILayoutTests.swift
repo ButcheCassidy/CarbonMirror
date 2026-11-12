@@ -84,6 +84,22 @@ struct UILayoutTests {
         #expect(s.landscapeBehaviour == .ask)
     }
 
+    @MainActor @Test func toolbarShowsHomeByDefaultAndTheChosenButtons() throws {
+        let suite = "cm-test-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let s = AppSettings(defaults: defaults)
+        #expect(s.toolbarItems == [.home, .connection, .settings])
+        s.setToolbarItem(.lock, shown: true)
+        s.setToolbarItem(.back, shown: true)
+        #expect(s.toolbarItems == [.back, .home, .lock, .connection, .settings], "spec order kept")
+        s.setToolbarItem(.home, shown: false)
+        s.setToolbarItem(.settings, shown: false)
+        #expect(s.toolbarItems == [.back, .lock, .connection, .settings], "Settings and the badge always stay")
+        #expect(ToolbarItem.optional.count == ToolbarItem.allCases.count - 2)
+        #expect(ToolbarItem.allCases.allSatisfy { !$0.title.contains("⌘") }, "no keyboard shortcut hints")
+    }
+
     @MainActor @Test func settingsClampAndNotify() throws {
         let suite = "cm-test-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))

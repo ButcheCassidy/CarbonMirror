@@ -251,7 +251,7 @@ public final class InputEngine {
         }
     }
 
-    /// ⇧⌘S: screenshot on the phone only.
+    /// Phone → Screenshot on Phone: screenshot on the phone only.
     public func phoneScreenshot() -> [[UInt8]] {
         blocked ? [] : press(.screenshot)
     }
