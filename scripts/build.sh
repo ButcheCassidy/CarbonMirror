@@ -23,7 +23,7 @@ for input in Resources/adb Resources/carbonmirror-server Resources/libcarbon_cor
 done
 
 echo "==> Checking the bundled adb is Google's original and matches deps.lock"
-codesign -dv Resources/adb 2>&1 | grep -q "Authority=.*Google LLC" || fail "Resources/adb is not signed by Google LLC."
+codesign -dvv Resources/adb 2>&1 | grep "Authority=.*Google LLC" > /dev/null || fail "Resources/adb is not signed by Google LLC."
 if [ -f deps/platform-tools-latest-darwin.zip ] && [ -f deps.lock ]; then
   recorded="$(grep 'platform-tools-latest-darwin.zip' deps.lock | tail -1 | cut -d' ' -f1)"
   actual="$(shasum -a 256 deps/platform-tools-latest-darwin.zip | cut -d' ' -f1)"
