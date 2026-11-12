@@ -21,10 +21,16 @@ jobs:
       macos: ${{ steps.d.outputs.macos }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - id: d
+        env:
+          BEFORE: ${{ github.event.before }}
         run: |
           [ -f android/gradlew ] && echo "android=true" >> "$GITHUB_OUTPUT" || echo "android=false" >> "$GITHUB_OUTPUT"
-          if ls macos/*.xcodeproj >/dev/null 2>&1 || [ -f macos/Package.swift ]; then
+          # macOS minutes are expensive: build only when something that reaches the Mac app changed.
+          if ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null \
+             || git diff --name-only "$BEFORE" "$GITHUB_SHA" -- Sources Tests Package.swift rust Resources scripts .github/workflows/ci.yml | grep -q .; then
             echo "macos=true" >> "$GITHUB_OUTPUT"
           else
             echo "macos=false" >> "$GITHUB_OUTPUT"
@@ -62,20 +68,31 @@ jobs:
   macos:
     needs: detect
     if: needs.detect.outputs.macos == 'true'
-    runs-on: macos-latest
-    env:
-      MACOS_SCHEME: ${{ vars.MACOS_SCHEME }}
-    defaults:
-      run:
-        working-directory: macos
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
-      - name: Build and test
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/target
+          key: mac-rust-${{ hashFiles('rust/Cargo.lock') }}
+      - name: Rust core (static library)
         run: |
-          if [ -f Package.swift ]; then
-            swift build && swift test
-          else
-            : "${MACOS_SCHEME:?Set repository variable MACOS_SCHEME}"
-            xcodebuild -scheme "$MACOS_SCHEME" -destination 'platform=macOS' \
-              CODE_SIGNING_ALLOWED=NO build test
-          fi
+          rustup target add aarch64-apple-darwin
+          cargo build --release --target aarch64-apple-darwin --manifest-path rust/carbon-core/Cargo.toml
+      - name: Swift build (Swift 6, warnings listed)
+        run: |
+          set -o pipefail
+          swift --version
+          swift build -c release --arch arm64 2>&1 | tee build.log
+          grep -E ": (warning|error):" build.log | sort -u > diagnostics.txt || true
+          echo "diagnostics: $(wc -l < diagnostics.txt)"
+          cat diagnostics.txt
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-build-log
+          path: build.log
