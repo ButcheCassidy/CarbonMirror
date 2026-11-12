@@ -17,6 +17,7 @@ First release.
 - Inner TLS over USB is **off by default** (Settings → Security → *Encrypt over USB too*); always on over Wi-Fi.
 
 ### Security
+- Inner TLS key exchange is post-quantum only (X25519MLKEM768); classical-only peers are refused.
 - Auto-connect never connects while the Mac is locked or asleep, re-checks conditions before connecting, ignores stale results and halts on an identity mismatch.
 - Companion watches the Wi-Fi network itself (Mullvad's VPN is the default network) and asks Android at most once per network.
 
@@ -32,7 +33,7 @@ Development builds.
 - Native macOS app (Swift 6, AppKit, Metal, VideoToolbox) mirroring and controlling an Android phone, tuned for the Pixel 10 Pro XL.
 - Phone-shaped borderless window with continuous corners from the phone's real corner radius, real-size sizing (0.75×–2.0×), locked aspect ratio and hover chrome with overflow menu.
 - USB "Performance" profile (120 fps, H.264, 32 Mbit/s) with adaptive fallback; wireless "Secure" profile (60 fps, H.265, 12 Mbit/s) over Android Wireless debugging only.
-- Inner TLS 1.3 (AES-256-GCM, X25519MLKEM768) from one Rust core on both ends, pinned keys, session secret; on for USB too by default.
+- Inner TLS 1.3 (AES-256-GCM, X25519MLKEM768 only) from one Rust core on both ends, pinned keys, session secret; on for USB too by default.
 - QR pairing with single-use 120 s codes, 6-digit fallback, key pinning, "Create new key" recovery and rotation reminder.
 - Auto transport switching, silent reconnect, privacy blur with Touch ID reveal, status line, landscape offer, two typing modes, plain-text clipboard sync, screenshots to `~/Pictures/CarbonMirror/`, debug HUD.
 - Forked scrcpy 5.0 server (video + control only) and a stateless Quick Settings companion APK for GrapheneOS.

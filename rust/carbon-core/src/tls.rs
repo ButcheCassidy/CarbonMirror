@@ -2,7 +2,7 @@
 //! over bytes; sockets stay in Swift (Network.framework) and Java.
 //!
 //! Policy: TLS 1.3 only (rustls is built without TLS 1.2), cipher suites `TLS_AES_256_GCM_SHA384` then
-//! `TLS_CHACHA20_POLY1305_SHA256`, key exchange `X25519MLKEM768` then `X25519`, ALPN `carbonmirror/1`
+//! `TLS_CHACHA20_POLY1305_SHA256`, key exchange `X25519MLKEM768` only, ALPN `carbonmirror/1`
 //! required, mutual authentication with pinned keys only (no CA store, no host names), no session
 //! resumption, no 0-RTT, traffic keys refreshed every 15 minutes or 4 GiB, 10 s handshake timeout.
 //!
@@ -80,7 +80,8 @@ pub fn provider() -> CryptoProvider {
             aws_lc_rs::cipher_suite::TLS13_AES_256_GCM_SHA384,
             aws_lc_rs::cipher_suite::TLS13_CHACHA20_POLY1305_SHA256,
         ],
-        kx_groups: vec![aws_lc_rs::kx_group::X25519MLKEM768, aws_lc_rs::kx_group::X25519],
+        // Post-quantum hybrid only: both ends run this core, so a classical-only group is never needed.
+        kx_groups: vec![aws_lc_rs::kx_group::X25519MLKEM768],
         ..aws_lc_rs::default_provider()
     }
 }
