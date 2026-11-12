@@ -109,7 +109,7 @@ Delete the signing certificate.
 ```bash
 security delete-identity -c "CarbonMirror Dev"
 ```
-On the phone: uninstall **CarbonMirror Companion** (this also deletes its trusted-network list); delete the device key and Mac pin over USB (`adb shell rm -f /data/local/tmp/carbonmirror-device.key /data/local/tmp/carbonmirror-mac.pin`, or Developer options → Revoke USB debugging authorizations then a factory-fresh `/data/local/tmp` after reboot); Developer options → **Revoke USB debugging authorizations**; Wireless debugging → **Paired devices** → remove your Mac; then turn **Developer options** off.
+On the phone: uninstall **CarbonMirror Companion** (this also deletes its trusted-network list); delete the device key and the Mac pin while the phone is plugged in (run before deleting the app: `/Applications/CarbonMirror.app/Contents/Helpers/adb shell rm -f /data/local/tmp/carbonmirror-device.key /data/local/tmp/carbonmirror-mac.pin`); Developer options → **Revoke USB debugging authorizations**; Wireless debugging → **Paired devices** → remove your Mac; then turn **Developer options** off.
 
 ## 8. Signing everything on your Mac (strongest settings)
 
