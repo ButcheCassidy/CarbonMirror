@@ -187,6 +187,7 @@ final class PairingController {
 /// Monochrome sheet for an IP address + port (and optionally a 6-digit code) typed from the phone's screen.
 @MainActor
 enum EndpointPrompt {
+    @MainActor
     final class Fields {
         let ip = NSTextField()
         let port = NSTextField()

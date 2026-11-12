@@ -3,6 +3,7 @@ import AppKit
 import CMCore
 
 /// Monochrome design tokens (spec 2.1): black, white and greys only; dark appearance always.
+@MainActor
 enum Theme {
     static let background = NSColor.black
     static let primaryText = NSColor.white

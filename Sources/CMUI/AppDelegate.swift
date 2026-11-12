@@ -38,7 +38,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValid
         settingsWindow.onInstallCompanion = { [weak self] in self?.confirmInstallCompanion() }
         self.settingsWindow = settingsWindow
         menuBar = MenuBarController(menu: buildMenuBarMenu())
-        phone.showWindow()
+        phone.showWindowWithSplash()
         NSApp.activate()
         if demo {
             let driver = DemoDriver(controller: phone)

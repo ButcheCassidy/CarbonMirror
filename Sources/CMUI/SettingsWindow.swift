@@ -159,7 +159,7 @@ final class SettingsWindowController {
         let s = settings
         let slider = NSSlider(value: s.cornerFineTune * 100, minValue: -15, maxValue: 15, target: nil, action: nil)
         slider.numberOfTickMarks = 7
-        bind(slider) { s.cornerFineTune = ($0 as? NSSlider)?.doubleValue.map { $0 / 100 } ?? 0 }
+        bind(slider) { s.cornerFineTune = (($0 as? NSSlider)?.doubleValue ?? 0) / 100 }
         return [
             ("Corner fine-tune", slider),
             ("Real size", label(realSize(), secondary: true)),

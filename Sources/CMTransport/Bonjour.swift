@@ -95,7 +95,7 @@ private final class Resolver: @unchecked Sendable {
             var text = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
             var inAddr = address.withMemoryRebound(to: sockaddr_in.self, capacity: 1) { $0.pointee.sin_addr }
             guard inet_ntop(AF_INET, &inAddr, &text, socklen_t(INET_ADDRSTRLEN)) != nil else { return }
-            me.finish((String(cString: text), me.port))
+            me.finish((String(decoding: text.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self), me.port))
         }, context)
         guard status == kDNSServiceErr_NoError, let addressRef else { return finish(nil) }
         DNSServiceSetDispatchQueue(addressRef, queue)
