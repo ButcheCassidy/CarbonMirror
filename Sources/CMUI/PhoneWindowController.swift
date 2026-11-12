@@ -22,9 +22,12 @@ final class PhoneWindowController: NSObject, NSWindowDelegate {
     init(settings: AppSettings) {
         self.settings = settings
         sizer = WindowSizer(settings: settings)
-        let screen = NSScreen.main ?? NSScreen.screens[0]
+        // No display at all (launch at login with the lid closed): real size at the origin, moved when a screen appears.
         let rect = sizer.rememberedScreenRect()
-            ?? sizer.screenRect(scale: 1, center: NSPoint(x: screen.visibleFrame.midX, y: screen.visibleFrame.midY), on: screen)
+            ?? (NSScreen.main ?? NSScreen.screens.first).map {
+                sizer.screenRect(scale: 1, center: NSPoint(x: $0.visibleFrame.midX, y: $0.visibleFrame.midY), on: $0)
+            }
+            ?? NSRect(x: 0, y: 0, width: 351, height: 782)
         window = PhoneWindow(contentRect: rect)
         content = PhoneContentView(frame: NSRect(origin: .zero, size: rect.size))
         super.init()
