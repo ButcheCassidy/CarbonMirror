@@ -185,8 +185,9 @@ public final class AppSettings {
 
     // MARK: Security
 
+    /// Inner TLS over USB too. Owner decision (deviation from spec 7.3 "off by default"): on by default.
     public var encryptOverUSB: Bool {
-        get { bool(.encryptOverUSB, false) }
+        get { bool(.encryptOverUSB, true) }
         set { set(newValue, .encryptOverUSB) }
     }
 
