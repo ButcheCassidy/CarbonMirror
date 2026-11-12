@@ -84,6 +84,13 @@ GrapheneOS notes: its default *USB-C port: charging-only when locked* stops USB 
 
 Everything is built from the command line — no Xcode, no Homebrew. The full step-by-step guide, including signing and the sizes of everything, is in [`INSTALL.md`](INSTALL.md). The scripts run the same commands as below: `scripts/make-cert.sh` (Step A), `scripts/build-server.sh`, `scripts/build-apk.sh`, `scripts/build.sh` (Steps B–F).
 
+### Quick build: one command
+From the source folder (Step 0), after installing the release DMG once (it supplies the phone parts):
+```bash
+bash scripts/build-mac.sh --install
+```
+It creates the certificate, fetches and checks Google's adb, installs Rust, copies the phone parts, then builds, signs and installs the app and `dist/CarbonMirror-<version>.dmg`. Steps A–F below are the same thing by hand.
+
 ### Step 0. Every Terminal window: go to the project folder
 Every command below runs **inside the project folder**; a new Terminal window starts in your home folder, so do this first each time.
 Download `CarbonMirror-<version>-source.zip` from the release page in Safari, then unpack it into your home folder (skip this if Safari already made a `CarbonMirror-<version>` folder in Downloads — move that folder to your home folder instead).
