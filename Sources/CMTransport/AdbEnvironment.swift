@@ -55,6 +55,14 @@ public struct AdbEnvironment: Sendable {
         } catch {
             throw Failure.cannotSecure
         }
+        #if os(macOS)
+        // adb's private key stays out of Time Machine and other backups.
+        for var dir in [directory, socketDirectory] {
+            var values = URLResourceValues()
+            values.isExcludedFromBackup = true
+            try? dir.setResourceValues(values)
+        }
+        #endif
         let environment = AdbEnvironment(directory: directory, socketDirectory: socketDirectory)
         guard (socketDirectory.path + "/cm-f0123456789abcdef").utf8.count <= maxSocketPath else { throw Failure.socketPathTooLong }
         return environment

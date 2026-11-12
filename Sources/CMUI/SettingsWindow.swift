@@ -49,6 +49,7 @@ final class SettingsWindowController {
         window.titlebarAppearsTransparent = true
         window.appearance = Theme.darkAppearance
         window.isReleasedWhenClosed = false
+        window.isRestorable = false
         window.minSize = NSSize(width: 600, height: 360)
         window.center()
 

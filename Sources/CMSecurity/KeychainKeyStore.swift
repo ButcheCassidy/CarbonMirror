@@ -83,7 +83,7 @@ public final class KeychainKeyStore: KeyStore, @unchecked Sendable {
     }
 
     private func itemQuery(_ item: KeyItem) -> [CFString: Any] {
-        [kSecClass: kSecClassGenericPassword, kSecAttrService: Self.service, kSecAttrAccount: item.rawValue]
+        [kSecClass: kSecClassGenericPassword, kSecAttrService: Self.service, kSecAttrAccount: item.rawValue, kSecAttrSynchronizable: false]
     }
 
     public func data(for item: KeyItem) -> [UInt8]? {

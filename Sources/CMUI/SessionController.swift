@@ -348,7 +348,8 @@ final class SessionController {
         case let .clipboard(text):
             guard settings.clipboardSync else { return }
             let board = NSPasteboard.general
-            board.clearContents()
+            // This Mac only: phone text never syncs to other devices through Universal Clipboard.
+            board.prepareForNewContents(with: .currentHostOnly)
             board.setString(text, forType: .string)
             pasteboardCount = board.changeCount
         case let .battery(level, charging):
