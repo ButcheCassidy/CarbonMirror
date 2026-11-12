@@ -7,11 +7,11 @@ Before starting: build and install the app (`INSTALL.md`), connect the Pixel by 
 ## A. Mac app and sandbox (≈ 1 min)
 
 1. [ ] **Launch.** Open CarbonMirror. *Expect:* a black phone-shaped window with continuous corners showing "Not paired" or your phone, and a two-phone icon in the menu bar.
-2. [ ] **Only local listeners.** Run this in Terminal:
+2. [ ] **No network listeners at all.** While mirroring, run this in Terminal:
    ```bash
    lsof -nP -iTCP -sTCP:LISTEN | grep -i -e adb -e CarbonMi
    ```
-   *Expect:* only `127.0.0.1:<port>` lines, never `*:` or a LAN address.
+   *Expect:* no output (adb and the session use private Unix sockets).
 3. [ ] **UDP.** Run:
    ```bash
    lsof -nP -iUDP | grep -i -e adb -e CarbonMi
@@ -27,6 +27,18 @@ Before starting: build and install the app (`INSTALL.md`), connect the Pixel by 
    log show --last 5m --predicate 'subsystem == "com.nomadicrebel.carbonmirror"' | grep -i -e "<the word you typed>" -e "<the copied text>"
    ```
    *Expect:* no output.
+
+6a. [ ] **Unix sockets are private.** While mirroring, run:
+   ```bash
+   ls -la ~/Library/Containers/com.nomadicrebel.carbonmirror/Data/tmp/cm
+   ```
+   *Expect:* the folder is `drwx------`, containing `cm-adb` and one `cm-f…` socket per open session.
+6b. [ ] **No Resume snapshots.** Quit CarbonMirror while mirroring, then run:
+   ```bash
+   ls ~/Library/Containers/com.nomadicrebel.carbonmirror/Data/Library/Saved\ Application\ State 2>&1
+   ```
+   *Expect:* "No such file or directory", or a folder with no window images.
+6c. [ ] **Entitlement trim.** Re-sign a copy without `com.apple.security.network.server` (remove that key from `Resources/CarbonMirror.entitlements`, run `bash scripts/build.sh`). *Expect:* mirroring still works → keep it removed and report back; if adb fails to start, put it back.
 
 ## B. USB mirroring (≈ 1.5 min)
 
@@ -46,7 +58,7 @@ Before starting: build and install the app (`INSTALL.md`), connect the Pixel by 
     screencapture -x ~/Desktop/cm-test.png
     ```
     *Expect:* the phone window is missing or black in `cm-test.png`. Also try QuickTime screen recording and write down what it shows.
-14. [ ] **Clipboard.** Copy text on the Mac, long-press Paste on the phone; copy on the phone, ⌘V on the Mac. Turn clipboard sync off (⇧⌘C) and repeat. *Expect:* works when on, nothing crosses when off.
+14. [ ] **Clipboard.** Copy text on the Mac, long-press Paste on the phone; copy on the phone, ⌘V on the Mac. Turn clipboard sync off (⇧⌘C) and repeat. *Expect:* works when on, nothing crosses when off. Also copy a password from your password manager on the Mac → it must **not** arrive on the phone; and phone text must not appear on your iPhone/iPad (no Universal Clipboard).
 15. [ ] **Rotate.** Rotate the phone. *Expect:* the "Switch to landscape · Not now" pill; accepting rotates the window around its centre.
 
 ## C. Wireless, pairing and Mullvad (≈ 1.5 min)

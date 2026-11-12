@@ -6,12 +6,12 @@ What CarbonMirror protects, how, and where the limits are. Everything here descr
 
 | Threat | Defence |
 |---|---|
-| Hostile devices on the LAN or phone hotspot | The Mac never listens on a network interface; the only listener is adb's server on `127.0.0.1` with a random port. Connections go only to private-range addresses (allowlist in Rust). |
+| Hostile devices on the LAN or phone hotspot | The Mac has **no TCP or UDP listener at all**: adb's server and every `adb forward` are Unix-domain sockets in a 0700 folder inside the sandbox container. Connections go only to private-range addresses (allowlist in Rust). |
 | Passive sniffing | Wireless traffic is double-encrypted: adb's own TLS (Wireless debugging) and CarbonMirror's inner TLS 1.3 with AES-256-GCM. Plain `adb tcpip` is detected and refused. |
 | Active man-in-the-middle | Pairing uses Android's SPAKE2 QR flow; afterwards the phone's adb TLS key (SHA-256 of its public key) and serial are pinned. Inner TLS uses pinning-only verifiers on both ends — no CA trust, no hostnames. |
 | A different phone trying to pair or connect | Unknown serial or key → "Untrusted device"; a known serial with a different key → "This phone's identity changed" (possible MITM). Nothing is trusted automatically. |
 | Malware on the Mac capturing the window | Window `sharingType = .none` by default (see §6 for limits). Privacy blur, auto-blur and Touch ID reveal. |
-| Other processes on the Mac reaching the forwarded ports | Every socket must first present a random 256-bit session secret (after the inner TLS handshake), compared in constant time on the phone. Wrong or missing → closed. |
+| Other processes or users on the Mac reaching adb or the session sockets | adb's server protocol has no authentication, so it must not be reachable: it and the forwards live on Unix sockets in the app's sandbox container (other users can't traverse `~/Library`; other sandboxed apps can't enter the container; macOS asks before an unsandboxed app reads another app's container). On top, every session socket must present a random 256-bit secret after the inner TLS handshake, checked in constant time on the phone. |
 | A stolen Mac | The identity key is non-extractable in the login Keychain; sessions end on lock, sleep, user switch and idle. Clipboard and frames are never written to disk. |
 | Stale or corrupted keys | adb key fingerprint mirrored in the Keychain and checked at launch; "Create new key" securely replaces everything and forces a new QR pairing. |
 | A compromised phone or link | Only video and an allowlist of small device messages are parsed — in Rust, with every length bounds-checked; malformed data ends the session. No files, audio, shell or app-data paths exist in the forked server. |
@@ -43,7 +43,7 @@ What CarbonMirror protects, how, and where the limits are. Everything here descr
 
 - Allowed destinations: `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.0.0/16`, `fe80::/10`, `fc00::/7`. Refused: public addresses, Mullvad's tunnel ranges (`10.64.0.0/10`, `fc00:bbbb:bbbb:bb01::/64`), IPv4-mapped IPv6, link-local without zone, hostnames, port 5555.
 - The probe binds to `.wifi` / `.wiredEthernet` and prohibits `.other` and `.cellular`; a route through `utun*` → "LAN sharing blocked".
-- **Limit:** adb itself opens the phone↔Mac TCP connection for Wireless debugging; its socket follows system routing and cannot be bound from outside. CarbonMirror's own sockets go to `127.0.0.1` through `adb forward`. The pre-connect probe is what verifies the physical route.
+- **Limit:** adb itself opens the phone↔Mac TCP connection for Wireless debugging; its socket follows system routing and cannot be bound from outside. CarbonMirror's own session sockets are private Unix sockets created by `adb forward`. The pre-connect probe is what verifies the physical route.
 - **Network identity without the SSID:** reading the Wi-Fi name needs Location Services permission, which CarbonMirror never requests. "This network" is the IPv4 subnet of the Wi-Fi interface, stored only as a SHA-256 key. A change of subnet during a wireless session counts as "change to an unknown network" and ends it.
 - No port scanning, ever. When mDNS replies are blocked, the user types the IP and port shown on the phone.
 
@@ -53,7 +53,9 @@ What CarbonMirror protects, how, and where the limits are. Everything here descr
 - After a **final** end (Disconnect, quit, idle) of a wireless session the Mac turns Wireless debugging off (`settings put global adb_wifi_enabled 0`). After lock or sleep it is left on so the silent reconnect can work; the phone's tile or settings turn it off.
 - Silent reconnect only ever targets the pinned phone, with the full handshake, never while the Mac is locked or asleep, and gives up after 10 minutes.
 - Clipboard: plain text only, ≤ 1 MiB, UTF-8 checked in Rust, never logged or written to disk; read from `NSPasteboard` only while sync is on and the window is key; phone text is dropped while sync is off.
-- Nothing is written to disk except screenshots you take (`~/Pictures/CarbonMirror/`). Frames are dropped on disconnect.
+- Nothing is written to disk except screenshots you take (`~/Pictures/CarbonMirror/`). Frames are dropped on disconnect. Windows are not restorable, so macOS never saves a "Resume" snapshot of the phone screen. adb's key folder is excluded from Time Machine; Keychain items are never synchronizable.
+- Clipboard privacy: Mac items marked concealed/transient by password managers (nspasteboard.org types) are never sent; Android clips marked sensitive (Android 13+) never leave the phone; phone text is written with `currentHostOnly`, so it never travels to other Apple devices through Universal Clipboard.
+- Lock state: the "screen unlocked" distributed notification can be posted by any process, so it is trusted only when the window server (`CGSessionCopyCurrentDictionary`) agrees.
 - Logs: `os.Logger` subsystem `com.nomadicrebel.carbonmirror`, compile-time messages plus app-generated metadata only. The app writes no log files; unified logging rotates itself (this is how "rotate at 1 MB" is met).
 
 ## 6. Known limits and deviations (honest list)
@@ -68,3 +70,5 @@ What CarbonMirror protects, how, and where the limits are. Everything here descr
 8. **App drawer:** `KEYCODE_ALL_APPS` (Android 12+). The spec's swipe-up fallback is not implemented because there is no reliable failure signal.
 9. **Adaptive USB profile:** Android sends no frames for a still screen, so only seconds with ≥ 30 fps count; legitimately slower content (e.g. 60 fps video) can still trigger a step down. **NOT RUN** on the device.
 10. **Sandbox:** adb runs inside the app sandbox (inherited). If a macOS version refuses that, the fallback is a sandboxed XPC helper — not built yet. **NOT RUN.**
+11. **`network.server` entitlement:** with Unix sockets nothing listens on TCP any more; the entitlement is kept until the Mac confirms adb can bind its Unix socket without it (REAL_DEVICE_CHECKS A6), then it is removed.
+12. **Phone side:** the server's abstract socket `scrcpy_<random 31-bit id>` can be reached by other processes on the phone. With the inner TLS (on by default for USB and Wi-Fi) they cannot complete the handshake without a certificate signed by the pinned Mac identity, and without the session secret nothing flows; at worst they can disturb a session start (denial of service).

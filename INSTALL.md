@@ -6,7 +6,7 @@ Numbered steps for a Mac with Apple Command Line Tools (no Xcode, no Homebrew). 
 
 ## 1. What adb is and where it lives
 
-adb is Google's tool for talking to Android phones. CarbonMirror carries its own copy **inside the app** (`CarbonMirror.app/Contents/Helpers/adb`) and runs it only while it needs it, on a private port reachable only from your Mac itself. You do **not** install adb system-wide, change your PATH, or keep another copy.
+adb is Google's tool for talking to Android phones. CarbonMirror carries its own copy **inside the app** (`CarbonMirror.app/Contents/Helpers/adb`) and runs it only while it needs it, on a private socket file inside the app's own sandbox folder — nothing on your network or other user accounts can reach it. You do **not** install adb system-wide, change your PATH, or keep another copy.
 
 What stays on your Mac after quitting: the app's private folder `~/Library/Containers/com.nomadicrebel.carbonmirror/` (settings, and `Data/Library/Application Support/CarbonMirror/adb/` with adb's key pair — the phone recognises your Mac by it), and four Keychain items named "CarbonMirror …". No adb process keeps running.
 
