@@ -2,6 +2,13 @@
 
 All notable changes to CarbonMirror. Versions follow `CFBundleShortVersionString`.
 
+## Unreleased
+
+### Changed
+- Window corners: a standard macOS window radius (12 pt) while the toolbar shows, so the traffic lights and toolbar ends are no longer clipped; the resting window keeps the phone's shape.
+- Releases sign with your Developer ID certificate and are notarised when its secrets are in the `release` environment; `scripts/build.sh` does the same locally (`CM_SIGN_IDENTITY`, `CM_NOTARY_PROFILE`).
+- `scripts/build-mac.sh`: one command from the source folder to a signed app and DMG.
+
 ## [1.0.0] — 2026-11-12
 
 First release.

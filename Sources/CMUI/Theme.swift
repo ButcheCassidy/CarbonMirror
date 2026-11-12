@@ -23,6 +23,8 @@ enum Theme {
     static let toolbarHeight = CGFloat(ChromeGeometry.toolbarHeight)
     static let statusLineHeight = CGFloat(ChromeGeometry.statusLineHeight)
     static let chromeMargin = CGFloat(ChromeGeometry.margin)
+    /// Window corners while the toolbar shows: a standard macOS window radius, so nothing in the toolbar is clipped.
+    static let windowCornerRadius: CGFloat = 12
     static let revealDuration: TimeInterval = 0.2
     static let hideDelay: TimeInterval = 1.2
 

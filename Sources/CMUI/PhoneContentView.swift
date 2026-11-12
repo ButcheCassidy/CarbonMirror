@@ -159,7 +159,8 @@ final class PhoneContentView: NSView {
         let radius = cornerRadius(screenSize.width)
         screen.cornerRadius = radius
         let margin = max(0, screen.frame.minX)
-        layer?.cornerRadius = radius + margin
+        // Resting: the window is the phone's own shape. Toolbar shown: a normal window with standard corners.
+        layer?.cornerRadius = margin > 0.5 ? Theme.windowCornerRadius : radius
         layer?.borderWidth = Theme.pixel(for: window)
         layer?.backgroundColor = (margin > 0.5 ? Theme.chromeFill : NSColor.clear).cgColor
         window?.invalidateShadow()
