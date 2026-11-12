@@ -114,7 +114,7 @@ final class SessionController {
                                 link: AdbPhoneLink(runner: runner, deployer: deployer))
         } catch {
             Log.error(.security, "launch checks failed; adb not started")
-            phone.show(state: .disconnected)
+            phone.show(state: .launchCheckFailed)
             return
         }
         observeSystem()

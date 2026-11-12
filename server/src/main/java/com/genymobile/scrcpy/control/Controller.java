@@ -405,7 +405,42 @@ public class Controller implements AsyncProcessor, VirtualDisplayListener {
             assert displayId != Device.DISPLAY_ID_NONE;
             scheduleDisplayPowerOff(displayId);
         }
+        if (keycode == KeyEvent.KEYCODE_ALL_APPS && Build.VERSION.SDK_INT < AndroidVersions.API_31_ANDROID_12) {
+            // CarbonMirror: Android 11's PhoneWindowManager ignores KEYCODE_ALL_APPS; swipe up instead (spec 5.4).
+            return action != KeyEvent.ACTION_DOWN || swipeUpForAppDrawer();
+        }
         return injectKeyEvent(action, keycode, repeat, metaState, Device.INJECT_MODE_ASYNC);
+    }
+
+    /** One finger from 92 % to 35 % of the display height, centred, in 12 steps over about 200 ms. */
+    private boolean swipeUpForAppDrawer() {
+        int targetDisplayId = getActionDisplayId();
+        if (targetDisplayId == Device.DISPLAY_ID_NONE) {
+            return false;
+        }
+        DisplayInfo info = ServiceManager.getDisplayManager().getDisplayInfo(targetDisplayId);
+        if (info == null) {
+            return false;
+        }
+        Size size = info.getSize();
+        float x = size.getWidth() / 2f;
+        float from = size.getHeight() * 0.92f;
+        float to = size.getHeight() * 0.35f;
+        long down = SystemClock.uptimeMillis();
+        final int steps = 12;
+        for (int i = 0; i <= steps + 1; i++) {
+            int action = i == 0 ? MotionEvent.ACTION_DOWN : i > steps ? MotionEvent.ACTION_UP : MotionEvent.ACTION_MOVE;
+            float y = from + (to - from) * Math.min(i, steps) / steps;
+            MotionEvent event = MotionEvent.obtain(down, down + i * 16L, action, x, y, 0);
+            event.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+            boolean ok = Device.injectEvent(event, targetDisplayId, Device.INJECT_MODE_ASYNC);
+            event.recycle();
+            if (!ok) {
+                return false;
+            }
+            SystemClock.sleep(16);
+        }
+        return true;
     }
 
     private boolean injectChar(char c) {

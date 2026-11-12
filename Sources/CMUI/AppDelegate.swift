@@ -102,6 +102,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValid
         case .howLANSharing:
             inform("Allow local network sharing",
                    "Mac: Mullvad → Settings → VPN settings → Local network sharing → On.\nPhone: Mullvad → Settings → VPN settings → Local network sharing → On.\n\nBoth must be on the same Wi-Fi, or the Mac on the phone's hotspot.")
+        case .howReinstall:
+            inform("Can't start safely",
+                   "CarbonMirror only starts its bundled adb when the helper is present and signed with the app's own certificate. Rebuild or reinstall CarbonMirror (see INSTALL.md), then open it again.")
         case .howInsecure:
             inform("Insecure connection refused",
                    "Your phone offered legacy adb over TCP (adb tcpip), which is not encrypted. CarbonMirror never uses it.\n\nRestart the phone to turn it off, then use Wireless debugging.")

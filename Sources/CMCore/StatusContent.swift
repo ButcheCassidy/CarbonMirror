@@ -5,7 +5,7 @@ import CMCoreBridge
 public struct StatusContent: Equatable, Sendable {
     /// Button identities; the UI wires each to its action.
     public enum Action: String, Sendable, CaseIterable {
-        case openSettings, useUSB, pair, howWirelessDebugging, howLANSharing, reconnect, retry, createNewKey, howInsecure, mirror, connect
+        case openSettings, useUSB, pair, howWirelessDebugging, howLANSharing, reconnect, retry, createNewKey, howInsecure, mirror, connect, howReinstall
     }
 
     public struct Button: Equatable, Sendable {
@@ -66,6 +66,9 @@ public struct StatusContent: Equatable, Sendable {
         case .notConnected:
             StatusContent(glyph: "iphone.slash", title: "Not connected", subtitle: "Plug in USB or connect over Wi-Fi.",
                           buttons: [Button(title: "Connect", action: .connect)], showsSpinner: false)
+        case .launchCheckFailed:
+            StatusContent(glyph: "xmark.seal", title: "Can't start safely", subtitle: "The bundled adb is missing or its signature is wrong.",
+                          buttons: [Button(title: "How?", action: .howReinstall)], showsSpinner: false)
         case .insecureConnectionRefused:
             StatusContent(glyph: "lock.trianglebadge.exclamationmark", title: "Insecure connection refused",
                           subtitle: "Use Wireless debugging, not adb tcpip.",
