@@ -89,6 +89,8 @@ struct TransportTests {
         let perms = try FileManager.default.attributesOfItem(atPath: env.directory.path)[.posixPermissions] as? Int
         #expect(perms == 0o700)
         #expect(env.variables["ADB_SERVER_SOCKET"] == "localfilesystem:\(env.serverSocket)", "Unix socket, never TCP")
+        #expect(env.variables["ADB_EMU"] == "0", "no plaintext emulator transports on localhost")
+        #expect(env.variables["ADB_MDNS"] == "0", "adb never auto-connects from mDNS answers")
         #expect(!env.variables.values.contains { $0.contains("tcp:") })
         let socketPerms = try FileManager.default.attributesOfItem(atPath: env.socketDirectory.path)[.posixPermissions] as? Int
         #expect(socketPerms == 0o700)

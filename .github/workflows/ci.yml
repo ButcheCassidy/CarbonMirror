@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -76,9 +76,31 @@ jobs:
           swift build -c release --arch arm64 > build.log 2>&1 || true
           grep -E ": (warning|error):|^ld:|Undefined symbols" build.log | sort -u | tee diagnostics.txt
           ! grep -qE ": error:|^ld:|Undefined symbols|error: " build.log
-      - name: Upload build log
+      - name: UI demo screenshots (unsigned test bundle, never released)
+        run: |
+          APP=build/CarbonMirror.app
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" shots
+          cp .build/release/CarbonMirror "$APP/Contents/MacOS/CarbonMirror"
+          cp Resources/Info.plist "$APP/Contents/Info.plist"
+          cp Resources/CarbonMirror-startup.mp4 "$APP/Contents/Resources/"
+          codesign --force --sign - "$APP"
+          "$APP/Contents/MacOS/CarbonMirror" --demo & PID=$!
+          sleep 5
+          screencapture -x -t jpg shots/hidden-from-capture.jpg
+          kill $PID
+          defaults write com.nomadicrebel.carbonmirror hideFromCapture -bool false
+          "$APP/Contents/MacOS/CarbonMirror" --demo & PID=$!
+          for i in $(seq -w 1 44); do sleep 0.45; screencapture -x -t jpg "shots/demo-$i.jpg"; done
+          osascript -e 'tell application "System Events" to keystroke "," using command down' || true
+          sleep 2
+          screencapture -x -t jpg shots/settings.jpg
+          kill $PID
+          system_profiler SPDisplaysDataType | grep -E "Resolution|Retina" || true
+      - name: Upload build log and screenshots
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: mac-build-log
-          path: build.log
+          path: |
+            build.log
+            shots

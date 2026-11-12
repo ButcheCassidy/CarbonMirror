@@ -1,0 +1,3 @@
+# The Rust core (and the C code of aws-lc inside it) is built for the app's deployment target, macOS 15.
+[env]
+MACOSX_DEPLOYMENT_TARGET = "15.0"
