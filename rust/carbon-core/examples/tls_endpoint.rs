@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! Phase 11 attack target: the phone side of the inner TLS (`Identity::server`, the exact policy the forked
 //! server uses through JNI) on a real TCP socket, so foreign clients (`openssl s_client`) can try to
 //! downgrade it. Usage: `tls_endpoint <port>`; prints one line per connection: `REFUSED <status>` or

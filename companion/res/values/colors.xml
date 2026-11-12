@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: PolyForm-Shield-1.0.0 · Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel -->
 <!-- Monochrome like the Mac app: black, white and greys only. -->
 <resources>
     <color name="black">#FF000000</color>

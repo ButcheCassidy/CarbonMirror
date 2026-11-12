@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 import CarbonCoreC
 
 /// Result codes of the Rust core (mirrors `CmStatus` in `carbon_core.h`; a test checks every value).

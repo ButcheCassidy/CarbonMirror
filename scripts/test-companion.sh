@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: PolyForm-Shield-1.0.0
+# Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 # JVM tests of the companion's pure logic (subnet keys, Wireless debugging decisions) against android.jar.
 set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")/.." && pwd)"

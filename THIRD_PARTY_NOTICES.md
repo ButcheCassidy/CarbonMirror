@@ -1,6 +1,6 @@
 # Third-party notices
 
-CarbonMirror is © 2026 **ButcheCassidy - The Nomadic Rebel**, licensed under the PolyForm Noncommercial License 1.0.0 (`LICENSE`).
+CarbonMirror is © 2026 **ButcheCassidy - The Nomadic Rebel**, licensed under the PolyForm Shield License 1.0.0 (`LICENSE`).
 It contains or links the third-party software below, each under its own licence.
 
 ## Bundled or forked code

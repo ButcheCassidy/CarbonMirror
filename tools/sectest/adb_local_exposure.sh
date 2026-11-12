@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: PolyForm-Shield-1.0.0
+# Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 # Attack: a local process listens where adb looks for emulators (127.0.0.1:5555–5585) and waits for the adb
 # server to connect in plaintext. With CarbonMirror's adb environment the server must never connect, and
 # must open no UDP (mDNS) socket. Uses the real adb from the Android SDK. Exit 0 = safe.

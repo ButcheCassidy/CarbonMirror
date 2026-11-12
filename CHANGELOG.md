@@ -14,6 +14,9 @@ All notable changes to CarbonMirror. Versions follow `CFBundleShortVersionString
 ### Added
 - Companion: *Pair with your Mac (QR code)* button.
 
+### Licence
+- CarbonMirror is now licensed under the **PolyForm Shield License 1.0.0** (was PolyForm Noncommercial 1.0.0); every source file carries the SPDX identifier and the Required Notice. The forked scrcpy server files stay under Apache-2.0.
+
 ### Changed
 - Window corners: a standard macOS window radius (12 pt) while the toolbar shows, so the traffic lights and toolbar ends are no longer clipped; the resting window keeps the phone's shape.
 - Releases sign with your Developer ID certificate and are notarised when its secrets are in the `release` environment; `scripts/build.sh` does the same locally (`CM_SIGN_IDENTITY`, `CM_NOTARY_PROFILE`).

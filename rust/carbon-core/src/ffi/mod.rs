@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! C ABI — the only module allowed to use `unsafe`. Every function takes `(ptr, len)` byte slices and
 //! out-pointers, returns a [`CmStatus`] code, and catches panics so none can cross the boundary.
 

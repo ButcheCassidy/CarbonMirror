@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! Window size maths: real-size scaling, 0.75×–2.0× clamping, aspect-locked live resize and corner radius.
 #![forbid(unsafe_code)]
 

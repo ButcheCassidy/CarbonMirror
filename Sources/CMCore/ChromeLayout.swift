@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 /// Toolbar buttons of the hover chrome, in the order the spec puts them (2.3, left → right after the
 /// traffic lights).
 public enum ToolbarItem: String, CaseIterable, Sendable {

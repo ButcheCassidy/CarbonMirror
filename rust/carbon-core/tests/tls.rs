@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! Inner TLS end to end in memory: Mac client ↔ phone server with the real policy.
 
 use aws_lc_rs::rand::SystemRandom;

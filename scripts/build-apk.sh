@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: PolyForm-Shield-1.0.0
+# Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 # Builds CarbonMirror Companion without Gradle (spec 9.4): aapt2 compile/link → javac --release 17 → d8 →
 # zipalign -p 4 → apksigner (v2 + v3). Nothing is downloaded. Outputs dist/CarbonMirrorCompanion-<version>.apk
 # and Resources/CarbonMirrorCompanion.apk (bundled into the Mac app).

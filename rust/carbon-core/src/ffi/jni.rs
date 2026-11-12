@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! JNI bridge for the forked scrcpy server (`com.genymobile.scrcpy.carbon.CarbonCore`). The phone runs the
 //! same TLS code as the Mac. Return values: `>= 0` success (a count or handle), `< 0` the negated
 //! [`CmStatus`] code. Java byte arrays are copied in and out with bounds checks.

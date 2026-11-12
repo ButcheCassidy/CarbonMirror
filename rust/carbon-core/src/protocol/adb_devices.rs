@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! Parser for `adb devices -l` / `adb track-devices -l` output. Model names come from the phone, so every
 //! field is checked against a strict grammar; lines that fail are dropped, oversize input is refused.
 #![forbid(unsafe_code)]

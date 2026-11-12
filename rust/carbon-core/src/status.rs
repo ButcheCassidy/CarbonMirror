@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! Integer result codes shared by every module and returned across the C ABI.
 #![forbid(unsafe_code)]
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! Property tests: random and hostile input to every parser and validator must never panic.
 
 use carbon_core::policy::{adb, net, size};

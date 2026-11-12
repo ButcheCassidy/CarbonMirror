@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: PolyForm-Shield-1.0.0 · Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel -->
 <!-- CarbonMirror Companion (spec 9): a Quick Settings tile, one launcher screen and a foreground service that keeps
      Wireless debugging on for trusted Wi-Fi only (auto-connect). No socket; the screen ignores its Intent. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"

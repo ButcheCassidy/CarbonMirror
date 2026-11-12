@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! Inner TLS (spec 7.3), the same code on the Mac and on the phone. rustls only runs the TLS state machine
 //! over bytes; sockets stay in Swift (Network.framework) and Java.
 //!

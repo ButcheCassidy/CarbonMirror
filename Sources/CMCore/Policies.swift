@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 import Foundation
 
 /// Silent auto-reconnect (spec 8.2.2): 0.5, 1, 2, 4, 8 s, then every 30 s; stop after 10 minutes.

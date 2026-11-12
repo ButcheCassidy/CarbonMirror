@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 import CMCoreBridge
 
 /// A paired or seen phone. Persisted without any plaintext Wi-Fi name: endpoints are keyed by an SSID hash.

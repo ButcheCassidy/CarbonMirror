@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: PolyForm-Shield-1.0.0
+# Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 # Phase 11 Stage 3.8: runs ffi_fuzz.py for every C ABI entry point, SECONDS each (default 120), 4 at a time.
 set -uo pipefail
 

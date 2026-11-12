@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! Clipboard filter (spec A7 / 7.6): plain text only, at most 1 MB, valid UTF-8, no NUL bytes. Applied to
 //! text in both directions before it touches either clipboard.
 #![forbid(unsafe_code)]

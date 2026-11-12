@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: PolyForm-Shield-1.0.0
+# Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 # Phase 11 Stage 3.4–3.6 on a virtual LAN (Linux, root): namespaces "mac" 192.168.77.1, "phone" 192.168.77.2 and
 # "attacker" 192.168.77.3 on one bridge, plus a fake Mullvad tunnel `utun9` (10.64.0.0/10) in "mac".
 #  1. Legacy plaintext adb (5555 and another port) on the phone, Mullvad tunnel and public targets → refused.

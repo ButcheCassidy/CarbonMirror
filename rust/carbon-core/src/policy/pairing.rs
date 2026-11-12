@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! Pairing and trust rules (spec 7.2 / 7.5): QR payload and single-use codes that expire after 120 s, and
 //! the pin check that decides whether a phone may be used. A key is only trusted after a completed pairing;
 //! after "Create new key" every pin is gone, so nothing is trusted until the next QR pairing.

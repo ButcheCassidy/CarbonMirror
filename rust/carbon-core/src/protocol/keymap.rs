@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! Keyboard mapping for the two typing modes (spec 8.2.3): macOS virtual key codes → USB HID usages for the
 //! UHID "Hardware keyboard", and → Android key codes for "Phone keyboard" (non-text keys and shortcuts).
 //! ⌘ is sent as Ctrl so Mac habits (⌘C/⌘V/⌘A/⌘Z) do the same thing on Android.

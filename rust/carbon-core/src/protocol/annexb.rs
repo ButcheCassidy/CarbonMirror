@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! H.264/H.265 Annex B (start-code delimited, as MediaCodec emits) → 4-byte length-prefixed NAL units, the
 //! format VideoToolbox decodes. Runs on every frame from the phone, writes into a caller buffer, never
 //! allocates; empty or oversized NAL units end the session.

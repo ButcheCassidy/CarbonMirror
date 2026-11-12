@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 import CarbonCoreC
 
 /// SHA-256, constant-time verification and CSPRNG bytes (aws-lc via the Rust core; same code on the phone).

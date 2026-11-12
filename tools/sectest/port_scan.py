@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Shield-1.0.0
+# Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 """Rate-limited TCP connect scan of every port on one host (the attacker's view of the Mac).
 Usage: python -I port_scan.py <ip> [rate per second]   Exit 0 = no port open."""
 import asyncio

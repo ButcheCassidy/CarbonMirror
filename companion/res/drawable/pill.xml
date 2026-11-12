@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: PolyForm-Shield-1.0.0 · Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_pressed="true">
         <shape><corners android:radius="24dp" /><solid android:color="@color/pill_pressed" /></shape>

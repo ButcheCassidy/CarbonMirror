@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! Encoding of Mac → phone control messages in scrcpy's wire format (big-endian). Only the message types
 //! the forked server still accepts exist here; the encoder writes into a caller buffer and never allocates.
 #![forbid(unsafe_code)]

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: PolyForm-Shield-1.0.0
+# Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 # Phase 11 Stage 3.1/3.2: attacks the phone-side inner TLS policy with a foreign TLS stack (OpenSSL).
 # Every attempt must be refused: old protocol versions, weak or non-allowed suites, non-allowed groups, and
 # a correct TLS 1.3 client without the pinned Mac certificate (mutual authentication). Exit 0 = all refused.

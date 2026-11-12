@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 import Foundation
 
 /// Every user setting (spec 8.3), persisted in the app's own (sandboxed) defaults. Changes are applied live:

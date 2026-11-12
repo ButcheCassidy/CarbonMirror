@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 #if os(macOS)
 import AppKit
 import CMCore
@@ -238,7 +240,7 @@ final class SettingsWindowController {
         return [
             ("CarbonMirror", label("Version \(version)", secondary: true)),
             ("Author", label("ButcheCassidy - The Nomadic Rebel")),
-            ("Licence", label("PolyForm Noncommercial 1.0.0", secondary: true)),
+            ("Licence", label("PolyForm Shield 1.0.0", secondary: true)),
             ("Includes", label("scrcpy server (Apache-2.0), rustls, aws-lc-rs, rcgen,\nwebpki, time, zeroize, jni — see THIRD_PARTY_NOTICES.md", secondary: true)),
         ]
     }

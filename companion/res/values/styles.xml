@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: PolyForm-Shield-1.0.0 · Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel -->
 <resources>
     <!-- Always dark, OLED black, edge to edge. The system launch screen is plain black, so the startup
          animation is the first thing drawn. -->

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Shield-1.0.0
+# Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 """Plaintext `adb tcpip`-style endpoint for the virtual LAN: answers any CNXN with a CNXN (no STLS).
 Usage: python -I fake_adbd.py <ip> <port> [<port> ...]"""
 import socket

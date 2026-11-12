@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! adb command allowlist. Every adb invocation the Mac app makes is checked here first: the argv must match
 //! one fixed template exactly, every variable slot has a strict grammar, and nothing else is allowed.
 //! Values that reach the phone's shell are numbers, hex or fixed words, so shell injection is impossible.

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Shield-1.0.0
+# Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 """Phase 11 Stage 3.8: property-based fuzzing of the Rust core's C ABI — the exact boundary the Mac app and
 the phone server call — with Python `hypothesis` through ctypes on the Linux build of `libcarbon_core.so`.
 

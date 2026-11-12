@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: PolyForm-Shield-1.0.0
+# Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 # CarbonMirror build & test environment (Linux: Debian/Ubuntu).
 # Safe to re-run: anything already present is skipped, nothing is downloaded twice.
 # Downloads are sequential, at least 1 s apart, with curl's exponential backoff (honours Retry-After).

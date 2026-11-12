@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: PolyForm-Shield-1.0.0
+# Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 # One command on the Mac, from the source folder: certificate, Google's adb, Rust, phone parts, then
 # scripts/build.sh (app + signed DMG). Safe to re-run: finished steps are skipped.
 # Usage: bash scripts/build-mac.sh [--install]

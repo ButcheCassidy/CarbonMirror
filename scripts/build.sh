@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: PolyForm-Shield-1.0.0
+# Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 # Builds, signs and packages CarbonMirror on the Mac (README / spec 10.4 steps B–F).
 # Usage: scripts/build.sh [--install]
 # Public release: CM_SIGN_IDENTITY="Developer ID Application: <name> (<team>)" CM_NOTARY_PROFILE=<profile> bash scripts/build.sh

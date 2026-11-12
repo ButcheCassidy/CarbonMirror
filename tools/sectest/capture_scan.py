@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Shield-1.0.0
+# Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 """Phase 11 Stage 3.3: scans a packet capture of a mirroring session for anything readable.
 
 Usage: python -I capture_scan.py <capture.pcap | tap directory> <marker> [<marker> ...]

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! scrcpy wire framing for the two streams the Mac reads from the phone: the video socket (device meta,
 //! codec id, session and frame headers) and the control socket's device messages. Every length is bounded
 //! before it is trusted; anything unknown or out of range ends the session (`ParseMalformed`/`ParseTooLarge`).

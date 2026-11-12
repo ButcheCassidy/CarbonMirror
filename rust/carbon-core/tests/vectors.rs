@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! Runs the shared test vectors in `tests/vectors/*.json` against the Rust core. The Swift suite runs the
 //! same files through the C ABI; any disagreement between the two is a bug.
 

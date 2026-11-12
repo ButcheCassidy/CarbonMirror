@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 import CMCoreBridge
 
 /// Physical facts about the mirrored phone's panel. Defaults are the Pixel 10 Pro XL; at connect time the

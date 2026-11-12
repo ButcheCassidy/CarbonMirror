@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! Reads the panel's rounded-corner radius from `adb shell dumpsys display` output (spec 4.2), e.g.
 //! `RoundedCorner{position=TopLeft, radius=104, center=Point(104, 104)}`. Text from the phone: size-capped,
 //! numbers range-checked; when nothing valid is found the window keeps its 9.5 % fallback.

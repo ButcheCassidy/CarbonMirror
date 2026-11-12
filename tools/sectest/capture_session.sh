@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: PolyForm-Shield-1.0.0
+# Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 # Phase 11 Stage 3.3: records every byte one virtual-phone session sends and receives on its private Unix
 # sockets, then scans the recording for anything readable.
 #   tools/sectest/capture_session.sh encryptedSessionStreamsVideoAndControl   (must be clean)

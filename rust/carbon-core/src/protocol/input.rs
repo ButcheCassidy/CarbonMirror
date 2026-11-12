@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! Mac pointer geometry → phone pixel coordinates (spec 5.2/5.5): letterboxing, clamping for drags that
 //! leave the screen, trackpad scroll units and two-finger pinch emulation.
 #![forbid(unsafe_code)]

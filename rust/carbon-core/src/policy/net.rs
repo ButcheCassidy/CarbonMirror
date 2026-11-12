@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! Network allowlist: Mullvad "Local network sharing" ranges only, never public or VPN-tunnel addresses,
 //! never hostnames, never the plaintext legacy `adb tcpip` port, never a tunnel interface.
 #![forbid(unsafe_code)]

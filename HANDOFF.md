@@ -116,7 +116,7 @@ User runs on the Mac, from the repo folder: `bash scripts/make-cert.sh` → Step
 - Liquid Glass (`NSGlassEffectView` macOS 26+; `NSVisualEffectView` .hudWindow on 15–25) **only** for Settings and not-connected status screens; mirroring UI fully opaque.
 - README GitHub-friendly, natural feature explanations.
 - Icon: Mac `.icns` from `Resources/CarbonMirror-icon-1024.png` (sha256 `0252738b…01cf03`); companion adaptive icon = VectorDrawable converted from `Resources/CarbonMirror-icon.svg` (sha256 `3a223258…5bbb83e`; gradients kept, SVG blur shadows dropped).
-- Licence: **PolyForm Noncommercial 1.0.0** (`LICENSE`, required notice "Copyright 2026 ButcheCassidy - The Nomadic Rebel").
+- Licence: **PolyForm Shield 1.0.0** (`LICENSE`, required notice "Copyright 2026 ButcheCassidy - The Nomadic Rebel").
 - Device scope: Pixel 10 Pro XL defaults, spec fallbacks kept; other Android 11+ phones work. **Must be GrapheneOS-compatible.**
 - **Encryption & privacy first:** everything the spec says deserves encryption is encrypted; inner TLS on for USB too (owner decision); no plaintext transport on LAN; privacy-preserving defaults everywhere.
 - Next phase of work (user): after the Mac build, the user attaches the full prompt again and we go requirement by requirement adding all detail.
@@ -185,7 +185,7 @@ User runs on the Mac, from the repo folder: `bash scripts/make-cert.sh` → Step
 39. Inner TLS keeps decrypted data in its own buffer (`PLAIN_LIMIT` 16 MiB, zeroed) — rustls caps unread plaintext at 16 KiB.
 40. Windows `isRestorable = false`; adb folders `isExcludedFromBackup`.
 41. Scripts find the repo via `BASH_SOURCE`/git; run as `bash scripts/…`.
-42. Rust crate licence `PolyForm-Noncommercial-1.0.0`; MSRV 1.88 (`time` 0.3.55).
+42. Rust crate licence `PolyForm-Shield-1.0.0`; MSRV 1.88 (`time` 0.3.55).
 43. `network.server` entitlement kept until the Mac confirms adb's Unix socket works without it (REAL_DEVICE_CHECKS 6c).
 44. Test-only code stays in `Tests/` (TCP loopback connect for the fake adbd, `TapStream`, soak, LAN test) — production has no test hooks.
 45. Virtual LAN must be outside `10.64.0.0/10` (Mullvad range, refused by design) → `192.168.77.0/24`.

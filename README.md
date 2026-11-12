@@ -5,7 +5,7 @@ A small native macOS app that mirrors and controls an Android phone with the fee
 
 > Status: 1.0.0. Built and tested on Linux and on a macOS 26 GitHub runner (build, signing, launch, screenshots); the checks on your Mac and phone are in [`REAL_DEVICE_CHECKS.md`](REAL_DEVICE_CHECKS.md).
 
-By **ButcheCassidy - The Nomadic Rebel** · [PolyForm Noncommercial 1.0.0](LICENSE)
+By **ButcheCassidy - The Nomadic Rebel** · [PolyForm Shield 1.0.0](LICENSE)
 
 ---
 

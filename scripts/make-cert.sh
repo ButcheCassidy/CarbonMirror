@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: PolyForm-Shield-1.0.0
+# Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 # One-time: creates the local "CarbonMirror Dev" code-signing identity (spec 10.4 Step A).
 # ECDSA P-384 / SHA-384, code signing only, 5 years, imported non-extractable and usable only by codesign.
 # If codesign rejects the P-384 key, the identity is deleted and recreated with RSA-4096 / SHA-384.

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: PolyForm-Shield-1.0.0
+# Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 # Builds the forked scrcpy-server without Gradle (javac → d8, like scrcpy's build_without_gradle.sh) and
 # libcarbon_core.so for the phone (cargo ndk, arm64-v8a, API 30). Outputs:
 #   Resources/carbonmirror-server   (jar with classes.dex)

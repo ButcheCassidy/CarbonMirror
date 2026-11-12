@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
+// Required Notice: Copyright 2026 ButcheCassidy - The Nomadic Rebel
 //! Minimal adb wire probe (spec 6.1 / 11 stage 3.4): before `adb connect`, CarbonMirror opens its own TCP
 //! connection to the phone's port and sends an adb `CNXN`. Android Wireless debugging answers `STLS` (the
 //! connection must switch to TLS); legacy `adb tcpip` answers `CNXN` or `AUTH` in plaintext and is refused.

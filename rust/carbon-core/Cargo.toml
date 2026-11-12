@@ -3,7 +3,7 @@ name = "carbon-core"
 version = "1.0.0"
 edition = "2024"
 rust-version = "1.88"
-license = "PolyForm-Noncommercial-1.0.0"
+license = "PolyForm-Shield-1.0.0"
 description = "CarbonMirror security core: protocol parsing, policy and TLS, shared by the Mac app and the phone server."
 publish = false
 
