@@ -2,6 +2,9 @@
 import AppKit
 import CMUI
 
+// Monochrome controls (spec A3.5): the app's own accent and highlight are Graphite, whatever the system accent is.
+UserDefaults.standard.set(-1, forKey: "AppleAccentColor")
+UserDefaults.standard.set("0.847059 0.847059 0.862745 Graphite", forKey: "AppleHighlightColor")
 let app = NSApplication.shared
 let delegate = MainActor.assumeIsolated { AppDelegate(arguments: CommandLine.arguments) }
 app.delegate = delegate

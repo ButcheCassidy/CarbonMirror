@@ -12,10 +12,13 @@ final class SplashView: NSView {
 
     private let player: AVPlayer
     private let playerLayer: AVPlayerLayer
+    private let onFinished: () -> Void
 
     /// nil when the clip is not bundled (a bare `swift run` binary).
-    init?(frame: NSRect, clip: URL? = Bundle.main.url(forResource: "CarbonMirror-startup", withExtension: "mp4")) {
+    init?(frame: NSRect, clip: URL? = Bundle.main.url(forResource: "CarbonMirror-startup", withExtension: "mp4"),
+          onFinished: @escaping () -> Void) {
         guard let clip else { return nil }
+        self.onFinished = onFinished
         player = AVPlayer(url: clip)
         playerLayer = AVPlayerLayer(player: player)
         super.init(frame: frame)
@@ -56,6 +59,7 @@ final class SplashView: NSView {
             MainActor.assumeIsolated {
                 self?.player.pause()
                 self?.removeFromSuperview()
+                self?.onFinished()
             }
         })
     }

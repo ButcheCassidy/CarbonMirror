@@ -72,7 +72,7 @@ public enum ToolbarItem: String, CaseIterable, Sendable {
 public enum ChromeLayout {
     public static let buttonSize = 22.0
     public static let spacing = 2.0
-    public static let badgeWidth = 66.0
+    public static let badgeWidth = 76.0
     /// Traffic lights: three 14 pt buttons, 20 pt apart, 8 pt from the leading edge, then a 10 pt gap.
     public static let trafficLightSize = 14.0
     public static let trafficLightPitch = 20.0

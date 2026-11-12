@@ -17,6 +17,7 @@ final class PhoneWindowController: NSObject, NSWindowDelegate {
     private(set) var state: UIStateCode = .notPaired
     private var hideTask: Task<Void, Never>?
     private var pointerInZone = false
+    private var chromeTransition = 0
 
     init(settings: AppSettings) {
         self.settings = settings
@@ -47,7 +48,10 @@ final class PhoneWindowController: NSObject, NSWindowDelegate {
 
     /// First show after launch: the startup animation plays at once, before the window is on screen.
     func showWindowWithSplash() {
-        content.screen.playSplash()
+        content.screen.playSplash { [weak self] in
+            guard let self, self.window.isKeyWindow else { return }
+            self.windowDidBecomeKey(Notification(name: NSWindow.didBecomeKeyNotification))
+        }
         showWindow()
     }
 
@@ -114,9 +118,12 @@ final class PhoneWindowController: NSObject, NSWindowDelegate {
             ? NSRect(x: screenOnDesktop.minX - i.left, y: screenOnDesktop.minY - i.bottom,
                      width: screenOnDesktop.width + i.left + i.right, height: screenOnDesktop.height + i.top + i.bottom)
             : screenOnDesktop
-        if let visible = window.screen?.visibleFrame, target.maxY > visible.maxY {
-            target.origin.y -= target.maxY - visible.maxY
+        if shown, let visible = window.screen?.visibleFrame {
+            target.origin.x = max(visible.minX, min(target.minX, visible.maxX - target.width))
+            target.origin.y = max(visible.minY, min(target.minY, visible.maxY - target.height))
         }
+        chromeTransition += 1
+        let transition = chromeTransition
         content.beginChromeTransition(show: shown)
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = Theme.revealDuration
@@ -125,7 +132,9 @@ final class PhoneWindowController: NSObject, NSWindowDelegate {
             content.chrome.animator().alphaValue = shown ? 1 : 0
         }, completionHandler: { [weak self] in
             MainActor.assumeIsolated {
-                self?.content.endChromeTransition()
+                // A reveal interrupted by a hide (or the reverse) must not unfreeze the screen size mid-animation.
+                guard let self, transition == self.chromeTransition else { return }
+                self.content.endChromeTransition()
             }
         })
     }

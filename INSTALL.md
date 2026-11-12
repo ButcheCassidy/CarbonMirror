@@ -65,7 +65,7 @@ rustup self uninstall
 2. The first time, macOS says it can't verify the developer (the app is signed with your own certificate, not notarised). Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to CarbonMirror. Don't turn Gatekeeper off.
 3. Allow **Local Network** when asked (needed to find your phone on Wi-Fi). If macOS asks about the USB accessory, allow it.
 
-You should see: a black phone-shaped window saying "Not paired" (or your phone if it is plugged in), and a two-phone icon in the menu bar.
+You should see: the startup animation (3 seconds, on black, centred in the phone-shaped window), then the window saying "Not paired" (or your phone if it is plugged in), and a two-phone icon in the menu bar.
 
 ## 5. Phone setup (GrapheneOS and stock Android)
 

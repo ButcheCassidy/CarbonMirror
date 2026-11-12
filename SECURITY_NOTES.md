@@ -39,6 +39,10 @@ What CarbonMirror protects, how, and where the limits are. Everything here descr
 - **USB without pairing:** if no phone is paired yet, an authorised USB phone may mirror (Android's own USB authorisation dialog is the trust root). Once a phone is paired, any other USB phone is "Untrusted device".
 - Create new key: deletes Keychain items, overwrites then deletes the adb key files, clears pins and endpoints, makes a new identity, restarts adb (new adb key), and starts QR pairing. Never trusts a new key without a completed pairing. Logged as metadata only ("key rotated", timestamp).
 
+**Device key (who the phone is).** adb authenticates the Mac to the phone, not the phone to the Mac. So the first time the phone is connected by USB — the one channel that is physically yours — CarbonMirror hands it a random 256-bit device key (kept in the Mac Keychain, bound to the phone's serial; on the phone in `/data/local/tmp/carbonmirror-device.key`, shell-only). On every wireless session the phone must return HMAC-SHA-256(device key, its session key pin) before the Mac opens any socket. The key is never sent over Wi-Fi. A device on the network that answers as your phone cannot produce the proof and gets no video socket, no input and no clipboard. Forget device and Create new key delete it; the next USB connection sets a new one.
+
+**adb is kept on a short lead.** The bundled adb runs with `ADB_EMU=0` (it never connects to "emulators" on localhost ports, which is plaintext and unauthenticated) and `ADB_MDNS=0` (it never discovers or auto-connects by itself; discovery is CarbonMirror's own, allowlist first).
+
 ## 4. Network rules (spec 6.2)
 
 - Allowed destinations: `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.0.0/16`, `fe80::/10`, `fc00::/7`. Refused: public addresses, Mullvad's tunnel ranges (`10.64.0.0/10`, `fc00:bbbb:bbbb:bb01::/64`), IPv4-mapped IPv6, link-local without zone, hostnames, port 5555.
@@ -72,3 +76,6 @@ What CarbonMirror protects, how, and where the limits are. Everything here descr
 10. **Sandbox:** adb runs inside the app sandbox (inherited). If a macOS version refuses that, the fallback is a sandboxed XPC helper — not built yet. **NOT RUN.**
 11. **`network.server` entitlement:** with Unix sockets nothing listens on TCP any more; the entitlement is kept until the Mac confirms adb can bind its Unix socket without it (REAL_DEVICE_CHECKS A6), then it is removed.
 12. **Phone side:** the server's abstract socket `scrcpy_<random 31-bit id>` can be reached by other processes on the phone. With the inner TLS (on by default for USB and Wi-Fi) they cannot complete the handshake without a certificate signed by the pinned Mac identity, and without the session secret nothing flows; at worst they can disturb a session start (denial of service).
+- **A phone that has never been connected by USB is trusted on first use over Wi-Fi.** Without the device key the wireless pin comes from the endpoint that completed QR pairing (same address as the password-authenticated pairing). Plug the phone in once and the gap closes for good.
+- **USB identity is the serial number.** adb over USB does not authenticate the device; someone with physical access and a device that fakes your phone's serial could be mirrored. Physical access to an unlocked Mac is outside the threat model.
+- **Phone → Mac clipboard** sets the Mac clipboard whenever the phone copies text while sync is on (by design, spec A7). Turn sync off in the toolbar if you paste into terminals.

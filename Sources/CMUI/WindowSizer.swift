@@ -11,6 +11,7 @@ final class WindowSizer {
     /// Points per inch of the default 16" MacBook Pro "Looks like 1728×1117" — used only if a display
     /// reports no physical size (some projectors and virtual displays).
     static let fallbackPointsPerInch = 127.0
+    static let plausiblePointsPerInch = 96.0...254.0
 
     var profile = PhoneProfile.pixel10ProXL
     var landscape = false
@@ -28,8 +29,10 @@ final class WindowSizer {
             return Self.fallbackPointsPerInch
         }
         let millimetres = CGDisplayScreenSize(CGDirectDisplayID(number.uint32Value))
-        return (try? SizeMath.pointsPerInch(displayWidthPoints: Double(screen.frame.width),
-                                            displayWidthMillimetres: Double(millimetres.width))) ?? Self.fallbackPointsPerInch
+        let measured = (try? SizeMath.pointsPerInch(displayWidthPoints: Double(screen.frame.width),
+                                                    displayWidthMillimetres: Double(millimetres.width))) ?? Self.fallbackPointsPerInch
+        // TVs, projectors and virtual displays report sizes that would make the window unusably small or huge.
+        return min(Self.plausiblePointsPerInch.upperBound, max(Self.plausiblePointsPerInch.lowerBound, measured))
     }
 
     /// Screen size (points) at which the phone appears at its real size on `screen`.

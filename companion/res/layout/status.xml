@@ -26,6 +26,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:accessibilityHeading="true"
+            android:gravity="center"
             android:textColor="@color/primary"
             android:textSize="22sp"
             android:textStyle="bold" />
@@ -40,12 +41,12 @@
             android:textColor="@color/secondary"
             android:textSize="15sp" />
 
-        <TextView
+        <Button
             android:id="@+id/primary"
             style="@style/Pill"
             android:layout_marginTop="24dp" />
 
-        <TextView
+        <Button
             android:id="@+id/add_tile"
             style="@style/Pill"
             android:layout_marginTop="12dp"

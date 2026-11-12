@@ -38,6 +38,7 @@ final class SettingsWindowController {
 
     func show() {
         if window == nil { window = makeWindow() }
+        show(Section.allCases[max(0, picker.selectedSegment)])
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate()
     }

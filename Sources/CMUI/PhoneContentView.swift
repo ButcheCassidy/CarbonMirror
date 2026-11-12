@@ -65,8 +65,8 @@ final class ScreenView: NSView {
     }
 
     /// Startup animation on OLED black above everything, until the clip ends.
-    func playSplash() {
-        guard let splash = SplashView(frame: bounds) else { return }
+    func playSplash(onFinished: @escaping () -> Void) {
+        guard let splash = SplashView(frame: bounds, onFinished: onFinished) else { return onFinished() }
         splash.autoresizingMask = [.width, .height]
         addSubview(splash)
     }
@@ -119,6 +119,8 @@ final class PhoneContentView: NSView {
         layer?.borderColor = Theme.hairline.cgColor
         addSubview(screen)
         addSubview(chrome)
+        chrome.wantsLayer = true
+        chrome.layer?.masksToBounds = true
         chrome.alphaValue = 0
         chrome.isHidden = true
         screenSize = frame.size
