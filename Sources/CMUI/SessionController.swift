@@ -298,7 +298,7 @@ final class SessionController {
                                            codec: codec, maxSize: requestedMaxSize,
                                            maxFPS: wireless ? profile.maxFPS : maxFPS, bitRate: profile.bitrateMbps * 1_000_000,
                                            clipboardSync: settings.clipboardSync, encryption: encryption)
-        let session = MirrorSession(parameters: parameters, link: services.link, connector: { port in try await NWByteStream.connect(port: port) },
+        let session = MirrorSession(parameters: parameters, link: services.link, connector: { path in try await POSIXStream.connect(unixPath: path) },
                                     video: decoder)
         self.session = session
         sessionSerial = serial

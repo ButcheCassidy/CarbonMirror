@@ -27,14 +27,13 @@ public actor AdbSupervisor {
     public static let restartBackoff: [TimeInterval] = [0.5, 1, 2, 4, 8]
     /// A watch that lasted this long counts as healthy and resets the backoff.
     static let healthyRunSeconds: TimeInterval = 10
-    static let portAttempts = 3
 
     public private(set) var state: State = .stopped
     public private(set) var devices: [AdbListedDevice] = []
     /// Latest device list after every change (newest value only).
     public nonisolated let deviceUpdates: AsyncStream<[AdbListedDevice]>
 
-    private var runner: AdbRunner
+    private let runner: AdbRunner
     private let updates: AsyncStream<[AdbListedDevice]>.Continuation
     private var watchTask: Task<Void, Never>?
     private var watchPID: Int32?
@@ -44,18 +43,17 @@ public actor AdbSupervisor {
         (deviceUpdates, updates) = AsyncStream.makeStream(bufferingPolicy: .bufferingNewest(1))
     }
 
-    /// Port the managed adb server listens on (127.0.0.1 only).
-    public var serverPort: UInt16 { runner.environment.serverPort }
-
     /// Starts the server and the device watch.
     public func start() async throws {
         guard state == .stopped else { return }
         state = .starting
         await killStaleServer()
-        try await startServerPickingPort()
-        try runner.environment.recordPort()
+        guard let result = try? await runner.run(.startServer, timeout: 15), result.succeeded else {
+            state = .stopped
+            throw Failure.serverWouldNotStart
+        }
         state = .running
-        Log.info(.adb, "adb server running", ["port": "\(runner.environment.serverPort)"])
+        Log.info(.adb, "adb server running on a private socket")
         watchTask = Task { await self.watchLoop() }
     }
 
@@ -66,7 +64,7 @@ public actor AdbSupervisor {
         await watchTask?.value
         watchTask = nil
         _ = try? await runner.run(.killServer, timeout: 5)
-        runner.environment.forgetPort()
+        runner.environment.removeSocket(runner.environment.serverSocket)
         ChildProcesses.shared.terminateAll()
         devices = []
         updates.yield([])
@@ -75,24 +73,10 @@ public actor AdbSupervisor {
     }
 
     private func killStaleServer() async {
-        guard let old = runner.environment.previousPort() else { return }
-        _ = try? await runner.with(environment: runner.environment.withPort(old)).run(.killServer, timeout: 5)
-        runner.environment.forgetPort()
+        guard runner.environment.hasStaleServerSocket else { return }
+        _ = try? await runner.run(.killServer, timeout: 5)
+        runner.environment.removeSocket(runner.environment.serverSocket)
         Log.info(.adb, "stale adb server cleaned up")
-    }
-
-    private func startServerPickingPort() async throws {
-        for attempt in 0..<Self.portAttempts {
-            if attempt > 0 {
-                let port = UInt16(try CoreCrypto.randomInt(in: AdbEnvironment.portRange))
-                runner = runner.with(environment: runner.environment.withPort(port))
-            }
-            if let result = try? await runner.run(.startServer, timeout: 15), result.succeeded {
-                return
-            }
-        }
-        state = .stopped
-        throw Failure.serverWouldNotStart
     }
 
     private func watchLoop() async {

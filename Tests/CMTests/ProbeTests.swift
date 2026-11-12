@@ -11,6 +11,23 @@ import Darwin
 private typealias Glibc = Darwin
 #endif
 
+extension POSIXStream {
+    /// TCP to 127.0.0.1:`port` — the fake adbd stands in for a phone on the LAN (tests only; the app's own
+    /// sockets are Unix sockets, and its LAN probe uses Network.framework).
+    static func connect(port: UInt16) async throws -> POSIXStream {
+        let fd = socket(AF_INET, streamType, 0)
+        var address = loopback(port: port)
+        let rc = withUnsafePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { sysConnect(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) }
+        }
+        guard fd >= 0, rc == 0 else {
+            sysClose(fd)
+            throw StreamError.connectFailed
+        }
+        return POSIXStream(fd: fd)
+    }
+}
+
 /// A fake adbd: either legacy plaintext (`adb tcpip`) or Wireless debugging (STLS, then TLS).
 final class FakeAdbd: @unchecked Sendable {
     enum Mode { case plaintext, tls(TLSIdentity), garbage }

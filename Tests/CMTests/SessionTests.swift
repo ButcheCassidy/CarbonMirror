@@ -24,7 +24,7 @@ struct SessionTests {
         let link = VirtualPhoneLink(phone: phone)
         let sink = RecordingSink()
         let session = MirrorSession(parameters: try parameters(encrypted: encrypted, wireless: wireless), link: link,
-                                    connector: { try await POSIXStream.connect(port: $0) }, video: sink)
+                                    connector: { try await TapStream.wrap(POSIXStream.connect(unixPath: $0)) }, video: sink)
         try await session.start()
         var collected: [SessionEvent] = []
         let deadline = ContinuousClock.now + .seconds(10)
@@ -85,14 +85,14 @@ struct SessionTests {
 
     @Test func wirelessWithoutEncryptionIsRefused() async throws {
         let session = MirrorSession(parameters: try Self.parameters(encrypted: false, wireless: true), link: VirtualPhoneLink(phone: VirtualPhone()),
-                                    connector: { try await POSIXStream.connect(port: $0) }, video: RecordingSink())
+                                    connector: { try await TapStream.wrap(POSIXStream.connect(unixPath: $0)) }, video: RecordingSink())
         await #expect(throws: SessionEnd.tlsFailed(.tlsPolicyViolation)) { try await session.start() }
     }
 
     @Test func wrongPhonePinIsRefusedAsIdentityChange() async throws {
         let phone = VirtualPhone(attack: .wrongPin)
         let session = MirrorSession(parameters: try Self.parameters(encrypted: true, wireless: true), link: VirtualPhoneLink(phone: phone),
-                                    connector: { try await POSIXStream.connect(port: $0) }, video: RecordingSink())
+                                    connector: { try await TapStream.wrap(POSIXStream.connect(unixPath: $0)) }, video: RecordingSink())
         await #expect(throws: SessionEnd.identityChanged) { try await session.start() }
         phone.stop()
     }
@@ -110,9 +110,11 @@ struct SessionTests {
 
     @Test func wrongSessionSecretIsRefusedByThePhone() async throws {
         let phone = VirtualPhone()
-        try phone.listen(port: 28_999)
+        let path = FileManager.default.temporaryDirectory.path + "/cm-f" + CoreCrypto.hex(try CoreCrypto.randomBytes(8))
+        defer { try? FileManager.default.removeItem(atPath: path) }
+        try phone.listen(unixPath: path)
         phone.start(setupLine: "CM1 plain \(String(repeating: "ab", count: 32)) -\n")
-        let intruder = try await POSIXStream.connect(port: 28_999)
+        let intruder = try await POSIXStream.connect(unixPath: path)
         intruder.send([UInt8](repeating: 0, count: 32))
         let reply = try await intruder.read(max: 16)
         #expect(reply.isEmpty, "connection dropped without sending anything")

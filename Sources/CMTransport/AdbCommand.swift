@@ -60,8 +60,8 @@ public enum AdbCommand: Equatable, Sendable {
     case connect(ip: String, port: UInt16)
     case disconnect(ip: String, port: UInt16)
     case pair(ip: String, port: UInt16, secret: String)
-    case forward(serial: String, localPort: UInt16, scid: UInt32)
-    case removeForward(serial: String, localPort: UInt16)
+    case forward(serial: String, localSocket: String, scid: UInt32)
+    case removeForward(serial: String, localSocket: String)
     case pushServer(serial: String, localPath: String)
     case pushCoreLibrary(serial: String, localPath: String)
     case startMirrorServer(serial: String, options: ServerOptions)
@@ -93,9 +93,9 @@ public enum AdbCommand: Equatable, Sendable {
         case let .connect(ip, port): ["connect", Self.hostPort(ip, port)]
         case let .disconnect(ip, port): ["disconnect", Self.hostPort(ip, port)]
         case let .pair(ip, port, secret): ["pair", Self.hostPort(ip, port), secret]
-        case let .forward(serial, localPort, scid):
-            ["-s", serial, "forward", "tcp:\(localPort)", "localabstract:scrcpy_\(ServerOptions.hex8(scid & 0x7FFF_FFFF))"]
-        case let .removeForward(serial, localPort): ["-s", serial, "forward", "--remove", "tcp:\(localPort)"]
+        case let .forward(serial, socket, scid):
+            ["-s", serial, "forward", "localfilesystem:\(socket)", "localabstract:scrcpy_\(ServerOptions.hex8(scid & 0x7FFF_FFFF))"]
+        case let .removeForward(serial, socket): ["-s", serial, "forward", "--remove", "localfilesystem:\(socket)"]
         case let .pushServer(serial, path): ["-s", serial, "push", path, Self.remoteServerPath]
         case let .pushCoreLibrary(serial, path): ["-s", serial, "push", path, Self.remoteCoreLibraryPath]
         case let .startMirrorServer(serial, o):

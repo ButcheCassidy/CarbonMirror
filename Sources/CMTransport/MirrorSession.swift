@@ -85,7 +85,7 @@ public actor MirrorSession {
     private let control = Mutex<(any ByteStream)?>(nil)
     private var videoStream: (any ByteStream)?
     private var server: (any ServerHandle)?
-    private var port: UInt16 = 0
+    private var socket: String?
     private var tasks: [Task<Void, Never>] = []
     private var ended = false
     private let started = ContinuousClock.now
@@ -134,12 +134,11 @@ public actor MirrorSession {
         do {
             secret = try CoreCrypto.randomBytes(Self.secretLength)
             scid = UInt32(try CoreCrypto.randomInt(in: 0...0x7FFF_FFFF))
-            port = UInt16(try CoreCrypto.randomInt(in: 27_000...29_999))
         } catch {
             throw .connectFailed
         }
         do {
-            try await link.forward(serial: parameters.serial, port: port, scid: scid)
+            socket = try await link.forward(serial: parameters.serial, scid: scid)
         } catch {
             throw .connectFailed
         }
@@ -231,7 +230,7 @@ public actor MirrorSession {
     /// Connects to the forwarded port (retrying while the server starts), runs TLS, presents the secret.
     private func open(identity: TLSIdentity?, secret: [UInt8], expectDummyByte: Bool) async throws(SessionEnd) -> any ByteStream {
         for _ in 0..<Self.connectAttempts {
-            guard let raw = try? await connector(port) else {
+            guard let socket, let raw = try? await connector(socket) else {
                 try? await Task.sleep(for: Self.connectRetryDelay)
                 continue
             }
@@ -407,7 +406,7 @@ public actor MirrorSession {
         videoStream = nil
         server?.terminate()
         server = nil
-        if port != 0 { await link.removeForward(serial: parameters.serial, port: port) }
+        if let socket { await link.removeForward(serial: parameters.serial, socket: socket) }
         await link.cleanup(serial: parameters.serial)
     }
 }
