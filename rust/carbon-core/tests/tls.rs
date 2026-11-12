@@ -54,6 +54,12 @@ fn pair() -> (SoftSigner, Vec<u8>, Identity) {
 }
 
 #[test]
+fn only_post_quantum_hybrid_key_exchange_is_offered() {
+    let groups: Vec<u16> = tls::provider().kx_groups.iter().map(|g| u16::from(g.name())).collect();
+    assert_eq!(groups, vec![0x11EC], "X25519MLKEM768 only");
+}
+
+#[test]
 fn handshake_negotiates_tls13_aes256_and_hybrid_pq() {
     let (mac, _, server_id) = pair();
     let pin = server_id.spki_hash().unwrap();

@@ -39,6 +39,7 @@
 | 31 | Release workflow handled the signing keystore with third-party actions referenced by movable tags (supply chain) | Medium | `.github/workflows/*.yml` | every action pinned to a commit SHA | release run after the change |
 | 32 | `build.sh` checked the adb signer with `codesign -dv`, which never prints `Authority=`, so the build always stopped ("not signed by Google LLC"); `grep -q` in a pipefail pipe could also fail spuriously | Medium (build blocker) | `scripts/build.sh` | `codesign -dvv`, full read by grep | macOS CI: build, sign, DMG pass |
 | 33 | Companion watchdog alarm could crash the receiver when Android refuses a background service start (battery restricted) | Low | `StartReceiver.java` | catch `IllegalStateException` | builds |
+| 34 | Inner TLS also accepted classical `X25519` key exchange; both ends are the same core, so post-quantum protection depended on configuration rather than being enforced | Medium | `tls.rs` (`provider`) | `X25519MLKEM768` only; test `only_post_quantum_hybrid_key_exchange_is_offered` | `cargo test` 45 passed; `tls_downgrade.sh` 8/8 refused; `swift test` 79 passed |
 
 **Condensed sweep (session 4):** unsafe outside `ffi` 0 (only `forbid(unsafe_code)`), unwrap/expect/panic outside tests 0, shell/`Process` with interpolation 0, secrets/keystores in git 0, untrusted workflow contexts 0, TCP/UDP listeners in production Swift 0, companion exported = launcher activity + tile (system-permission protected) only, `allowBackup=false`, `usesCleartextTraffic=false`, not debuggable, every `PendingIntent` immutable and explicit, no `exec`/WebView/world-readable files/content logging.
 
@@ -92,7 +93,7 @@ Every event arrived in order, byte-exact; every frame sent was received; descrip
 
 | Claim | Evidence (command → output) |
 |---|---|
-| Rust core tests | `cargo test --release` → 25 + 5 + 9 + 5 passed (44) |
+| Rust core tests | `cargo test --release` → 25 + 5 + 10 + 5 passed (45), incl. PQ-only key exchange |
 | Rust lint/audit | `cargo clippy --all-targets -D warnings` (host + Android) → clean; `cargo audit` → no advisories (126 crates) |
 | Swift tests (Linux) | `swift build --build-tests` → 0 warnings; `swift test --skip soak` → 79 tests in 11 suites passed (incl. 10 auto-connect) |
 | Soak | `CM_SOAK_SECONDS=300 swift test --filter soak` → passed after 302.2 s |
