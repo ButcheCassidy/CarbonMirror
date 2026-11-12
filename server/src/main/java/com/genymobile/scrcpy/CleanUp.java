@@ -49,7 +49,16 @@ public final class CleanUp {
         thread.join();
     }
 
+    /** Global setting the CarbonMirror Companion tile reads to show "Mirroring" (1 while a server runs). */
+    public static final String SESSION_SETTING = "carbonmirror_session";
+
     private void runCleanUp(Options options) {
+        try {
+            Settings.putValue(Settings.TABLE_GLOBAL, SESSION_SETTING, "1");
+        } catch (SettingsException e) {
+            Ln.e("Could not set \"" + SESSION_SETTING + "\"", e);
+        }
+
         boolean disableShowTouches = false;
         if (options.getShowTouches()) {
             try {
@@ -221,6 +230,12 @@ public final class CleanUp {
         }
 
         Ln.i("Cleaning up");
+
+        try {
+            Settings.putValue(Settings.TABLE_GLOBAL, SESSION_SETTING, "0");
+        } catch (SettingsException e) {
+            Ln.e("Could not clear \"" + SESSION_SETTING + "\"", e);
+        }
 
         if (disableShowTouches) {
             Ln.i("Disabling \"show touches\"");
