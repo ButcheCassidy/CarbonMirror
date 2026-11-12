@@ -140,6 +140,8 @@ final class StatusView: NSView {
         buttonRow.orientation = .horizontal
         buttonRow.spacing = 8
         buttonRow.alignment = .centerY
+        // Hug the pills: a row stretched to the text width would pack them to the left instead of centring them.
+        buttonRow.setHuggingPriority(.required, for: .horizontal)
 
         stack.orientation = .vertical
         stack.alignment = .centerX
