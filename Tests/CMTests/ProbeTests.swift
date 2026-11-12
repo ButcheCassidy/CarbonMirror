@@ -12,11 +12,12 @@ private typealias Glibc = Darwin
 #endif
 
 extension POSIXStream {
-    /// TCP to 127.0.0.1:`port` — the fake adbd stands in for a phone on the LAN (tests only; the app's own
-    /// sockets are Unix sockets, and its LAN probe uses Network.framework).
-    static func connect(port: UInt16) async throws -> POSIXStream {
+    /// TCP to `ip`:`port` (default loopback) — the fake adbd stands in for a phone on the LAN (tests only; the
+    /// app's own sockets are Unix sockets, and its LAN probe uses Network.framework).
+    static func connect(port: UInt16, ip: String = "127.0.0.1") async throws -> POSIXStream {
         let fd = socket(AF_INET, streamType, 0)
         var address = loopback(port: port)
+        guard inet_pton(AF_INET, ip, &address.sin_addr) == 1 else { throw StreamError.connectFailed }
         let rc = withUnsafePointer(to: &address) {
             $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { sysConnect(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) }
         }
@@ -117,5 +118,18 @@ struct ProbeTests {
         #expect(key.count == 64 && !key.contains("192"))
         #expect(NetworkIdentity.hotspotGateway(subnet: "10.123.45.0/24") == "10.123.45.1")
         #expect(NetworkIdentity.subnet(ofInterface: "lo") == "127.0.0.0/8")
+    }
+
+    /// Phase 11 Stage 3.4/3.6 on the virtual LAN (`tools/sectest/virtual_lan.sh` sets `CM_LAN_PHONE`): the
+    /// phone namespace offers plaintext adb on 5555 and 37099; a fake `utun` carries Mullvad's 10.64.0.0/10.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["CM_LAN_PHONE"] != nil))
+    func virtualLANRefusesPlaintextTunnelAndPublicTargets() async throws {
+        let phone = try #require(ProcessInfo.processInfo.environment["CM_LAN_PHONE"])
+        #expect(WirelessProbe.check(ip: phone, port: 5555) == .plaintextRefused, "legacy port refused before connecting")
+        #expect(WirelessProbe.check(ip: phone, port: 37_099) == nil, "the phone's private address is allowed")
+        #expect(await WirelessProbe.run(over: try await POSIXStream.connect(port: 37_099, ip: phone)) == .plaintextRefused)
+        #expect(WirelessProbe.check(ip: "10.64.0.9", port: 37_099) == .refusedAddress(.ipTunnelRangeRefused), "Mullvad tunnel")
+        #expect(WirelessProbe.check(ip: "8.8.8.8", port: 37_099) == .refusedAddress(.ipPublicRefused))
+        #expect(WirelessProbe.check(ip: "2001:4860:4860::8888", port: 37_099) == .refusedAddress(.ipPublicRefused))
     }
 }
