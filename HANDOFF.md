@@ -3,6 +3,36 @@
 > **Resume instruction:** Paste this file plus the latest source bundle (repo `ButcheCassidy/CarbonMirror`, branch `main`) into a new chat and say: *Continue CarbonMirror from the Next steps in HANDOFF.md.*
 > Then: `source ~/carbonmirror-deps/env.sh` (Linux build env, §5) and start at **§12 Next steps, step 1**. The full spec is §14 (verbatim, with per-requirement status).
 
+## 0. Where things stand (end of session 3, 2026-11-12) — read this first
+
+**Stopped by the user (usage limit). Nothing is mid-edit; `main` is clean and pushed (last code commit `7cbfccb`).**
+
+### Done and proven (evidence in `RELEASE_CHECK.md`)
+- Mac app: `swift build -c release` on macOS 26 (GitHub runner, Xcode 26.6) — 0 errors, 0 warnings. Launches in `--demo` and in the normal path, survives opening Settings, Metal shader compiles. Screenshots checked: splash, all status screens, hover toolbar + overflow, Settings (Connection tab).
+- Linux: `cargo test` 44 passed, clippy clean (host + Android), `cargo audit` clean, `swift test` 70 passed, server jar + `libcarbon_core.so` + companion APK build (test key).
+- Security re-run: TLS downgrade 8/8, capture scan clean, virtual LAN PASS, soak 300 s, fuzz 14 entry points × 120 s, `adb_local_exposure.sh` PASS. Findings 18–24 fixed (adb emulator scan + adb mDNS off; device key proof for wireless; pairing IP binding; phone-side deadlines; Settings crash; no-display launch crash; 13 UI bugs).
+- Startup animation on both apps; companion launcher screen; docs (README, INSTALL, SECURITY_NOTES, CHANGELOG, REAL_DEVICE_CHECKS, RELEASE_CHECK).
+
+### Half done (code written, not proven on real hardware or not fully checked)
+1. **Companion launcher screen + Android splash** — builds and verifies; never run on a phone (no emulator here). Check `REAL_DEVICE_CHECKS.md` D-S.
+2. **Device key proof** — Swift/Rust side tested against the virtual phone; the Java side (`SessionSetup.java`: key file, HMAC, 5-field setup line) and the phone-side deadlines have never run on a device. Check D-K.
+3. **Settings window** — only the Connection tab was seen on screen; Display, Experience, Security, Screenshots, General, About are unverified visually. Glass look verified only over a black desktop.
+4. **Mirroring UI with a live session** — status line, connection badge, landscape pill, blur, HUD: compiled, never seen with real video.
+5. **Signing and packaging** — `scripts/make-cert.sh` and `scripts/build.sh` have never run on a Mac; no DMG exists; sandbox + entitlements + bundled adb signature check untested.
+6. **Launch-check failure message** — when adb is missing or its signature is rejected the window says "Disconnected / Connection lost" (seen on CI with the unsigned test bundle). Works, but the wording is misleading; give it its own state.
+7. **INSTALL.md §7 (uninstall)** does not yet mention deleting `/data/local/tmp/carbonmirror-device.key` on the phone.
+8. **`swift test` on macOS** — never run (tests use Glibc-only sockets); Mac coverage is build + launch + screenshots only.
+9. **CI** — the `macos` job contains screenshot/liveness scaffolding (fine to keep, manual only). Dependabot PR #6 (upload-artifact bump) is obsolete: close it.
+
+### Not started / still open
+- All of `REAL_DEVICE_CHECKS.md` (A–E, plus A-S, D-S, D-K) on the user's Mac and Pixel; performance targets (10.1) unmeasured.
+- Older open issues: horizontal scroll sign unverified; `ALL_APPS` swipe-up fallback not implemented (spec 5.4); `network.server` entitlement possibly removable; no `tc netem` (no loss/latency simulation); landscape pill width at smallest size.
+- Open security limits (documented, need the user's decision to go further): wireless trust-on-first-use for a phone never connected by USB; USB identity = serial; phone → Mac clipboard injection by design.
+- Release gate: version bump, CHANGELOG date, signed DMG + APK with the user's keys, SHA-256 checksums, evidence table, INSTALL final pass.
+
+### Next action
+User runs on the Mac, from the repo folder: `bash scripts/make-cert.sh` → Step A-2 (adb) → `bash scripts/build-server.sh` → `bash scripts/build-apk.sh` → `bash scripts/build.sh`, and sends the tail of `build.log`. Then `REAL_DEVICE_CHECKS.md`. Details in §12.
+
 ## 1. Header
 
 | Item | Value |
