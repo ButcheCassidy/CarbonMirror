@@ -1,4 +1,4 @@
-# CarbonMirror — HANDOFF (full spec: Phases 1–10 built, Phase 11 started; Mac + phone checks NOT RUN)
+# CarbonMirror — HANDOFF (full spec: Phases 1–10 built, Phase 11 Linux stages done; Mac + phone checks NOT RUN)
 
 > **Resume instruction:** Paste this file plus the latest source bundle (repo `ButcheCassidy/CarbonMirror`, branch `main`) into a new chat and say: *Continue CarbonMirror from the Next steps in HANDOFF.md.*
 > Then: `source ~/carbonmirror-deps/env.sh` (Linux build env, see §4) and start at **§10 Next steps, step 1**.
@@ -10,7 +10,7 @@
 | Project | CarbonMirror — native macOS ⇄ Google Pixel 10 Pro XL mirroring & control |
 | Version | 0.1.0 (`CFBundleShortVersionString`; server `VERSION_NAME` and APK versionName/versionCode 100 derive from it) |
 | Milestone | Past Milestone 2 (user waived milestone stops); Phase 11 release check in progress |
-| Date | 2026-11-12 |
+| Date | 2026-11-12 (Phase 11 pass) |
 | Author credit | **ButcheCassidy - The Nomadic Rebel** |
 | Last commit before this handoff | `019f354` (plus this HANDOFF commit) |
 | Phases 1–3 | ✅ (Mac steps NOT RUN — needs Mac; device steps in `REAL_DEVICE_CHECKS.md`) |
@@ -21,7 +21,7 @@
 | Phase 8 | ✅ code — Settings window (Liquid Glass), full menu-bar menu, blur + Touch ID, status line, landscape pill, launch at login |
 | Phase 9 | ✅ companion APK builds/signs on Linux (test key), v2+v3 verified |
 | Phase 10 | ✅ docs (README, INSTALL, SECURITY_NOTES, REAL_DEVICE_CHECKS, THIRD_PARTY_NOTICES, CHANGELOG, LICENSE); Mac build NOT RUN |
-| Phase 11 | 🟡 Stage 3.1/3.2/3.3 + cargo audit done with evidence (`RELEASE_CHECK.md`); rest ⬜ |
+| Phase 11 | 🟡 Stages 1–4 done on Linux with evidence (`RELEASE_CHECK.md`, 17 findings, all High fixed); release gate open (Mac build + device checks) |
 
 ## 2. Where the build stands
 
@@ -97,6 +97,12 @@ Everything in the spec has code except the Phase 11 harnesses still listed in §
 40. The companion has no launcher activity (tile only). Tile fallback = `ACTION_APPLICATION_DEVELOPMENT_SETTINGS` (PendingIntent on API 34+).
 41. ⌘-combinations that aren't app shortcuts go to the phone from `performKeyEquivalent` with an immediate key-up (AppKit sends no key-up while ⌘ is held). App shortcuts: `AppShortcuts` in `MirrorView.swift`.
 42. Pairing: `adb pair` output `[guid=adb-<serial>-<suffix>]` gives the serial and the `_adb-tls-connect._tcp` name to resolve.
+44. **adb server + forwards on Unix sockets** (`ADB_SERVER_SOCKET=localfilesystem:<container tmp>/cm/cm-adb`, forwards `localfilesystem:…/cm-f<16 hex>`), folder 0700, path ≤ 103 bytes or launch fails closed. Rust allowlist refuses `tcp:` forwards. `StreamConnector` takes a socket path; the app connects with `POSIXStream.connect(unixPath:)`; `NWByteStream` is only the LAN probe now.
+45. rustls caps unread plaintext at 16 KiB → `Session` drains into its own buffer (`PLAIN_LIMIT` 16 MiB, zeroed on drop).
+46. Clipboard privacy: concealed/transient Mac items skipped; Android `EXTRA_IS_SENSITIVE` skipped in the server; phone text written `currentHostOnly`.
+47. Windows `isRestorable = false`; Keychain items `kSecAttrSynchronizable false`; adb folders excluded from backup; unlock notification verified with `CGSessionCopyCurrentDictionary`.
+48. Scripts locate the repo via `BASH_SOURCE`/git (user's Mac run failed with `dirname: illegal option -- z`). Run as `bash scripts/build.sh` from the repo folder.
+49. Phase 11 harnesses: `tools/sectest/{tls_downgrade.sh, capture_session.sh+capture_scan.py, virtual_lan.sh+fake_adbd.py+port_scan.py, ffi_fuzz.sh+ffi_fuzz.py}`, `rust/carbon-core/examples/tls_endpoint.rs`, `Tests/CMTests/SoakTests.swift` (`CM_SOAK_SECONDS`), `TapStream` (`CM_CAPTURE_DIR`), virtual phone `loopFPS`. The LAN must be outside 10.64.0.0/10 (Mullvad range is refused by design).
 43. Rust crate licence field = `PolyForm-Noncommercial-1.0.0`; crate MSRV 1.88 (time 0.3.55, RUSTSEC-2026-0009).
 
 ## 6. Exact values in use
@@ -164,30 +170,22 @@ scripts/build-server.sh
 **Mac (NOT RUN — needs the Mac):** Step A `scripts/make-cert.sh` (or the README's manual 10.4 A commands); Step A-2 platform-tools download + `deps.lock` + `cp deps/platform-tools/adb Resources/adb`; Step A-3 rustup + `aarch64-apple-darwin` + cbindgen; JDK + Android SDK (platform 36, build-tools 36.0.0, NDK) for `scripts/build-server.sh`; APK via `scripts/build-apk.sh` (release keystore, password typed); then `scripts/build.sh` (Steps B–F; `--install` copies to /Applications). The exact 10.4 commands are in the README and implemented 1:1 in `scripts/build.sh` / `scripts/make-cert.sh`. Full Mac setup (JDK, SDK without Homebrew, keystore) in `INSTALL.md` §8.4.
 **Linux extras (verified):** `scripts/build-apk.sh --test-key` · `tools/sectest/tls_downgrade.sh` · `tools/sectest/capture_session.sh encryptedSessionStreamsVideoAndControl` (root, tcpdump) · `(cd rust && cargo audit)`.
 
-## 9. Test status (evidence) — Linux, 2026-11-12
+## 9. Test status (evidence) — Linux, 2026-11-12, after Phase 11
 
-- `cargo test --release` (rust/): unit 24 ✅, fuzz 5 ✅, tls 5 ✅, vectors 5 ✅ (39 total). `cargo clippy --all-targets --release -- -D warnings` clean; `cargo ndk -t arm64-v8a -P 30 clippy --release -- -D warnings` clean. `cargo audit` exit 0 (1458 advisories, 126 crates).
-- `swift build --build-tests`: 0 errors, 0 warnings (Linux). `swift test`: **65 tests in 9 suites passed after 1.705 s** (was 120 s: supervisor tests 60 s → 0.56 s / 1.08 s after the SIGTERM fix). New test: `networkIsIdentifiedBySubnetHashNeverSSID`.
-- `scripts/build-server.sh`: javac + d8 + cargo-ndk OK. `scripts/build-apk.sh --test-key`: `Verifies`, v2 true + v3 true (with `--min-sdk-version 24`), signer EC 384 bit, `aapt2 dump permissions` = only `WRITE_SECURE_SETTINGS`; manifest: minSdk 30, target 36, allowBackup false, usesCleartextTraffic false, only the tile service exported with `BIND_QUICK_SETTINGS_TILE`.
-- Phase 11 Stage 3.1/3.2: 8/8 OpenSSL downgrade/impersonation attempts refused (`RELEASE_CHECK.md`). Stage 3.3: encrypted session capture → nothing readable (entropy 7.83–8.00, no markers/start codes); plain control flagged.
+- `cargo test --release`: 43 passed; clippy clean (host + Android); `cargo audit` exit 0.
+- `swift build --build-tests`: 0 warnings; `swift test`: 68 tests in 10 suites passed.
+- Phase 11 (full evidence in `RELEASE_CHECK.md`): TLS downgrade 8/8 refused; capture scan clean (control flagged); virtual LAN PASS (0 TCP/UDP listeners, 65 535-port scan none open, plaintext/tunnel/public refused, fake utun TX 0); hypothesis C-ABI fuzz 13 × 120 s no crash; replay/tamper refused; 5-min soak PASS (23 sessions, 142 900 events byte-exact, 111/56 fps, fds/RSS plateau).
+- The user's first Mac run of `scripts/build.sh` stopped before compiling (script-location bug, fixed in `502ad5e`). **macOS-only Swift still never compiled.**
 
-**NOT RUN — needs my Mac:** every macOS-only Swift file (never compiled), `scripts/build.sh`, `scripts/make-cert.sh`, codesign/DMG, Keychain, sandbox. **NOT RUN — needs real device:** everything in `REAL_DEVICE_CHECKS.md` (30 items).
+**NOT RUN — needs my Mac / real device:** everything in `REAL_DEVICE_CHECKS.md` (now incl. 6a–6c: socket folder perms, no Resume snapshots, try removing `network.server`).
 
-**Known open issues:**
-1. macOS-only code uncompiled — expect compile errors on the first Mac build.
-2. Horizontal scroll sign unverified; `ALL_APPS` swipe fallback not implemented (documented).
-3. Java unused-import sweep not re-run after server edits.
-4. `MirrorSession` takes `clipboard_autosync` at start; live toggle handled by the Mac dropping phone text when off.
-5. Companion "permission fallback" automated test (10.2) not written — only a device check (REAL_DEVICE_CHECKS 28).
-6. Window `.resizable` landscape pill fits ≈ 239 pt at 0.75× — verify no clipping on the Mac.
+**Known open issues:** macOS code uncompiled; horizontal scroll sign; `ALL_APPS` swipe fallback; companion fallback test only on device; `tc netem` unavailable (no loss/latency simulation); `network.server` entitlement possibly removable.
 
 ## 10. Next steps (ordered; start at 1)
-1. **Mac first build:** `scripts/build.sh` on the Mac; fix compile errors in the macOS-only files (Swift 6 strict concurrency, zero warnings). Then run `REAL_DEVICE_CHECKS.md` A–B.
-2. **Phase 11 Stage 3 rest:** `tools/virtualphone/` (move/extend `Tests/CMTests/VirtualPhone.swift`: 60/120 fps synthetic stream, attacker modes incl. replay and plaintext 5555), virtual LAN with `ip netns` (Mac/phone/attacker + fake `utun` route) for 3.4–3.6, pairing-code reuse/expiry (3.7), Python `hypothesis` fuzzing ≥ 2 min per entry point (3.8), replay/injection on the forwarded port (3.9), segregation (3.14).
-3. **Stage 1:** line-by-line review of every file (force unwraps on untrusted data, overflow, races, unclosed fds); Java unused imports; `aapt2 dump badging`.
-4. **Stage 2:** edge cases against the virtual phone (§ Phase 11 Stage 2 list).
-5. **Stage 4:** 5-minute soak (120 then 60 fps with TLS, 500 events/s, handover every 15 s, reconnect every 30 s, one Create-new-key cycle, netem not available → note).
-6. Release gate: bump version, CHANGELOG, signed DMG + APK checksums, evidence table in `RELEASE_CHECK.md`, final `INSTALL.md` pass. Commit and push to `main` after each step.
+1. On the Mac: `bash scripts/build.sh` (after Step A-2 adb, `bash scripts/build-server.sh`, `bash scripts/build-apk.sh`). Fix compile errors in the macOS-only files (Swift 6 strict concurrency, zero warnings).
+2. `REAL_DEVICE_CHECKS.md` A–E; record results in `RELEASE_CHECK.md`; fix findings (re-run the affected stage).
+3. User will attach the full prompt again: second pass adding all detail requirement by requirement (§12 table).
+4. Release gate: version bump, CHANGELOG, signed DMG + APK, checksums, evidence table.
 
 ## 11. Rules to keep obeying
 - **A3 rules 1–10**, especially **rule 9 (honesty & evidence)**: show the exact command + real output for every "done/tested"; write `NOT RUN — <reason>` otherwise and add to `REAL_DEVICE_CHECKS.md`; never weaken/skip/hard-code tests or special-case test inputs; every fix shows its diff + re-run.
@@ -266,7 +264,7 @@ Legend: ✅ done · 🟡 partial · ⬜ not started. Status for each numbered re
 | Checkpoint 8.2 / 8 | ✅ Linux / NOT RUN | live settings apply; codec change restarts stream |
 | Phase 9 | ✅ | APK built + verified on Linux (test key); device checks NOT RUN |
 | Phase 10 | 🟡 | docs ✅; Mac build/sign NOT RUN; perf targets unmeasured |
-| Phase 11 | 🟡 | see RELEASE_CHECK.md |
+| Phase 11 | 🟡 | Linux stages 1–4 ✅ (RELEASE_CHECK.md); release gate ⬜ |
 
 ---
 

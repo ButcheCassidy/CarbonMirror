@@ -121,4 +121,25 @@ struct SessionTests {
         #expect(phone.rejectedSecrets.withLock { $0 } == 1)
         phone.stop()
     }
+
+    /// Stage 2: the phone reboots / its server dies mid-session → the session ends promptly (no hang),
+    /// forwards are removed and phone files cleaned up, so the reconnect logic can take over.
+    @Test func phoneDyingMidSessionEndsTheSessionCleanly() async throws {
+        let phone = VirtualPhone(loopFPS: 60)
+        let link = VirtualPhoneLink(phone: phone)
+        let session = MirrorSession(parameters: try Self.parameters(encrypted: true, wireless: true), link: link,
+                                    connector: { try await POSIXStream.connect(unixPath: $0) }, video: RecordingSink())
+        try await session.start()
+        try await Task.sleep(for: .milliseconds(300))
+        let killed = ContinuousClock.now
+        phone.stop()
+        var reason: SessionEnd?
+        for await case let .ended(r) in session.events {
+            reason = r
+            break
+        }
+        #expect(reason != nil && reason != .stopped)
+        #expect(ContinuousClock.now - killed < .seconds(3), "ended within 3 s")
+        #expect(link.calls.withLock { $0 }.suffix(2) == ["removeForward", "cleanup"])
+    }
 }
