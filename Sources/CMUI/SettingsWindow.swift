@@ -116,7 +116,7 @@ final class SettingsWindowController {
         grid.columnSpacing = 12
         grid.column(at: 0).xPlacement = .trailing
         grid.rowAlignment = .firstBaseline
-        let document = NSView()
+        let document = TopAlignedView()
         grid.translatesAutoresizingMaskIntoConstraints = false
         document.addSubview(grid)
         NSLayoutConstraint.activate([
@@ -286,5 +286,9 @@ final class SettingsWindowController {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         NSWorkspace.shared.open(folder)
     }
+}
+/// Scroll-view document that starts at the top (a plain NSView would pin short content to the bottom).
+private final class TopAlignedView: NSView {
+    override var isFlipped: Bool { true }
 }
 #endif
