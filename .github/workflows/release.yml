@@ -9,6 +9,11 @@ on:
         description: Publish the GitHub release
         type: boolean
         default: false
+      runner:
+        description: macOS runner image (the app needs the macOS 26 SDK, i.e. Xcode 26)
+        type: choice
+        options: [macos-15, macos-26]
+        default: macos-15
 
 permissions:
   contents: read
@@ -71,7 +76,7 @@ jobs:
 
   mac:
     needs: phone
-    runs-on: macos-26
+    runs-on: ${{ inputs.runner }}
     environment: release
     timeout-minutes: 25
     steps:
@@ -90,6 +95,9 @@ jobs:
           key: mac-release-${{ hashFiles('rust/Cargo.lock') }}
       - name: Toolchain
         run: |
+          XCODE="$(ls -d /Applications/Xcode_26*.app 2> /dev/null | sort -V | tail -1)"
+          [ -n "$XCODE" ] && sudo xcode-select -s "$XCODE/Contents/Developer"
+          xcodebuild -version | head -1
           rustup target add aarch64-apple-darwin
           command -v cbindgen || cargo install cbindgen --version 0.29.4 --locked
       - name: Google platform-tools adb (signature checked by build.sh)
@@ -203,4 +211,9 @@ jobs:
           git archive --format=zip --prefix="CarbonMirror-$VERSION/" -o "out/CarbonMirror-$VERSION-source.zip" HEAD
           (cd out && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
           awk -v v="## [$VERSION]" 'index($0, v) == 1 {on=1; next} on && /^## \[/ {exit} on' CHANGELOG.md > notes.md
+          cat >> notes.md <<'NOTES'
+
+          ### Installing (self-signed, not notarised)
+          Check the download against `SHA256SUMS.txt`, then let macOS open it: either double-click the DMG, click **Done**, and use **System Settings → Privacy & Security → Open Anyway**, or run `xattr -d com.apple.quarantine ~/Downloads/CarbonMirror-*.dmg` and open it. Drag CarbonMirror onto Applications. The companion APK installs from CarbonMirror → Settings → Connection → *Install over USB…*. Updating: INSTALL.md section 4b.
+          NOTES
           gh release create "v$VERSION" out/* --target "$GITHUB_SHA" --title "CarbonMirror $VERSION" --notes-file notes.md
