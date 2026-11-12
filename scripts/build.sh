@@ -36,7 +36,7 @@ fi
 
 echo "==> Step B: Rust core and app binary"
 cargo build --release --target aarch64-apple-darwin --manifest-path rust/carbon-core/Cargo.toml
-cbindgen --config rust/carbon-core/cbindgen.toml --crate carbon-core --output rust/include/carbon_core.h rust/carbon-core
+cbindgen --quiet --config rust/carbon-core/cbindgen.toml --crate carbon-core --output rust/include/carbon_core.h rust/carbon-core
 rm -f .build/release/CarbonMirror
 swift build -c release --arch arm64 2>&1 | tee build.log
 if grep -E ": error:|^ld:|Undefined symbols" build.log | sort -u | head -60 | grep -q .; then
