@@ -54,13 +54,27 @@ What CarbonMirror protects, how, and where the limits are. Everything here descr
 ## 5. Session hygiene (spec 7.6)
 
 - A session ends and its keys are freed on: Mac lock, sleep (lid close without an external display sleeps the Mac), fast user switch, Wi-Fi network change, idle timeout (default 10 min). Display sleep and screensaver blur the screen instead.
-- After a **final** end (Disconnect, quit, idle) of a wireless session the Mac turns Wireless debugging off (`settings put global adb_wifi_enabled 0`). After lock or sleep it is left on so the silent reconnect can work; the phone's tile or settings turn it off.
+- After a **final** end (Disconnect, quit, idle) of a wireless session the Mac turns Wireless debugging off (`settings put global adb_wifi_enabled 0`) — unless auto-connect is on, in which case the companion keeps it on for trusted Wi-Fi only (§7). After lock or sleep it is left on so the silent reconnect can work; the phone's tile or settings turn it off.
 - Silent reconnect only ever targets the pinned phone, with the full handshake, never while the Mac is locked or asleep, and gives up after 10 minutes.
 - Clipboard: plain text only, ≤ 1 MiB, UTF-8 checked in Rust, never logged or written to disk; read from `NSPasteboard` only while sync is on and the window is key; phone text is dropped while sync is off.
 - Nothing is written to disk except screenshots you take (`~/Pictures/CarbonMirror/`). Frames are dropped on disconnect. Windows are not restorable, so macOS never saves a "Resume" snapshot of the phone screen. adb's key folder is excluded from Time Machine; Keychain items are never synchronizable.
 - Clipboard privacy: Mac items marked concealed/transient by password managers (nspasteboard.org types) are never sent; Android clips marked sensitive (Android 13+) never leave the phone; phone text is written with `currentHostOnly`, so it never travels to other Apple devices through Universal Clipboard.
 - Lock state: the "screen unlocked" distributed notification can be posted by any process, so it is trusted only when the window server (`CGSessionCopyCurrentDictionary`) agrees.
 - Logs: `os.Logger` subsystem `com.nomadicrebel.carbonmirror`, compile-time messages plus app-generated metadata only. The app writes no log files; unified logging rotates itself (this is how "rotate at 1 MB" is met).
+
+## 7. Auto-connect (owner addition)
+
+**Mac.** At launch, unlock, wake and network change, if *Auto-connect to my phone at launch* is on:
+1. Runs only when the phone is pinned (adb TLS key from QR pairing) **and** holds a device key from a USB session, the Mac is unlocked and awake, Wi-Fi is up, the current subnet is one the phone was seen on, and no USB or user session is running.
+2. Finds the phone only through its own mDNS `_adb-tls-connect` announcement for the pinned serial — no port scan, no guessed ports, no stored public address. Every answer must be a private address (the Rust allowlist: no public, tunnel/Mullvad, link-local-without-zone or port 5555) **inside the Mac's current subnet**.
+3. Probes the endpoint (route not via `utun`, plaintext adb refused), checks the pinned adb TLS key, then `adb connect` (adb's own mutually authenticated TLS). The checks are repeated right before connecting: if the Mac locked, slept, a session started or the network changed during the probe, nothing connects.
+4. The verified endpoint is **locked** until it fails or the network changes; other answers are ignored while the lock holds. Searches back off 5 → 10 → 20 → 30 s.
+5. The window shows **Ready**; one click on **Mirror** starts the session with the full inner TLS 1.3 handshake and the device-key HMAC proof. Nothing streams before that click.
+6. A wrong key or a plaintext endpoint shows the identity/insecure warning and **halts** auto-connect until you press Retry — an impostor cannot make it retry in a loop. Lock, sleep, USB or turning the setting off drops the idle link.
+
+**Phone (companion).** A foreground service (`connectedDevice`) keeps Wireless debugging on while the phone's **Wi-Fi network** (not the default network — with Mullvad that is the VPN) has a trusted subnet, and turns it off again when the phone leaves one — only if the service turned it on, never during a session. A subnet becomes trusted when a CarbonMirror session runs while the phone is on that Wi-Fi with Wireless debugging on. Stored: SHA-256 of `carbonmirror-companion-subnet-v1:<a.b.c.d/n>`, at most 8, app-private, not backed up; *Forget trusted Wi-Fi networks* clears them. It tries once per network join: Android itself refuses Wireless debugging on a Wi-Fi it hasn't been told to *Always allow* (per BSSID) and asks the user — the companion never asks twice. The service, its start receiver (boot, OS update, app update, 15-minute watchdog alarm) are not exported; it opens no socket and has no internet permission.
+
+**Residual risks.** (a) A different Wi-Fi with the same subnet (e.g. `192.168.1.0/24` at a café) counts as known: the Mac may browse there and the companion may try to turn Wireless debugging on. Android's per-BSSID *Allow wireless debugging on this network?* prompt still stands in the way on the phone, and on the Mac an impostor fails the pinned-key check (warning + halt). No Location permission is used, by owner decision, so the SSID/BSSID cannot be checked by the apps themselves. (b) A USB session while the phone sits on an untrusted Wi-Fi with Wireless debugging switched on by hand also marks that subnet trusted (the companion cannot tell USB from Wi-Fi sessions). Both Low.
 
 ## 6. Known limits and deviations (honest list)
 
@@ -71,7 +85,7 @@ What CarbonMirror protects, how, and where the limits are. Everything here descr
 5. **Companion "Mirroring" state:** the server sets the global setting `carbonmirror_session` to 1 while it runs (and its clean-up process sets 0). Any app on the phone can read this one bit, just as it can read `adb_enabled`/`adb_wifi_enabled`.
 6. **GrapheneOS USB-C port control:** GrapheneOS defaults to "Charging-only when locked", which disables USB data (and adb) while the phone is locked. USB mirroring stops when the phone locks; wireless keeps working.
 7. **Lid close** is detected as system sleep; in clamshell mode with an external display the Mac does not sleep and the session continues (it still ends on lock).
-8. **App drawer:** `KEYCODE_ALL_APPS` (Android 12+). The spec's swipe-up fallback is not implemented because there is no reliable failure signal.
+8. **App drawer:** `KEYCODE_ALL_APPS` on Android 12+; on Android 11 the phone server swipes up from 92 % to 35 % of the display height instead (the version decides, not a failure signal). **NOT RUN** on an Android 11 device.
 9. **Adaptive USB profile:** Android sends no frames for a still screen, so only seconds with ≥ 30 fps count; legitimately slower content (e.g. 60 fps video) can still trigger a step down. **NOT RUN** on the device.
 10. **Sandbox:** adb runs inside the app sandbox (inherited). If a macOS version refuses that, the fallback is a sandboxed XPC helper — not built yet. **NOT RUN.**
 11. **`network.server` entitlement:** with Unix sockets nothing listens on TCP any more; the entitlement is kept until the Mac confirms adb can bind its Unix socket without it (REAL_DEVICE_CHECKS A6), then it is removed.

@@ -84,12 +84,23 @@ A-S. **Startup animation (Mac).** Open CarbonMirror. Expected: the 3-second anim
 25. [ ] **Install.** Settings → Connection → Install over USB… *Expect:* "Companion installed".
 26. [ ] **Exported components.** Run:
     On the phone: Settings → Apps → CarbonMirror Companion → Permissions, and Developer options → Running services. *Expect:* only `WRITE_SECURE_SETTINGS: granted=true` and the tile service with `BIND_QUICK_SETTINGS_TILE`.
-27. [ ] **Tile.** Add the CarbonMirror tile in Quick Settings, tap it. *Expect:* Wireless debugging on, tile says Ready; during mirroring it says Mirroring; Disconnect on the Mac turns it Off.
+27. [ ] **Tile.** Add the CarbonMirror tile in Quick Settings, tap it. *Expect:* Wireless debugging on, tile says Ready; during mirroring it says Mirroring; with auto-connect off, Disconnect on the Mac turns it Off.
 28. [ ] **GrapheneOS update.** After an OS update and "Optimizing apps", tap the tile without opening anything. *Expect:* still works; if the permission was reset, the tile opens Developer options and the Mac re-grants it next USB connect ("Companion permission re-granted").
 29. [ ] **USB while locked (GrapheneOS).** Lock the phone during USB mirroring. *Expect:* USB stops (GrapheneOS charging-only-when-locked); wireless still works.
 
 D-S. **Companion screen.** Open *CarbonMirror Companion* from the app drawer. Expected: black screen, the animation plays at once in the exact centre (no white flash, no icon first), then "Off / Ready / Mirroring" with **Turn on** and **Add Quick Settings tile**; all dark. Rotate, split-screen and largest font size: nothing cut off. `NOT RUN — needs real device`
 D-K. **Device key.** After one USB session, start a wireless session: it connects. Then run `adb shell rm /data/local/tmp/carbonmirror-device.key` from another computer and start wireless again. Expected: "Untrusted device"; plugging in USB once repairs it. `NOT RUN — needs real device`
+
+## F. Auto-connect and companion service (≈ 2 min)
+
+F1. [ ] **Battery.** Companion → tap *Set Battery to Unrestricted* → Allow. *Expect:* the button disappears; a silent "CarbonMirror — Waiting for a trusted Wi-Fi network" notification exists.
+F2. [ ] **Trust.** Mirror once over Wi-Fi on your home network. *Expect:* the notification says "Trusted Wi-Fi…".
+F3. [ ] **Launch.** Quit CarbonMirror, turn Wireless debugging off on the phone, wait 30 s, open CarbonMirror. *Expect:* phone turns Wireless debugging on by itself (first time on this Wi-Fi: Android asks *Allow wireless debugging on this network?* → tick *Always allow* → Allow); the Mac shows **Searching** then **Ready**; click **Mirror** → the phone appears with the lock in the badge.
+F4. [ ] **Lock.** Lock the Mac while on **Ready**. *Expect:* nothing connects while locked (`adb devices` from the app's helper shows no Wi-Fi device after 10 s); unlock → **Ready** again.
+F5. [ ] **Leave Wi-Fi.** Switch the phone to mobile data or another Wi-Fi. *Expect:* Wireless debugging goes off on the phone within seconds; the Mac shows **Not connected** or **Searching**.
+F6. [ ] **Survives.** Swipe the companion away in Recents, then reboot the phone, then install an OS update. *Expect:* after each, the notification is back without opening the app, and F3 works.
+F7. [ ] **Setting off.** Mac Settings → Connection → untick *Auto-connect…*. *Expect:* **Not connected** with **Connect**; nothing searches until you click it.
+F8. [ ] **Impostor.** (optional) Another Android phone paired with nothing advertises on the same Wi-Fi. *Expect:* never shown as Ready.
 
 ## E. 5-minute soak (USB, then Wi-Fi)
 
