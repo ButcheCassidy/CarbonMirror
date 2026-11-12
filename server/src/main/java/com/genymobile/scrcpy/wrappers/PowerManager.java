@@ -45,9 +45,10 @@ public final class PowerManager {
                 return (boolean) method.invoke(manager, displayId);
             }
             return (boolean) method.invoke(manager);
-        } catch (ReflectiveOperationException e) {
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            // CarbonMirror: unknown means "on"; reporting off would make the session press POWER and turn the screen off.
             Ln.e("Could not invoke method", e);
-            return false;
+            return true;
         }
     }
 

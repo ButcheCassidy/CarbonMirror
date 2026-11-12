@@ -118,7 +118,7 @@ public final class SessionSetup {
         CarbonCore.check(CarbonCore.sha256(macCa, digest));
         File pinFile = new File(MAC_PIN_PATH);
         if (pinFile.exists()) {
-            byte[] stored = hex(readLine(new FileInputStream(pinFile)));
+            byte[] stored = hex(readFileLine(pinFile));
             if (!CarbonCore.constantTimeEquals(stored, digest)) {
                 PrintStream out = new PrintStream(new FileOutputStream(FileDescriptor.out), true);
                 out.print("CM-ERROR identity-changed\n");
@@ -143,7 +143,7 @@ public final class SessionSetup {
         if (!keyFile.exists()) {
             return null;
         }
-        byte[] key = hex(readLine(new FileInputStream(keyFile)));
+        byte[] key = hex(readFileLine(keyFile));
         return key.length == SECRET_LEN ? key : null;
     }
 
@@ -168,6 +168,12 @@ public final class SessionSetup {
             return mac.doFinal(data);
         } catch (GeneralSecurityException e) {
             throw new IOException("HMAC unavailable", e);
+        }
+    }
+
+    private static String readFileLine(File file) throws IOException {
+        try (InputStream in = new FileInputStream(file)) {
+            return readLine(in);
         }
     }
 

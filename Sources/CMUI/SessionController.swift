@@ -463,7 +463,7 @@ final class SessionController {
         do {
             try await session.start()
         } catch {
-            if codec == .h265, error == .serverFailed, !sessionLive { h265Failed = true }
+            if codec == .h265, !sessionLive { h265Failed = true }
             ended(error, session: session)
         }
     }

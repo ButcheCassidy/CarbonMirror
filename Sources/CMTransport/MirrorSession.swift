@@ -77,6 +77,7 @@ public enum SessionEvent: Sendable {
 /// ends the session.
 public actor MirrorSession {
     static let pinTimeout: Duration = .seconds(15)
+    static let metaDeadline: Duration = .seconds(15)
     static let connectAttempts = 60
     static let connectRetryDelay: Duration = .milliseconds(100)
     static let videoReadChunk = 256 * 1024
@@ -164,7 +165,7 @@ public actor MirrorSession {
             throw .serverFailed
         }
         server = handle
-        let (pins, pinSink) = AsyncStream.makeStream(of: Result<PhonePin, SessionEnd>.self, bufferingPolicy: .bufferingNewest(1))
+        let (pins, pinSink) = AsyncStream.makeStream(of: Result<PhonePin, SessionEnd>.self, bufferingPolicy: .bufferingOldest(1))
         tasks.append(Task { [weak self] in await self?.watchServer(handle, pins: pinSink) })
 
         var identity: TLSIdentity?
@@ -186,6 +187,18 @@ public actor MirrorSession {
         let videoStream = try await open(identity: identity, secret: secret, expectDummyByte: true)
         self.videoStream = videoStream
         Log.info(.transport, "video socket authenticated")
+        // The server accepts both sockets before it sends the device meta (DesktopConnection.open, then sendDeviceMeta).
+        let controlStream = try await open(identity: identity, secret: secret, expectDummyByte: false)
+        control.withLock { $0 = controlStream }
+        Log.info(.transport, "control socket authenticated")
+        // A server that stalls before its first bytes must not hold the session forever.
+        let watchdog = Task {
+            try? await Task.sleep(for: Self.metaDeadline)
+            guard !Task.isCancelled else { return }
+            Log.error(.transport, "no device meta from the phone in time")
+            videoStream.close()
+        }
+        defer { watchdog.cancel() }
         let deviceName: String
         let codec: VideoCodecID
         do {
@@ -196,9 +209,6 @@ public actor MirrorSession {
         } catch {
             throw .connectionLost
         }
-        let controlStream = try await open(identity: identity, secret: secret, expectDummyByte: false)
-        control.withLock { $0 = controlStream }
-        Log.info(.transport, "control socket authenticated")
         let negotiated = (videoStream as? SecureStream).flatMap { try? $0.negotiated() }
         eventSink.yield(.connected(deviceName: deviceName, codec: codec, tlsSuite: negotiated?.suite, tlsGroup: negotiated?.group))
         video.videoStarted(codec: codec)
@@ -247,6 +257,9 @@ public actor MirrorSession {
         for await line in handle.lines {
             if line.hasPrefix("CM-ERROR identity-changed") {
                 pins.yield(.failure(.identityChanged))
+            } else if line.hasPrefix("CM-ERROR server ") {
+                // The phone server's own stop reason (exception class + short message), for `log show`.
+                Log.error(.transport, "phone server stopped", ["reason": String(line.dropFirst(16).prefix(200))])
             } else if let pin = PhonePin(line: line) {
                 pins.yield(.success(pin))
             }

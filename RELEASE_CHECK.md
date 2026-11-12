@@ -41,6 +41,15 @@
 | 33 | Companion watchdog alarm could crash the receiver when Android refuses a background service start (battery restricted) | Low | `StartReceiver.java` | catch `IllegalStateException` | builds |
 | 34 | Inner TLS also accepted classical `X25519` key exchange; both ends are the same core, so post-quantum protection depended on configuration rather than being enforced | Medium | `tls.rs` (`provider`) | `X25519MLKEM768` only; test `only_post_quantum_hybrid_key_exchange_is_offered` | `cargo test` 45 passed; `tls_downgrade.sh` 8/8 refused; `swift test` 79 passed |
 | 35 | A USB session on an untrusted Wi-Fi (Wireless debugging on by hand) marked that subnet trusted | Low | `ReadyService.java` | trust only while no USB data cable is attached | `test-companion.sh` 19 passed; builds |
+| 36 | Mac read the device meta before opening the control socket; the server sends it only after accepting both → deadlock, no video, no error (real phone) | **High** | `MirrorSession.swift` | control socket opened first; 15 s meta deadline; `VirtualPhone` follows the real server order (old code hangs, new passes) | `swift test` 79 passed; soak 60 s; capture clean |
+| 37 | Clean-up child loaded from the shared jar, which can be removed before it starts → ClassNotFoundException abort (Android 17 crash log), "Mirroring" flag stuck | **High** | `CleanUp.java`, `Server.java` | private hard link per process; server clears the flag on exit | server builds; NOT RUN — needs device |
+| 38 | `isScreenOn` returned false on reflection failure → POWER pressed at session start → screen off | **High** | `PowerManager.java` | unknown = on | server builds |
+| 39 | Server failures invisible on the Mac (stderr discarded) | Medium | `Server.java`, `MirrorSession.swift` | `CM-ERROR server <class>: <message>` on stdout, logged | builds |
+| 40 | `identity-changed` could be overwritten by `serverFailed` (buffer of newest 1) | Medium | `MirrorSession.swift` | keep oldest | tests |
+| 41 | H.265 fallback only on `serverFailed` | Medium | `SessionController.swift` | any failure before the first frame | review |
+| 42 | File streams not closed when reading the pin/key files | Low | `SessionSetup.java` | try-with-resources | builds |
+
+Sweep by two read-only agents (Mac / Android), every finding re-checked against the code: false positive rejected — clean-up child "deletes the shared jar" (in the child `SERVER_PATH` is its own link). Not fixed (Low/by design): wireless TOFU without a device key, adb start without retry, decoder/Metal failures only logged.
 
 **Condensed sweep (session 4):** unsafe outside `ffi` 0 (only `forbid(unsafe_code)`), unwrap/expect/panic outside tests 0, shell/`Process` with interpolation 0, secrets/keystores in git 0, untrusted workflow contexts 0, TCP/UDP listeners in production Swift 0, companion exported = launcher activity + tile (system-permission protected) only, `allowBackup=false`, `usesCleartextTraffic=false`, not debuggable, every `PendingIntent` immutable and explicit, no `exec`/WebView/world-readable files/content logging.
 

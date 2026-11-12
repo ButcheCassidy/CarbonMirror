@@ -2,7 +2,17 @@
 
 All notable changes to CarbonMirror. Versions follow `CFBundleShortVersionString`.
 
-## Unreleased
+## [1.0.1] — 2026-11-13
+
+### Fixed
+- **Mirroring never started on a real phone:** the Mac waited for the phone's device info before opening the control connection, while the phone sends it only after both connections are open (deadlock; the phone showed "Mirroring", the Mac nothing). The Mac now opens both first, and gives up after 15 s instead of waiting forever. The virtual test phone now follows the real order.
+- Phone (Android 17 crash): the clean-up helper loads from its own link to the server file, so it can't vanish underneath it; the companion's "Mirroring" flag is also cleared when the server exits.
+- Phone: an unknown screen state no longer makes the session press POWER (which could turn the screen off).
+- Fatal phone-server errors are reported to the Mac log (`log show --predicate 'subsystem == "com.nomadicrebel.carbonmirror"'`).
+- The "identity changed" warning can no longer be replaced by a generic error; H.265 falls back to H.264 on any failure before the first frame; file handles closed on the phone.
+
+### Added
+- Companion: *Pair with your Mac (QR code)* button.
 
 ### Changed
 - Window corners: a standard macOS window radius (12 pt) while the toolbar shows, so the traffic lights and toolbar ends are no longer clipped; the resting window keeps the phone's shape.

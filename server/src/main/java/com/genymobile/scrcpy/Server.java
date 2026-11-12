@@ -156,8 +156,15 @@ public final class Server {
             internalMain(args);
         } catch (Throwable t) {
             Ln.e(t.getMessage(), t);
+            reportError(t);
             status = 1;
         } finally {
+            // CarbonMirror: clear the companion's "Mirroring" flag here too, in case the clean-up process never started.
+            try {
+                com.genymobile.scrcpy.util.Settings.putValue(com.genymobile.scrcpy.util.Settings.TABLE_GLOBAL, CleanUp.SESSION_SETTING, "0");
+            } catch (Exception e) {
+                Ln.e("Could not clear \"" + CleanUp.SESSION_SETTING + "\"", e);
+            }
             // By default, the Java process exits when all non-daemon threads are terminated.
             // The Android SDK might start some non-daemon threads internally, preventing the scrcpy server to exit.
             // So force the process to exit explicitly.
@@ -165,10 +172,21 @@ public final class Server {
         }
     }
 
+    /**
+     * CarbonMirror: tells the Mac why the server stopped (one stdout line: exception class and a short, printable
+     * message; no session data), so the cause shows in the Mac's log instead of a bare "server failed".
+     */
+    static void reportError(Throwable t) {
+        String message = String.valueOf(t.getMessage()).replaceAll("[^\\x20-\\x7E]", "?");
+        System.out.print("CM-ERROR server " + t.getClass().getName() + ": " + message.substring(0, Math.min(160, message.length())) + "\n");
+        System.out.flush();
+    }
+
     private static void internalMain(String... args) throws Exception {
         Thread.UncaughtExceptionHandler defaultHandler = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
             Ln.e("Exception on thread " + t, e);
+            reportError(e);
             if (defaultHandler != null) {
                 defaultHandler.uncaughtException(t, e);
             }

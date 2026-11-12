@@ -220,13 +220,14 @@ final class VirtualPhone: @unchecked Sendable {
     }
 
     private func serve() async {
+        // Same order as the real server (DesktopConnection.open, then sendDeviceMeta): both sockets first, then the meta.
         guard let video = await accept() else { return }
         video.send([0])
+        guard let control = await accept() else { return }
         var meta = [UInt8](repeating: 0, count: 64)
         meta.replaceSubrange(0..<15, with: Array("Pixel 10 Pro XL".utf8))
         video.send(meta)
         video.send(Array("h264".utf8))
-        guard let control = await accept() else { return }
         Task { await controlLoop(control) }
         Task { await deviceMessages(control) }
         await stream(video)
