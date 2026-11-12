@@ -76,7 +76,9 @@ You should see: the startup animation (3 seconds, on black, centred in the phone
 5. **Mullvad:** in the Mullvad app on the phone **and** on the Mac: Settings → VPN settings → **Local network sharing** on.
 6. **Companion:** plug the phone in by USB, unlock it, then in CarbonMirror: Settings → Connection → **Install over USB…** → Install. You should see "Companion installed".
 7. **CarbonMirror tile:** pull down Quick Settings twice → edit (pencil) → drag **CarbonMirror** into place. It shows Off / Ready / Mirroring.
-8. GrapheneOS: the default *USB-C port: charging-only when locked* stops USB data while the phone is locked — keep it unlocked for USB, or use Wi-Fi.
+8. **Battery: Unrestricted** (needed for auto-connect): Settings → Apps → **CarbonMirror Companion** → App battery usage → **Unrestricted** (or tap the battery button in the companion). Also allow its notification — it is the small "Ready for auto-connect" service that keeps working after reboots, OS updates and app updates.
+9. **Auto-connect:** on by default on the Mac (Settings → Connection → *Auto-connect to my phone at launch*). It starts after the first USB connection and QR pairing. The first time the companion turns Wireless debugging on for your Wi-Fi, Android asks *Allow wireless debugging on this network?* — tick **Always allow on this network** → Allow.
+10. GrapheneOS: the default *USB-C port: charging-only when locked* stops USB data while the phone is locked — keep it unlocked for USB, or use Wi-Fi.
 
 ## 6. First connection
 
@@ -107,7 +109,7 @@ Delete the signing certificate.
 ```bash
 security delete-identity -c "CarbonMirror Dev"
 ```
-On the phone: uninstall **CarbonMirror Companion**; Developer options → **Revoke USB debugging authorizations**; Wireless debugging → **Paired devices** → remove your Mac; then turn **Developer options** off.
+On the phone: uninstall **CarbonMirror Companion** (this also deletes its trusted-network list); delete the device key and Mac pin over USB (`adb shell rm -f /data/local/tmp/carbonmirror-device.key /data/local/tmp/carbonmirror-mac.pin`, or Developer options → Revoke USB debugging authorizations then a factory-fresh `/data/local/tmp` after reboot); Developer options → **Revoke USB debugging authorizations**; Wireless debugging → **Paired devices** → remove your Mac; then turn **Developer options** off.
 
 ## 8. Signing everything on your Mac (strongest settings)
 

@@ -20,6 +20,11 @@ What you do on the Mac happens on the phone, and what you do on the phone shows 
 ### Fast over USB, safe over Wi-Fi
 Plug in a cable for up to 120 frames per second. Unplug and it carries on over Wi-Fi, switching automatically in about a second without closing the window. Wi-Fi uses Android's own encrypted *Wireless debugging* only — the old unencrypted `adb tcpip` mode is detected and refused.
 
+### Auto-connect
+After you pair once with the QR code (and plug in by USB once, so the phone holds its device key), CarbonMirror looks for your phone by itself when it starts. It only listens for your phone's own Wireless debugging announcement on a Wi-Fi network where you've mirrored before — no port scanning, never a public address — checks the phone's pinned key, opens the encrypted link and shows **Ready**. One click on **Mirror** starts the session, which runs the full handshake including the device-key proof. Nothing happens while your Mac is locked or asleep, and an identity mismatch stops auto-connect until you press Retry. Turn it off in Settings → Connection → *Auto-connect to my phone at launch*.
+
+On the phone, the companion app keeps Wireless debugging on only while you're on one of those trusted Wi-Fi networks, and turns it off again when you leave. It runs as a small foreground service, starts again after a reboot, an OS update or an app update, and survives being killed. **Set the companion's battery usage to Unrestricted** (Settings → Apps → CarbonMirror Companion → App battery usage → Unrestricted, or the button in the companion) — otherwise Android may stop it. The first time it turns Wireless debugging on for a network, Android asks *Allow wireless debugging on this network?*: tick **Always allow on this network**.
+
 ### Encrypted twice, pinned to your phone
 On top of Android's encryption, CarbonMirror wraps the video and controls in its own TLS 1.3 tunnel (AES-256-GCM with post-quantum key exchange), using keys pinned to your phone and your Mac. Over USB it's off by default — the cable is a physical link — and one switch (Settings → Security → *Encrypt over USB too*) turns it on. Pairing is a QR code you scan once; after that, any other phone — or anyone pretending to be yours — is refused.
 
@@ -66,12 +71,12 @@ Other ⌘ shortcuts (⌘C, ⌘V, ⌘A, ⌘Z …) go to the phone as Ctrl, so cop
 2. Developer options → turn on **USB debugging** and, for Wi-Fi, **Wireless debugging**.
 3. Add the **Wireless debugging** Quick Settings developer tile (Developer options → Quick settings developer tiles) — or the **CarbonMirror** tile from the companion — so you can turn it on only for a session.
 4. In Mullvad on the phone **and** the Mac: Settings → VPN settings → **Local network sharing** on.
-5. Keep USB and Wireless debugging **off when you're not mirroring**. CarbonMirror turns Wireless debugging off itself when you disconnect.
+5. Keep USB and Wireless debugging **off when you're not mirroring**. With auto-connect off, CarbonMirror turns Wireless debugging off itself when you disconnect; with auto-connect on, the companion keeps it on for trusted Wi-Fi only.
 
 GrapheneOS notes: its default *USB-C port: charging-only when locked* stops USB mirroring while the phone is locked (Wi-Fi keeps working). After an OS update ("Optimizing apps"), the companion tile works straight away; if the update reset its permission, the tile opens Developer options and the Mac re-grants it the next time you plug in USB.
 
 ### The companion app (optional)
-*CarbonMirror Companion* is a tiny app with one Quick Settings tile that turns Wireless debugging on and shows **Off / Ready / Mirroring**. Opening it from the app drawer plays the startup animation and shows the same status with a **Turn on** button and **Add Quick Settings tile**. It has no internet permission and stores nothing. Install it from CarbonMirror → Settings → Connection → *Install over USB…*.
+*CarbonMirror Companion* is a tiny app with one Quick Settings tile that turns Wireless debugging on and shows **Off / Ready / Mirroring**. Opening it from the app drawer plays the startup animation and shows the same status with a **Turn on** button, **Add Quick Settings tile**, a battery button (until it's Unrestricted) and **Forget trusted Wi-Fi networks**. Its foreground service powers auto-connect (above). It has no internet permission and opens no socket; the only thing it stores is the SHA-256 of each trusted subnet (at most 8). Install it from CarbonMirror → Settings → Connection → *Install over USB…*.
 
 ---
 
