@@ -1,38 +1,31 @@
-# CarbonMirror — HANDOFF (full spec, mid-build: Phases 1–3 done, 4–7 mostly done, 8–11 not started)
+# CarbonMirror — HANDOFF (full spec: Phases 1–10 built, Phase 11 started; Mac + phone checks NOT RUN)
 
 > **Resume instruction:** Paste this file plus the latest source bundle (repo `ButcheCassidy/CarbonMirror`, branch `main`) into a new chat and say: *Continue CarbonMirror from the Next steps in HANDOFF.md.*
-> Then: `source ~/carbonmirror-deps/env.sh` (Linux build env, see §Environment) and start at **§10 Next steps, step 1**.
+> Then: `source ~/carbonmirror-deps/env.sh` (Linux build env, see §4) and start at **§10 Next steps, step 1**.
 
 ## 1. Header
 
 | Item | Value |
 |---|---|
 | Project | CarbonMirror — native macOS ⇄ Google Pixel 10 Pro XL mirroring & control |
-| Version | 0.1.0 (`CFBundleShortVersionString`; the server's `VERSION_NAME` is generated from it) |
-| Milestone | Between Milestone 1 and 2 (user waived the milestone stops; this handoff written on user request at pause) |
-| Date | 2026-11-11 |
+| Version | 0.1.0 (`CFBundleShortVersionString`; server `VERSION_NAME` and APK versionName/versionCode 100 derive from it) |
+| Milestone | Past Milestone 2 (user waived milestone stops); Phase 11 release check in progress |
+| Date | 2026-11-12 |
 | Author credit | **ButcheCassidy - The Nomadic Rebel** |
-| Last commit before this handoff | `1ec3eac` (plus this commit: WIP media files + HANDOFF) |
-| Phase 1 | ✅ done (Mac steps NOT RUN — needs Mac) |
-| Phase 2 | ✅ done (code; NOT RUN on Mac) — status-line/corner-radius wiring to live session 🟡 |
-| Phase 3 | ✅ done — `REAL_DEVICE_CHECKS.md` ⬜ not written yet |
-| Phase 4 | 🟡 protocol client ✅ tested; decoder + Metal renderer written but **uncompiled** (macOS-only); HUD ⬜; adaptive fallback wiring ⬜ |
-| Phase 5 | 🟡 input engine ✅ tested; AppKit event glue (MirrorView) ⬜; clipboard Mac→phone polling ⬜ |
-| Phase 6 | 🟡 allowlist, probe, plaintext refusal, utun check ✅; mDNS discovery, port-entry UI, hotspot, auto-handover wiring ⬜; netns virtual LAN ⬜ |
-| Phase 7 | 🟡 inner TLS ✅ tested; key manager + Keychain store ✅ (Keychain NOT RUN); QR pairing UI/flow ⬜; session-end triggers wiring ⬜; `SECURITY_NOTES.md` ⬜ |
-| Phase 8 | 🟡 settings model + 8.2 policies ✅ tested; Settings window, menu-bar full menu, blur UI, status line wiring, landscape pill ⬜ |
-| Phase 9 | ⬜ companion APK not started |
-| Phase 10 | ⬜ (scripts/build.sh + make-cert.sh exist; docs not written) |
-| Phase 11 | ⬜ (a virtual phone exists in `Tests/CMTests/VirtualPhone.swift`; `tools/` harnesses, netns LAN, RELEASE_CHECK.md not started) |
+| Last commit before this handoff | `019f354` (plus this HANDOFF commit) |
+| Phases 1–3 | ✅ (Mac steps NOT RUN — needs Mac; device steps in `REAL_DEVICE_CHECKS.md`) |
+| Phase 4 | ✅ code — decoder + renderer reviewed and fixed, still **uncompiled** (macOS-only); HUD ✅; adaptive wiring ✅ |
+| Phase 5 | ✅ code — `MirrorView` event glue + Mac→phone clipboard polling written (uncompiled) |
+| Phase 6 | ✅ code — mDNS (NWBrowser + dns_sd resolve, no connect before allowlist), IP+port prompt, hotspot gateway guess, auto-handover; netns virtual LAN ⬜ (Phase 11) |
+| Phase 7 | ✅ code — QR pairing UI/flow, 6-digit fallback, session-end triggers, `SECURITY_NOTES.md` ✅ |
+| Phase 8 | ✅ code — Settings window (Liquid Glass), full menu-bar menu, blur + Touch ID, status line, landscape pill, launch at login |
+| Phase 9 | ✅ companion APK builds/signs on Linux (test key), v2+v3 verified |
+| Phase 10 | ✅ docs (README, INSTALL, SECURITY_NOTES, REAL_DEVICE_CHECKS, THIRD_PARTY_NOTICES, CHANGELOG, LICENSE); Mac build NOT RUN |
+| Phase 11 | 🟡 Stage 3.1/3.2/3.3 + cargo audit done with evidence (`RELEASE_CHECK.md`); rest ⬜ |
 
-## 2. What I was doing at the exact moment of the pause
+## 2. Where the build stands
 
-Working on **Phase 4.3/4.4 (macOS media pipeline)**. Just finished, in this order:
-1. `rust/carbon-core/src/protocol/annexb.rs` — Annex B → 4-byte length-prefixed converter (2 unit tests pass), exported as `cm_annexb_to_avcc`, Swift wrapper `ScrcpyProtocol.lengthPrefixed(_:into:)`. ✅ builds/tests green.
-2. `Sources/CMMedia/VideoDecoder.swift` — `VTDecompressionSession`, hardware-required, real-time, NV12 Metal-compatible IOSurface buffers, synchronous decode from a reused buffer, `suspend()/resume()` (waits for key frame), H.264 (SPS 7/PPS 8) and H.265 (VPS 32/SPS 33/PPS 34) parameter-set extraction. **Written, never compiled (needs Mac).**
-3. `Sources/CMMedia/MetalScreenView.swift` — `CAMetalLayer` view, `CVMetalTextureCache`, runtime-compiled shader (BT.709 / BT.2020 video range), `NSView.displayLink` newest-frame-only presentation, `renderingPaused`, privacy blur (downscale ÷8 → `MPSImageGaussianBlur` σ 4 → blit with 0.45 tint), `saveScreenshot()` PNG to `~/Pictures/CarbonMirror/`. I had **just rewritten the blur path** (it was messy) — **the file was not re-read after the rewrite; first thing next session: read it top to bottom and check it.** Never compiled (needs Mac).
-
-The very next thing I was going to write: `Sources/CMUI/MirrorView.swift` (NSView hosting `MetalScreenView`, converting NSEvents → `InputEngine` → `MirrorSession.send`) and `Sources/CMUI/SessionController.swift` (glue: AdbSupervisor + KeyManager + MirrorSession + decoder + window states + reconnect + auto-handover). See §9.
+Everything in the spec has code except the Phase 11 harnesses still listed in §10. The macOS-only Swift (`Sources/CMUI/*`, `Sources/CMMedia/{VideoDecoder,MetalScreenView}.swift`, `CMSecurity/{HelperSignature,KeychainKeyStore,OwnerCheck}.swift`, `CMTransport/{NWByteStream,Bonjour}.swift`) has **never been compiled** — Linux has no AppKit. The first Mac build (`scripts/build.sh`) will very likely surface compile errors; fix them first (§10 step 1).
 
 ## 3. User rules (mandatory, from chat — keep obeying)
 - Commit and push **directly to `main`**, under `ButcheCassidy <354005634+ButcheCassidy@users.noreply.github.com>` (run the two `git config` lines from `CLAUDE.md` first). **No** branches, PRs, `Co-Authored-By`, "Generated with Claude", session links. (The harness proposes a branch `dimitri/adoring-goodall-ejzoqv`; the user explicitly overrode it: main only.)
@@ -47,6 +40,11 @@ The very next thing I was going to write: `Sources/CMUI/MirrorView.swift` (NSVie
 - Licence (user): **PolyForm Noncommercial 1.0.0** → create `LICENSE` (not yet done).
 - Device scope (user): **Pixel 10 Pro XL defaults, keep the spec's fallbacks** (adaptive size steps etc.); other Android 11+ phones still connect.
 - Encryption focus (user preference + CLAUDE.md): all mirroring/control traffic encrypted+authenticated on wireless; no plaintext transport on LAN.
+- (2026-11-12) **All commits authored and committed as ButcheCassidy** (git config from `CLAUDE.md`); no AI trailers.
+- (2026-11-12) **Inner TLS over USB ON by default** (owner decision; spec said off).
+- (2026-11-12) The SVG is now supplied (`Resources/CarbonMirror-icon.svg`): **companion icon = VectorDrawable converted from the SVG** (gradients kept, SVG blur shadows dropped). Mac `.icns` still from the 1024 PNG.
+- (2026-11-12) **No bloat:** every line must have a purpose. Responses: one-line progress notes, no conversational filler.
+- (2026-11-12) Must be **GrapheneOS-compatible** (see SECURITY_NOTES §6.6, README phone setup).
 
 ## 4. Environment (Linux build box)
 - `source ~/carbonmirror-deps/env.sh` sets `JAVA_HOME` (OpenJDK 21), `ANDROID_HOME=/root/carbonmirror-deps/android-sdk`, `ANDROID_NDK_HOME=…/ndk/30.0.16248370`, `CM_TEST_VIDEO_DIR=/root/carbonmirror-deps/test-video`, PATH with Swift 6.4.2, build-tools 36.0.0, platform-tools, cargo.
@@ -87,11 +85,25 @@ The very next thing I was going to write: `Sources/CMUI/MirrorView.swift` (NSVie
 28. Logging: `os.Logger` subsystem `com.nomadicrebel.carbonmirror`, categories app/ui/transport/adb/security/media/input; metadata only (compile-time messages + app-generated values). On Linux, `CM_LOG=1` prints to stderr. The app writes no log files (unified logging rotates) → the "rotate at 1 MB" requirement is met by not writing files; state in SECURITY_NOTES.
 29. `MirrorSession.connect` uses local forward ports 27000–29999 (random).
 30. Toolbar ⌘-shortcuts list lives in `ToolbarItem.shortcut` (AppDelegate.swift). Traffic lights are system `standardWindowButton`s (coloured — they are system controls; everything else monochrome).
+31. **Network identity without SSID:** SSID needs Location permission (not allowed). "This network" = IPv4 subnet of the Wi-Fi interface (`NetworkIdentity.subnet(ofInterface:)`), stored as `Device.ssidKey("subnet:<a.b.c.d/n>")`. Subnet change during a wireless session = unknown network → session ends.
+32. **mDNS resolve without connecting:** `Bonjour.resolve` uses `DNSServiceResolve` + `DNSServiceGetAddrInfo` (IPv4) so the allowlist runs before any packet goes to the phone; browsing via `NWBrowser` with `.other`/`.cellular` prohibited.
+33. **USB without pairing** is allowed while nothing is paired (Android's USB authorisation is the trust root); once paired, another USB serial → Untrusted device.
+34. **Mirroring state for the tile:** server `CleanUp` writes Global setting `carbonmirror_session` 1 at start / 0 after the server dies. Verified from AOSP source: unknown Global keys aren't gated by the S+ `@Readable` check, and `adb_wifi_enabled` is `@Readable`. 1-bit leak to other apps documented.
+35. **Signals:** children inherit `SIG_IGN` for SIGTERM (needed by the app's dispatch signal sources) → `ChildProcesses.stop(pid)` = SIGTERM, 0.5 s, SIGKILL.
+36. **Wireless debugging off** only after a *final* end (Disconnect, quit, idle). Lock/sleep keep it on so silent reconnect works.
+37. Display sleep / screensaver → blur (8.2.4); system sleep, lock, user switch, network change, idle → end session (7.6). Lid close = system sleep.
+38. Adaptive USB profile judges only seconds with ≥ 30 fps (Android sends no frames for still screens); `requestedMaxSize` decides whether a frame size is the native panel size.
+39. Wireless H.265 → H.264 fallback: if the server fails before the first connect with H.265, retry with H.264 (`h265Failed`).
+40. The companion has no launcher activity (tile only). Tile fallback = `ACTION_APPLICATION_DEVELOPMENT_SETTINGS` (PendingIntent on API 34+).
+41. ⌘-combinations that aren't app shortcuts go to the phone from `performKeyEquivalent` with an immediate key-up (AppKit sends no key-up while ⌘ is held). App shortcuts: `AppShortcuts` in `MirrorView.swift`.
+42. Pairing: `adb pair` output `[guid=adb-<serial>-<suffix>]` gives the serial and the `_adb-tls-connect._tcp` name to resolve.
+43. Rust crate licence field = `PolyForm-Noncommercial-1.0.0`; crate MSRV 1.88 (time 0.3.55, RUSTSEC-2026-0009).
 
 ## 6. Exact values in use
 - Bundle id `com.nomadicrebel.carbonmirror`; companion `com.nomadicrebel.carbonmirror.companion`; signing cert "CarbonMirror Dev" (P-384/SHA-384, 5 y, `-x -T /usr/bin/codesign`; RSA-4096 fallback in `scripts/make-cert.sh`).
 - Remote paths: `/data/local/tmp/carbonmirror-server.jar`, `/data/local/tmp/libcarbon_core.so`, `/data/local/tmp/carbonmirror-mac.pin`; server class `com.genymobile.scrcpy.Server`; abstract socket `scrcpy_<scid 8 hex>`.
-- Current artifact SHA-256 (Linux build `scripts/build-server.sh`, will change with code): server jar `b20863c3ce6ad0c6e9443946ebc5eba11f0190541daf2ff886b4bbcd8886430a`, `libcarbon_core.so` (arm64-v8a, API 30) `fa8f9cb1ba61335f413f0a0834dc20a0df5e26af9454258477f44d80df538816`. Both are **gitignored** build outputs in `Resources/`.
+- Current artifact SHA-256 (Linux build `scripts/build-server.sh`, change with code): server jar `448e49ea83172f872240a15458965bfbf4cc6580a47d09b53c17c593b48bbd9c` (before the `time` bump the .so was `fa8f9cb1…`; rebuild for the current hash). Companion APK (test key) `f036e83dc92a412f9def72cbda4807b3cd3703057093b6c12d55c8c9d17c330c`. All are **gitignored** build outputs.
+- Global setting `carbonmirror_session` (0/1). Network key: `Device.ssidKey("subnet:<subnet>")`. Defaults keys added: `macPinResetPending`, `companionInstalled`.
 - USB profile: H.264, max_size 2992, max_fps 120, 32 Mbps; adaptive steps 2992→2560→2240→1920 then fps 120→90→60 when < 110 fps over 3 s. Wireless "Secure": 60 fps, H.265, 12 Mbps; experimental 90/120.
 - Size: min 0.75×, max 2.0×, fallback real-size 127 pt/inch, corner fallback 9.5 % width, fine-tune ±15 %. Pixel 10 Pro XL 1344×2992 @ 486 ppi.
 - Chrome: toolbar 44 pt + status line 14 pt (top inset 58), margins 10 pt, hover zone 28 pt, reveal 0.2 s ease-out, hide 1.2 s; toolbar buttons 22 pt, spacing 2, badge 66 pt, traffic lights at x 8/28/48 (14 pt), leading area 72 pt, trailing 8 pt.
@@ -102,7 +114,7 @@ The very next thing I was going to write: `Sources/CMUI/MirrorView.swift` (NSVie
 - Limits: video packet ≤ 8 MiB, frame dimension ≤ 8192, clipboard ≤ 1 MiB, UHID output ≤ 64 B, inject text ≤ 300 B (split), app name ≤ 255, adb output ≤ 1 MiB, dumpsys ≤ 4 MiB, adb line ≤ 4096 B, setup line ≤ 8192 B.
 - UHID keyboard id 1, name "CarbonMirror Keyboard", vendor 0x18D1, product 0x4EE7, 63-byte boot-keyboard descriptor with LED output (`keymap.rs`).
 - Android keys: HOME 3, BACK 4, VOL_UP 24, VOL_DOWN 25, POWER 26, SYSRQ 120, MUTE 164, APP_SWITCH 187, ALL_APPS 284.
-- Rust crates: aws-lc-rs 1, rustls 0.23.46 (aws_lc_rs, prefer-post-quantum, std; no tls12), rustls-webpki 0.103.16, rcgen 0.14.7 (aws_lc_rs, crypto), time 0.3, zeroize 1.9.1, jni 0.21 (Android only); dev: serde, serde_json, proptest. `Cargo.lock` committed. `cargo audit` not yet run.
+- Rust crates: aws-lc-rs 1, rustls 0.23.46 (aws_lc_rs, prefer-post-quantum, std; no tls12), rustls-webpki 0.103.16, rcgen 0.14.7 (aws_lc_rs, crypto), time 0.3.55, zeroize 1.9.1, jni 0.21 (Android only); dev: serde, serde_json, proptest. `Cargo.lock` committed. `cargo audit` clean (2026-11-12).
 - C ABI version **2** (`rust/include/carbon_core.h`, 65 functions):
   `cm_abi_version`, `cm_mac_points_per_inch`, `cm_size_real`, `cm_size_clamp`, `cm_size_locked_resize`, `cm_corner_radius`, `cm_net_check_ip`, `cm_net_check_endpoint`, `cm_net_check_interface`, `cm_adb_validate`, `cm_failure_ui_state`, `cm_adb_parse_devices`, `cm_adb_track_frame`, `cm_sha256`, `cm_sha256_verify`, `cm_random`, `cm_proto_device_name`, `cm_proto_codec`, `cm_proto_video_header`, `cm_proto_device_message`, `cm_annexb_to_avcc`, `cm_display_corner_radius`, `cm_clipboard_check`, `cm_ctrl_simple`, `cm_ctrl_keycode`, `cm_ctrl_text`, `cm_ctrl_touch`, `cm_ctrl_scroll`, `cm_ctrl_set_clipboard`, `cm_ctrl_uhid_create`, `cm_ctrl_uhid_input`, `cm_ctrl_uhid_destroy`, `cm_ctrl_ping`, `cm_ctrl_start_app`, `cm_input_letterbox`, `cm_input_map_point`, `cm_input_scroll_units`, `cm_input_pinch`, `cm_key_hid_report`, `cm_key_hid_descriptor`, `cm_key_android`, `cm_adb_probe_hello`, `cm_adb_probe_stls`, `cm_adb_probe_classify`, `cm_pairing_new`, `cm_pairing_field`, `cm_pairing_consume`, `cm_pairing_free`, `cm_trust_check`, `cm_tls_make_identity_ca`, `cm_tls_client_identity_new`, `cm_tls_server_identity_new`, `cm_tls_identity_pin`, `cm_tls_identity_free`, `cm_tls_session_new`, `cm_tls_capture_new`, `cm_tls_read_tls`, `cm_tls_write_tls`, `cm_tls_read_plain`, `cm_tls_write_plain`, `cm_tls_status`, `cm_tls_negotiated`, `cm_tls_captured_pin`, `cm_tls_close`, `cm_tls_session_free`
 - Status codes: Ok 0, NullPointer 1, InvalidUtf8 2, InvalidArgument 3, BufferTooSmall 4, Panic 5, NeedMoreData 6, IpMalformed 10, IpHostnameRefused 11, IpPublicRefused 12, IpTunnelRangeRefused 13, IpReservedRefused 14, InterfaceTunnelRefused 15, PortInvalid 16, PortLegacyTcpipRefused 17, AdbEmpty 30, AdbUnknownCommand 31, AdbBadArgument 32, AdbInstallNeedsUsb 33, AdbInstallNeedsConfirmation 34, DigestMismatch 50, ParseMalformed 60, ParseTooLarge 61, InputOutside 70, TlsHandshakeFailed 80, TlsPinMismatch 81, TlsPolicyViolation 82, TlsClosed 83, TlsTimeout 84, TlsFailed 85, PairingCodeExpired 90, PairingCodeUsed 91, TrustNotPaired 92, TrustUnknownDevice 93, TrustIdentityChanged 94, AdbProbeMalformed 100.
@@ -121,6 +133,7 @@ The very next thing I was going to write: `Sources/CMUI/MirrorView.swift` (NSVie
 **Sources/CMInput/:** `InputEngine.swift` pointer/keyboard/toolbar → control messages, blur blocking.
 **Sources/CMMedia/:** `Screenshot.swift` folder + file naming · `VideoDecoder.swift` VideoToolbox (WIP, uncompiled) · `MetalScreenView.swift` Metal renderer, blur, screenshot (WIP, uncompiled).
 **Sources/CMUI/ (macOS):** `Theme.swift` tokens · `PhoneWindow.swift` borderless window · `PhoneContentView.swift` screen + chrome container, hover tracking · `StatusView.swift` glass status screens + pill buttons · `ChromeView.swift` toolbar, traffic lights, overflow menu, status line · `WindowSizer.swift` real-size maths, clamp, aspect lock, per-orientation memory · `PhoneWindowController.swift` states, reveal/hide, sizing, pin, rotation · `MenuBarController.swift` template icon + menu · `DemoDriver.swift` `--demo` · `AppDelegate.swift` app entry, main menu, shortcuts.
+**New (2026-11-12):** `Sources/CMUI/{MirrorView,SessionController,PairingController,SettingsWindow}.swift` (input glue + HUD + lock glyph; the whole session lifecycle; QR pairing + IP/port/code prompts; Settings) · `Sources/CMTransport/{NetworkIdentity,Bonjour}.swift` · `Sources/CMSecurity/OwnerCheck.swift` (Touch ID/password) · `companion/` (`AndroidManifest.xml`, `src/…/WirelessDebuggingTile.java`, `res/` adaptive icon + tile icon + strings) · `scripts/build-apk.sh` · `rust/carbon-core/examples/tls_endpoint.rs` + `tools/sectest/{tls_downgrade.sh,capture_session.sh,capture_scan.py}` · `Resources/CarbonMirror-icon.svg` · docs `README.md INSTALL.md SECURITY_NOTES.md REAL_DEVICE_CHECKS.md THIRD_PARTY_NOTICES.md CHANGELOG.md RELEASE_CHECK.md LICENSE`.
 **Sources/CarbonMirrorApp/main.swift** entry (Linux prints a message and exits 64).
 **Tests/CMTests/:** `VectorTests` shared vectors · `BridgeTests` C ABI boundary · `TransportTests` adb allowlist/runner/supervisor/deployer (+ `Fixtures/fake-adb.sh`) · `UILayoutTests` chrome geometry + settings · `SessionTests` full sessions vs virtual phone · `VirtualPhone.swift` virtual phone, recording sink, openssl test signer, virtual link · `InputTests` mapping + input flood · `PolicyTests` 8.2/6.3/7.6 rules · `KeyTests` keys/pins/Create new key/pairing codes · `ProbeTests` wireless probe vs fake adbd.
 **server/:** `LICENSE-scrcpy` (Apache-2.0) · `src/main/aidl/...` · `src/main/java/android/content/IContentProvider.java` · `src/main/java/com/genymobile/scrcpy/...` forked server; new `carbon/CarbonCore.java` (JNI), `carbon/SessionSetup.java` (stdin setup, Mac pin, CM-PIN), `carbon/SecureChannel.java` (TLS or plain socket wrapper), `carbon/BatteryMonitor.java`; modified `Server.java`, `Options.java`, `Workarounds.java`, `device/{DesktopConnection,Streamer}.java`, `control/{ControlChannel,ControlMessage,ControlMessageReader,Controller,DeviceMessage,DeviceMessageWriter}.java`, `wrappers/{ClipboardManager,ServiceManager}.java`, `util/LogUtils.java`; deleted `audio/`, camera/new-display/video-source classes, `model/NewDisplay.java`, `AndroidManifest.xml`, upstream tests.
@@ -148,125 +161,33 @@ cargo build --release --manifest-path rust/Cargo.toml && touch Sources/CMCoreBri
 ```bash
 scripts/build-server.sh
 ```
-**Mac (NOT RUN — needs the Mac):** Step A `scripts/make-cert.sh` (or the README's manual 10.4 A commands); Step A-2 platform-tools download + `deps.lock` + `cp deps/platform-tools/adb Resources/adb`; Step A-3 rustup + `aarch64-apple-darwin` + cbindgen; JDK + Android SDK (platform 36, build-tools 36.0.0, NDK) for `scripts/build-server.sh`; APK via `scripts/build-apk.sh` (**not written yet**); then `scripts/build.sh` (Steps B–F; `--install` copies to /Applications). The exact 10.4 commands are in the spec (§12) and implemented 1:1 in `scripts/build.sh` / `scripts/make-cert.sh`. **`scripts/build.sh` requires `Resources/CarbonMirrorCompanion.apk`, which does not exist until Phase 9** — until then the Mac build stops with "missing Resources/CarbonMirrorCompanion.apk".
+**Mac (NOT RUN — needs the Mac):** Step A `scripts/make-cert.sh` (or the README's manual 10.4 A commands); Step A-2 platform-tools download + `deps.lock` + `cp deps/platform-tools/adb Resources/adb`; Step A-3 rustup + `aarch64-apple-darwin` + cbindgen; JDK + Android SDK (platform 36, build-tools 36.0.0, NDK) for `scripts/build-server.sh`; APK via `scripts/build-apk.sh` (release keystore, password typed); then `scripts/build.sh` (Steps B–F; `--install` copies to /Applications). The exact 10.4 commands are in the README and implemented 1:1 in `scripts/build.sh` / `scripts/make-cert.sh`. Full Mac setup (JDK, SDK without Homebrew, keystore) in `INSTALL.md` §8.4.
+**Linux extras (verified):** `scripts/build-apk.sh --test-key` · `tools/sectest/tls_downgrade.sh` · `tools/sectest/capture_session.sh encryptedSessionStreamsVideoAndControl` (root, tcpdump) · `(cd rust && cargo audit)`.
 
-## 9. Test status (evidence) — Linux, 2026-11-11, final run before this handoff
-`cargo test --release` (rust/):
-```
-Running unittests src/lib.rs (target/release/deps/carbon_core-a5312c7d11b30e04)
-test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
-     Running tests/fuzz.rs (target/release/deps/fuzz-a4437b4a61ad74c0)
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
-     Running tests/tls.rs (target/release/deps/tls-37d85674e0c96b9d)
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
-     Running tests/vectors.rs (target/release/deps/vectors-ba4694387eef263d)
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-```
-`cargo clippy --all-targets -- -D warnings`: clean (`Finished dev profile`). `cargo ndk -t arm64-v8a -P 30 clippy --release -- -D warnings`: clean (`Finished release profile`).
-`swift build --build-tests`: **0 errors, 0 warnings** (Linux; macOS-only files are `#if os(macOS)` and were not compiled).
-`swift test` (all suites):
-```
-✔ Test qualityThresholds() passed after 0.044 seconds.
-✔ Test privacyBlurRules() passed after 0.044 seconds.
-✔ Test sessionHygiene() passed after 0.044 seconds.
-✔ Test transportChoiceAndHandover() passed after 0.044 seconds.
-✔ Test reconnectBackoffAndGiveUp() passed after 0.044 seconds.
-✔ Test statusLineFormatting() passed after 0.044 seconds.
-✔ Test adaptiveFallbackStepsSizeBeforeFPS() passed after 0.044 seconds.
-✔ Test landscapeSettings() passed after 0.044 seconds.
-✔ Test everyFailureStateHasFittingStatusContent() passed after 0.044 seconds.
-✔ Test swiftStatusCodesMatchHeader() passed after 0.044 seconds.
-✔ Test nullAndHugeInputsAreRefusedNotCrashed() passed after 0.044 seconds.
-✔ Test ssidIsNeverStoredInPlaintext() passed after 0.044 seconds.
-✔ Test invalidUTF8IsRefused() passed after 0.044 seconds.
-✔ Test deviceRemembersOnlyAllowedEndpoints() passed after 0.044 seconds.
-✔ Test abiVersionMatches() passed after 0.044 seconds.
-✔ Test screenshotFileName() passed after 0.044 seconds.
-✔ Test deviceListVectors() passed after 0.044 seconds.
-✔ Test clicksOutsideTheVideoAreIgnored() passed after 0.044 seconds.
-✔ Test adbVectors() passed after 0.044 seconds.
-✔ Test netVectors() passed after 0.044 seconds.
-✔ Test failureVectors() passed after 0.045 seconds.
-✔ Test dragLeavingTheWindowEndsOnTheEdge() passed after 0.045 seconds.
-✔ Test phoneKeyboardTypesTextAndSendsKeysForEditing() passed after 0.045 seconds.
-✔ Test clickIsATapAtTheRightPixel() passed after 0.045 seconds.
-✔ Test pinchUsesTwoFingersAroundTheCentre() passed after 0.045 seconds.
-✔ Test blurBlocksEverythingAndReleasesHeldInput() passed after 0.045 seconds.
-✔ Test toolbarShortcutsSendTheRightKeys() passed after 0.045 seconds.
-✔ Test hardwareKeyboardSendsHIDReports() passed after 0.045 seconds.
-✔ Test sizeVectors() passed after 0.046 seconds.
-✔ Test rightClickIsBackOnlyWhenEnabled() passed after 0.045 seconds.
-✔ Test tamperedAdbKeyIsDetected() passed after 0.046 seconds.
-✔ Test identityAndCertificateAreCreatedOnceAndReused() passed after 0.046 seconds.
-✔ Test trustRequiresTheExactPin() passed after 0.046 seconds.
-✔ Test randomIsRandomAndInRange() passed after 0.046 seconds.
-✔ Test pairingCodesAreSingleUseAndExpire() passed after 0.046 seconds.
-✔ Test sha256KnownAnswerAndVerify() passed after 0.046 seconds.
-✔ Test screenNeverMovesWhileChromeAnimates() passed after 0.042 seconds.
-✔ Test overflowAppearsOnlyWhenNeeded() passed after 0.043 seconds.
-✔ Test revealZoneIsTopTwentyEightPoints() passed after 0.053 seconds.
-✔ Test everyCommandTheAppCanBuildIsAllowlisted() passed after 0.053 seconds.
-✔ Suite "Experience and session policies (8.2, 6.3, 7.6)" passed after 0.058 seconds.
-✔ Suite "Swift bridge and C ABI boundary" passed after 0.058 seconds.
-✔ Suite "Shared vectors through the C ABI" passed after 0.058 seconds.
-✔ Test settingsClampAndNotify() passed after 0.060 seconds.
-✔ Test rotationReminder() passed after 0.059 seconds.
-✔ Test settingsDefaultsMatchSpec() passed after 0.059 seconds.
-✔ Test plaintextAdbTcpipIsRefused() passed after 0.064 seconds.
-✔ Test createNewKeyRemovesEverythingAndTrustsNothing() passed after 0.063 seconds.
-✔ Suite "Keys, pins and Create new key (7.4/7.5)" passed after 0.075 seconds.
-✔ Test injectedValuesAreRefusedBeforeAdbStarts() passed after 0.005 seconds.
-✔ Test toolbarNeverOverlapsOrOverflowsAtAnyWidth() passed after 0.087 seconds.
-✔ Suite "Hover chrome layout and settings" passed after 0.092 seconds.
-✔ Test installNeedsUSBAndConfirmation() passed after 0.020 seconds.
-✔ Test environmentIsPrivateAndLocalOnly() passed after 0.001 seconds.
-✔ Test runnerReturnsOutputAndExitCode() passed after 0.002 seconds.
-✔ Test wirelessDebuggingKeyIsCaptured() passed after 0.038 seconds.
-✔ Test nonAdbServiceIsRejected() passed after 0.001 seconds.
-✔ Test addressPolicyRunsBeforeAnyConnection() passed after 0.001 seconds.
-✔ Suite "Wireless probe (6.1, 7.2)" passed after 0.120 seconds.
-✔ Test encryptedSessionStreamsVideoAndControl() passed after 0.405 seconds.
-✔ Test plainUSBSessionWorksWithoutTLS() passed after 0.007 seconds.
-✔ Test wirelessWithoutEncryptionIsRefused() passed after 0.004 seconds.
-✔ Test wrongPhonePinIsRefusedAsIdentityChange() passed after 0.075 seconds.
-✔ Test hostileDeviceMessagesEndTheSession(attack:) with 4 test cases passed after 0.217 seconds.
-✔ Test wrongSessionSecretIsRefusedByThePhone() passed after 0.007 seconds.
-✔ Suite "Mirror session against the virtual phone" passed after 0.720 seconds.
-✔ Test inputFloodArrivesInOrderAtTheVirtualPhone() passed after 0.904 seconds.
-✔ Suite "Input mapping (Phase 5)" passed after 0.906 seconds.
-✔ Test supervisorLifecycle() passed after 60.020 seconds.
-✔ Test supervisorRestartsAfterCrash() passed after 60.520 seconds.
-✔ Test deployerPushesOnlyVerifiedBytes() passed after 0.014 seconds.
-✔ Test manifestNeedsBothHashes() passed after 0.001 seconds.
-✔ Suite "adb transport" passed after 120.665 seconds.
-✔ Test run with 64 tests in 9 suites passed after 120.666 seconds.
-```
-Key proofs: `encryptedSessionStreamsVideoAndControl` asserts TLS suite `0x1302` (TLS_AES_256_GCM_SHA384) and group `0x11EC` (X25519MLKEM768), real H.264 test stream frames/config reach the sink, battery/clipboard/latency events, touch arrives byte-exact; `hostileDeviceMessagesEndTheSession` ×4 (unknown/file-type message, 2 MiB clipboard, non-UTF-8 clipboard, battery level 200) → protocol violation; `wrongPhonePinIsRefusedAsIdentityChange`; `wrongSessionSecretIsRefusedByThePhone`; `inputFloodArrivesInOrderAtTheVirtualPhone` (500 events, byte-exact, ordered); `createNewKeyRemovesEverythingAndTrustsNothing`; `plaintextAdbTcpipIsRefused`; `wirelessDebuggingKeyIsCaptured`.
-Server build (`scripts/build-server.sh`): javac + d8 succeed, jar = one `classes.dex`; core lib = ELF 64-bit ARM aarch64.
+## 9. Test status (evidence) — Linux, 2026-11-12
 
-**NOT RUN — needs my Mac:** every AppKit/Metal/VideoToolbox/Keychain/Network.framework file (`Sources/CMUI/*`, `CMMedia/VideoDecoder.swift`, `CMMedia/MetalScreenView.swift`, `CMSecurity/{HelperSignature,KeychainKeyStore}.swift`, `CMTransport/NWByteStream.swift`, `WirelessProbe.probe`), `scripts/build.sh`, `scripts/make-cert.sh`, codesign/DMG. **NOT RUN — needs real device:** everything on the Pixel (server on device, JNI TLS on device, battery intent, clipboard, UHID keyboard, rotation, Wireless debugging probe/pairing).
+- `cargo test --release` (rust/): unit 24 ✅, fuzz 5 ✅, tls 5 ✅, vectors 5 ✅ (39 total). `cargo clippy --all-targets --release -- -D warnings` clean; `cargo ndk -t arm64-v8a -P 30 clippy --release -- -D warnings` clean. `cargo audit` exit 0 (1458 advisories, 126 crates).
+- `swift build --build-tests`: 0 errors, 0 warnings (Linux). `swift test`: **65 tests in 9 suites passed after 1.705 s** (was 120 s: supervisor tests 60 s → 0.56 s / 1.08 s after the SIGTERM fix). New test: `networkIsIdentifiedBySubnetHashNeverSSID`.
+- `scripts/build-server.sh`: javac + d8 + cargo-ndk OK. `scripts/build-apk.sh --test-key`: `Verifies`, v2 true + v3 true (with `--min-sdk-version 24`), signer EC 384 bit, `aapt2 dump permissions` = only `WRITE_SECURE_SETTINGS`; manifest: minSdk 30, target 36, allowBackup false, usesCleartextTraffic false, only the tile service exported with `BIND_QUICK_SETTINGS_TILE`.
+- Phase 11 Stage 3.1/3.2: 8/8 OpenSSL downgrade/impersonation attempts refused (`RELEASE_CHECK.md`). Stage 3.3: encrypted session capture → nothing readable (entropy 7.83–8.00, no markers/start codes); plain control flagged.
 
-**Known bugs / open issues (to handle in Phase 11 unless blocking):**
-1. `AdbSupervisor` tests `supervisorLifecycle` / `supervisorRestartsAfterCrash` each take **~60 s**: `stop()` waits for the fake `track-devices` (`exec sleep 60`) to end — the SIGTERM to `watchPID` apparently does not end the read (pipe kept open or wrong pid). In the real app, quitting could hang up to the adb process's lifetime. Investigate `kill(pid)` vs process group, and close the read handle on stop.
-2. `MetalScreenView.swift` blur rewrite not re-read; both media files uncompiled.
-3. Horizontal scroll sign unverified; `ALL_APPS` swipe fallback not implemented.
-4. Java unused-import sweep not re-run after the latest server edits.
-5. `MirrorSession` does not yet react to live clipboard-toggle changes (clipboard_autosync fixed at session start; phone→Mac text is dropped in the Mac when sync is off, which satisfies "off stops it").
-6. `cargo audit` not run yet.
-7. Phase 11 requires tests to also run "from Swift" for the TLS-downgrade cases with real TLS 1.2 clients (`openssl s_client -tls1_2`) — not done.
+**NOT RUN — needs my Mac:** every macOS-only Swift file (never compiled), `scripts/build.sh`, `scripts/make-cert.sh`, codesign/DMG, Keychain, sandbox. **NOT RUN — needs real device:** everything in `REAL_DEVICE_CHECKS.md` (30 items).
+
+**Known open issues:**
+1. macOS-only code uncompiled — expect compile errors on the first Mac build.
+2. Horizontal scroll sign unverified; `ALL_APPS` swipe fallback not implemented (documented).
+3. Java unused-import sweep not re-run after server edits.
+4. `MirrorSession` takes `clipboard_autosync` at start; live toggle handled by the Mac dropping phone text when off.
+5. Companion "permission fallback" automated test (10.2) not written — only a device check (REAL_DEVICE_CHECKS 28).
+6. Window `.resizable` landscape pill fits ≈ 239 pt at 0.75× — verify no clipping on the Mac.
 
 ## 10. Next steps (ordered; start at 1)
-1. **Read `Sources/CMMedia/MetalScreenView.swift` and `VideoDecoder.swift` fully** and fix anything wrong by inspection (they cannot compile on Linux). Keep `#if os(macOS)`.
-2. Write `Sources/CMUI/MirrorView.swift`: NSView that embeds `MetalScreenView` + StatusView overlay handling; converts NSEvent mouseDown/Dragged/Up, rightMouseDown, scrollWheel (precise + phase), magnify(with:), keyDown/keyUp/flagsChanged (characters, modifierFlags.rawValue, keyCode, isARepeat) into `InputEngine` calls and sends results with `MirrorSession.send`; becomes first responder; `layout()` → `engine.layout(viewWidth:viewHeight:frameWidth:frameHeight:)`; acceptsFirstMouse; cursor stays system. Blur lock glyph overlay (SF Symbol `lock.fill`, monochrome, centred); click reveals (with LocalAuthentication if Touch-ID setting on).
-3. Write `Sources/CMUI/SessionController.swift` (@MainActor): owns `AdbEnvironment.prepare()`, `AdbRunner(executable: Bundle.main…/Contents/Helpers/adb)`, `HelperSignature.verify` at launch (refuse on mismatch), `AdbSupervisor` (device updates), `KeyManager(store: KeychainKeyStore(), adbDirectory:)` (+ `checkHealth()` → Authentication failed), `ServerDeployer` with `ArtifactManifest(infoDictionary: Bundle.main.infoDictionary)`, `AdbPhoneLink`, `VideoDecoder` → `MetalScreenView.enqueue`, `MirrorSession` with `NWByteStream.connect(port:)`; maps `SessionEvent`s to window states (`FailureMap.uiState(for:attempt:)`), status line (`StatusLine.text`, battery symbol), corner radius → `sizer.profile.cornerRadiusPixels`, video size → landscape decision (`LandscapeDecision`) + pill "Switch to landscape · Not now"; reconnect with `ReconnectSchedule` (pinned only, not when locked/asleep); auto-handover with `TransportChoice` on supervisor updates (USB appears → start USB session then stop wireless without closing the window); session-guard notifications (`NSWorkspace.willSleepNotification`, `screensDidSleepNotification`, `sessionDidResignActiveNotification`, distributed `com.apple.screenIsLocked`, idle timer from last input); occlusion (`NSWindow.didChangeOcclusionStateNotification`: stop rendering; after 5 s `decoder.suspend()`; on return `resume()` + `ControlMessage.simple(.resetVideo)`); clipboard Mac→phone (poll `NSPasteboard.general.changeCount` every 0.5 s while focused and sync on; plain string only; `setClipboard(sequence:)`), phone→Mac (`NSPasteboard.setString` only when sync on; wipe cached text on disconnect); ⌘S `saveScreenshot()`; ⇧⌘S `engine.phoneScreenshot()`; adaptive fallback (`AdaptiveProfile`, restart stream with new size/fps); connection badge text `USB · 120` / `Wi-Fi` + `lock.fill`. Wire into `AppDelegate.handle(_:)` and status-screen actions (Pair → pairing window, Use USB instead → mode usbOnly, How? sheets with Mac + phone Mullvad steps, Reconnect/Retry, Create new key → confirm dialog text from 7.5.3).
-4. Write `Sources/CMUI/PairingController.swift` + `PairingView`: QR (CoreImage `CIQRCodeGenerator`, monochrome, full window) from `PairingCode`, countdown 120 s, `NWBrowser` for `_adb-tls-pairing._tcp` with the code's service name → resolve IP:port → `NetPolicy.checkEndpoint` → `consume(now:)` → `adb pair ip:port password` (allowlisted `.pair`) → browse `_adb-tls-connect._tcp` for `adb-<serial>-*` → `WirelessProbe.probe` → `KeyManager.pin(Device…)` → `.removeMacPin` (only after Create new key) → `adb connect`. 6-digit fallback sheet (IP, port, code). Last-known endpoint per SSID hash + port entry when mDNS replies are blocked. Hotspot: gateway IP. No port scanning.
-5. Debug HUD (⌥⌘D): fps, decode ms (`decoder.lastDecodeMs`), latency, bitrate, codec, transport, TLS suite/group (`InnerTLS.describe`).
-6. Phase 8 UI: Settings window (Liquid Glass; sections Connection/Display/Experience/Security/Screenshots/General/About with author credit and licences), menu-bar extra full menu (Connect/Disconnect, Mode, Pair new device, Create new key, Forget device, Settings, Quit), launch at login (`SMAppService.mainApp`), privacy blur ⇧⌘H + auto-blur timer + Touch ID reveal (`LAContext`, `.deviceOwnerAuthentication`), typing mode ⌥⌘K, pin across Spaces, landscape behaviour, status-line toggle, "Turn phone screen off" (`displayPowerOff` after connect).
-7. Phase 9: `companion/` — Java TileService (`WRITE_SECURE_SETTINGS` check on every tap, `Settings.Global adb_wifi_enabled`, fallback intent to Wireless debugging settings), manifest (no INTERNET, `allowBackup=false`, `usesCleartextTraffic=false`, only the tile service exported with `BIND_QUICK_SETTINGS_TILE`), minSdk 30 / target 36, adaptive icon (black background, raster foreground cut from `Resources/CarbonMirror-icon-1024.png` into the 66 dp safe zone per density, monochrome vector of two phone outlines), `scripts/build-apk.sh` (aapt2 compile/link → javac --release 17 → d8 → zipalign -p 4 → apksigner v2+v3; throwaway key on Linux), evidence `apksigner verify --verbose --print-certs`, `aapt2 dump permissions`. Mac side: install over USB with confirmation, `pm grant` once (re-grant silently after updates, tell the user).
-8. Phase 10 docs: `README.md` (GitHub formatting, natural feature explanations, manual 10.4 commands, 10.3 checklist, GrapheneOS notes, Quick Settings developer tile, Mullvad Local network sharing), `INSTALL.md` (10.5 all 9 items), `SECURITY_NOTES.md` (threat model 7.1 + every deviation in §5 + why Rust + Team-ID note + sharingType honesty), `THIRD_PARTY_NOTICES.md` (scrcpy Apache-2.0, QtScrcpy, Droid Mirroring Apache-2.0, device-hub-pro MIT, rustls/aws-lc-rs/rcgen/webpki/time/zeroize/jni licences), `CHANGELOG.md`, `LICENSE` (PolyForm Noncommercial 1.0.0, required notice "ButcheCassidy - The Nomadic Rebel"), `REAL_DEVICE_CHECKS.md` (≈5-minute numbered checks: USB list/push/verify/cleanup, 120 fps, colours, corner mask, typing, screenshot, QR pairing, Keychain commands, sandbox checks, Mullvad/hotspot, plaintext refusal, scroll sign, GrapheneOS update, 5-min soak).
-9. Phase 11: move/extend the virtual phone into `tools/virtualphone/` (60/120 fps synthetic stream, attacker modes incl. downgrade/replay/fuzz/plaintext 5555), virtual LAN with `ip netns` (Mac/phone/attacker + fake utun route), `tools/sectest/` harnesses (openssl s_client -tls1_2 etc., capture entropy scan with Python, rate-limited port scan), Python hypothesis fuzzing through the virtual phone (≥ 2 min per entry point), `cargo audit`, Stage 1–4 with `RELEASE_CHECK.md` and evidence table, fix known bugs (§9), then release gate (signed DMG + APK checksums) — Mac parts as commands for the user.
-10. After each step: run the Linux suite, commit to `main` with a clear message, push.
+1. **Mac first build:** `scripts/build.sh` on the Mac; fix compile errors in the macOS-only files (Swift 6 strict concurrency, zero warnings). Then run `REAL_DEVICE_CHECKS.md` A–B.
+2. **Phase 11 Stage 3 rest:** `tools/virtualphone/` (move/extend `Tests/CMTests/VirtualPhone.swift`: 60/120 fps synthetic stream, attacker modes incl. replay and plaintext 5555), virtual LAN with `ip netns` (Mac/phone/attacker + fake `utun` route) for 3.4–3.6, pairing-code reuse/expiry (3.7), Python `hypothesis` fuzzing ≥ 2 min per entry point (3.8), replay/injection on the forwarded port (3.9), segregation (3.14).
+3. **Stage 1:** line-by-line review of every file (force unwraps on untrusted data, overflow, races, unclosed fds); Java unused imports; `aapt2 dump badging`.
+4. **Stage 2:** edge cases against the virtual phone (§ Phase 11 Stage 2 list).
+5. **Stage 4:** 5-minute soak (120 then 60 fps with TLS, 500 events/s, handover every 15 s, reconnect every 30 s, one Create-new-key cycle, netem not available → note).
+6. Release gate: bump version, CHANGELOG, signed DMG + APK checksums, evidence table in `RELEASE_CHECK.md`, final `INSTALL.md` pass. Commit and push to `main` after each step.
 
 ## 11. Rules to keep obeying
 - **A3 rules 1–10**, especially **rule 9 (honesty & evidence)**: show the exact command + real output for every "done/tested"; write `NOT RUN — <reason>` otherwise and add to `REAL_DEVICE_CHECKS.md`; never weaken/skip/hard-code tests or special-case test inputs; every fix shows its diff + re-run.
@@ -296,56 +217,56 @@ Legend: ✅ done · 🟡 partial · ⬜ not started. Status for each numbered re
 | 1.1 package targets + Linux split | ✅ | swift build Linux 0 warnings |
 | 1.2 Info.plist | ✅ | Resources/Info.plist |
 | 1.3 entitlements | ✅ | Resources/*.entitlements |
-| 1.4 packaging 10.4 + build.sh | 🟡 | written; NOT RUN; needs APK |
+| 1.4 packaging 10.4 + build.sh | 🟡 | written; NOT RUN (needs Mac); APK now builds |
 | 1.5 borderless window + Not paired + menu-bar Quit | ✅ code / NOT RUN | CMUI |
 | 1.6 logging | ✅ | Log.swift |
 | Checkpoint 1 | ✅ Linux / Mac NOT RUN | §9 |
 | 2.1 visual language | ✅ | Theme |
-| 2.2 resting state, continuous corners, hairline, shadow | ✅ / device radius wiring 🟡 | PhoneContentView |
-| 2.3 hover chrome, toolbar order, overflow, status line, hide 1.2 s | ✅ / status-line data 🟡 | ChromeView, UILayoutTests |
+| 2.2 resting state, continuous corners, hairline, shadow | ✅ | device corner radius wired (SessionController) |
+| 2.3 hover chrome, toolbar order, overflow, status line, hide 1.2 s | ✅ | status line live data + battery glyph |
 | 2.4 status states (+ glass) | ✅ | StatusContent, StatusView |
 | 2.5 sizing, aspect lock, ⌘0, memory, rotate animation | ✅ | WindowSizer, size vectors |
 | Checkpoint 2 | 🟡 | --demo written NOT RUN; math tests ✅ |
-| 3.1 bundled adb, deps.lock, Google check, signature check at runtime | 🟡 | build.sh + HelperSignature written; launch call ⬜ |
+| 3.1 bundled adb, deps.lock, Google check, signature check at runtime | ✅ code | `HelperSignature.verify` at launch; NOT RUN |
 | 3.2 private adb env 127.0.0.1 | ✅ | AdbEnvironment |
 | 3.3 forked server (no Gradle), hash verify, libcarbon_core.so | ✅ | build-server.sh output §9 |
 | 3.4 supervisor | ✅ (bug §9.1) | TransportTests |
 | 3.5 device model | ✅ | Device.swift |
-| Checkpoint 3 | 🟡 | REAL_DEVICE_CHECKS.md ⬜ |
+| Checkpoint 3 | ✅ Linux | REAL_DEVICE_CHECKS.md written |
 | 4.1 protocol client + allowlist + battery | ✅ | SessionTests |
-| 4.2 corner radius | ✅ read / 🟡 window wiring | display_info.rs |
-| 4.3 decode | 🟡 | VideoDecoder.swift uncompiled |
-| 4.4 render | 🟡 | MetalScreenView.swift uncompiled |
-| 4.5 USB profile + adaptive fallback | 🟡 | defaults ✅, AdaptiveProfile ✅, wiring ⬜ |
-| 4.6 debug HUD | ⬜ | |
+| 4.2 corner radius | ✅ | read + window wiring |
+| 4.3 decode | 🟡 | reviewed + fixed; uncompiled (needs Mac) |
+| 4.4 render | 🟡 | reviewed + fixed (texture lifetime, letterbox, BT.601); uncompiled |
+| 4.5 USB profile + adaptive fallback | ✅ code | wiring in SessionController; device check |
+| 4.6 debug HUD | ✅ code | ⌥⌘D, MirrorView |
 | Checkpoint 4 | 🟡 | framing/config/key frames ✅ on real test stream; rotation-change test ⬜ |
-| 5.1 main display, screen-off toggle | ✅ / toggle wiring ⬜ | server display 0 forced |
+| 5.1 main display, screen-off toggle | ✅ code | toggle live |
 | 5.2 mapping | ✅ | InputTests |
 | 5.3 typing modes | ✅ | InputTests |
 | 5.4 shortcuts | ✅ engine+menu / Mac screenshot 🟡 | |
 | 5.5 dedicated queue, rotation/scale mapping | ✅ | ordered non-blocking send |
-| 5.6 clipboard | 🟡 | phone→Mac ✅; Mac→phone polling ⬜ |
+| 5.6 clipboard | ✅ code | Mac→phone polling 0.5 s while key + sync on |
 | Checkpoint 5 | ✅ Linux | InputTests incl. flood |
-| 6.1 Wireless debugging only, tcpip refused, Secure profile | ✅ / adaptive bitrate ⬜ | ProbeTests |
-| 6.2 allowlist, interface binding, IP only, discovery, hotspot, self-check, README tile | 🟡 | allowlist/probe ✅; mDNS/fallback UI/hotspot ⬜ |
-| 6.3 auto switching + mode setting | 🟡 | policy + setting ✅; wiring ⬜ |
+| 6.1 Wireless debugging only, tcpip refused, Secure profile | ✅ | H.265→H.264 fallback |
+| 6.2 allowlist, interface binding, IP only, discovery, hotspot, self-check, README tile | ✅ code | mDNS + IP/port prompt + hotspot gateway; netns test ⬜ |
+| 6.3 auto switching + mode setting | ✅ code | switchSession handover |
 | Checkpoint 6 | 🟡 | netns LAN + captures ⬜ |
-| 7.1 threat model doc | ⬜ | |
-| 7.2 QR pairing, 120 s single use, pins, 6-digit fallback | 🟡 | Rust + KeyManager ✅; UI/flow ⬜ |
+| 7.1 threat model doc | ✅ | SECURITY_NOTES.md |
+| 7.2 QR pairing, 120 s single use, pins, 6-digit fallback | ✅ code | PairingController; NOT RUN |
 | 7.3 inner TLS (all bullets) | ✅ | rust tests/tls.rs, SessionTests |
 | 7.4 identity key + adb key fingerprint | ✅ code / Keychain NOT RUN | |
-| 7.5 key regeneration & recovery | 🟡 | manager + tests ✅; dialog/retry/UI ⬜ |
-| 7.6 hardening | 🟡 | 127.0.0.1, secret, sharingType ✅; session-end triggers wiring ⬜ |
+| 7.5 key regeneration & recovery | ✅ code | dialogs, retry, reminder |
+| 7.6 hardening | ✅ code | session-end triggers wired |
 | 7.7 segregation | ✅ code / sandbox checks NOT RUN | |
 | Checkpoint 7.7 | ✅ Linux | vectors + hostile message tests |
-| Checkpoint 7 | 🟡 | TLS 1.3 + AES-256 shown ✅, wrong pins ✅, key regeneration ✅; TLS1.2/openssl downgrade test ⬜ |
-| 8.1 icon | 🟡 | PNG + icns step ✅; menu-bar template ✅; companion icon ⬜ |
-| 8.2.1–8.2.6 | 🟡 | logic ✅ PolicyTests; UI ⬜ |
-| 8.3 settings & menu bar | 🟡 | AppSettings ✅; window/menu ⬜ |
-| Checkpoint 8.2 / 8 | 🟡 / ⬜ | |
-| Phase 9 | ⬜ | |
-| Phase 10 | ⬜ | |
-| Phase 11 | ⬜ | |
+| Checkpoint 7 | ✅ Linux | + OpenSSL TLS 1.0–1.2/weak-suite/group/no-cert attacks refused (RELEASE_CHECK) |
+| 8.1 icon | ✅ | SVG + PNG in Resources; companion adaptive vector icon |
+| 8.2.1–8.2.6 | ✅ code | UI wired; visual checks NOT RUN |
+| 8.3 settings & menu bar | ✅ code | Settings (glass), menu bar, SMAppService |
+| Checkpoint 8.2 / 8 | ✅ Linux / NOT RUN | live settings apply; codec change restarts stream |
+| Phase 9 | ✅ | APK built + verified on Linux (test key); device checks NOT RUN |
+| Phase 10 | 🟡 | docs ✅; Mac build/sign NOT RUN; perf targets unmeasured |
+| Phase 11 | 🟡 | see RELEASE_CHECK.md |
 
 ---
 
