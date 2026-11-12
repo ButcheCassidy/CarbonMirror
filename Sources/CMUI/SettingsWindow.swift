@@ -136,6 +136,7 @@ final class SettingsWindowController {
             ("Mode", popup(["Auto", "USB only", "Wireless only"], AppSettings.ConnectionMode.allCases.firstIndex(of: s.connectionMode) ?? 0) {
                 s.connectionMode = AppSettings.ConnectionMode.allCases[$0]
             }),
+            ("", toggle("Auto-connect to my phone at launch", s.autoConnect) { s.autoConnect = $0 }),
             ("USB frame rate", popup(AppSettings.usbFPSChoices.map { "\($0) fps" }, AppSettings.usbFPSChoices.firstIndex(of: s.usbProfile.maxFPS) ?? 2) {
                 s.usbProfile.maxFPS = AppSettings.usbFPSChoices[$0]
             }),

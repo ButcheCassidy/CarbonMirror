@@ -60,6 +60,11 @@ final class SessionController {
     private var notice: (text: String, at: Date)?
 
     private var reconnectTask: Task<Void, Never>?
+    /// Auto-connect (owner addition): background search, verified link, one-press mirroring.
+    private var auto = AutoConnect()
+    private var autoTask: Task<Void, Never>?
+    /// The user asked for Wi-Fi (Connect, Reconnect, pairing) or a wireless session was live: connect directly.
+    private var wantWireless = false
     private var reconnectAttempt = 0
     private var reconnectStarted: Date?
     private var connecting = false
@@ -141,6 +146,7 @@ final class SessionController {
     func shutdown(_ done: @escaping @MainActor () -> Void) {
         Task {
             await end(.user)
+            autoTask?.cancel()
             await services?.supervisor.stop()
             done()
         }
@@ -154,6 +160,9 @@ final class SessionController {
         devices = list
         if let serial = sessionSerial, !list.contains(where: { $0.serial == serial && $0.isOnline }), session != nil {
             Log.info(.transport, "session device left")
+        }
+        if case let .ready(e) = auto.phase, !list.contains(where: { $0.serial == Self.adbSerial(e) && $0.isOnline }) {
+            apply(auto.linkLost())
         }
         if let usb = list.first(where: { $0.link == .usb }), usb.state == "unauthorized" {
             show(failure: .adbUnauthorized)
@@ -184,8 +193,10 @@ final class SessionController {
             switchSession { await self.startSession(serial: usb.serial, wireless: false) }
         case .wireless:
             guard session == nil else { return }
+            guard wantWireless else { return refreshAuto() }
             switchSession { await self.connectWireless() }
         case .none:
+            refreshAuto()
             guard session == nil, reconnectTask == nil else { return }
             if !wifiUp && settings.connectionMode != .usbOnly { phone.show(state: .wifiOff) }
             else if pinned == nil { phone.show(state: .notPaired) }
@@ -260,6 +271,129 @@ final class SessionController {
         }
         sessionNetwork = networkKey
         await startSession(serial: serial, wireless: true)
+    }
+
+    // MARK: Auto-connect
+
+    private static func adbSerial(_ e: Device.Endpoint) -> String {
+        e.ip.contains(":") ? "[\(e.ip)]:\(e.port)" : "\(e.ip):\(e.port)"
+    }
+
+    private func autoConditions() -> AutoConnect.Conditions {
+        let device = pinned
+        let subnet = wifiUp ? wifiInterface.flatMap(NetworkIdentity.subnet(ofInterface:)) : nil
+        let key = subnet.flatMap { try? NetworkIdentity.key(subnet: $0) }
+        let proof = device.flatMap { services?.keys.deviceKey(serial: $0.serial) } != nil
+        return AutoConnect.Conditions(enabled: settings.autoConnect && settings.connectionMode != .usbOnly,
+                                      paired: device?.pins != nil && proof, macLocked: macLocked, macAsleep: macAsleep,
+                                      subnet: subnet, knownNetwork: key.map { device?.lastKnownEndpoints[$0] != nil } ?? false,
+                                      busy: session != nil || connecting || reconnectTask != nil
+                                          || (usbDevice != nil && settings.connectionMode != .wirelessOnly))
+    }
+
+    private func refreshAuto() {
+        guard services != nil else { return }
+        apply(auto.update(autoConditions()))
+    }
+
+    /// Runs one step of the auto-connect machine; stale results are ignored by the machine itself.
+    private func apply(_ step: AutoConnect.Step) {
+        switch step {
+        case .none:
+            break
+        case .browse:
+            autoTask?.cancel()
+            autoTask = Task {
+                let found = await browsePinned()
+                guard !Task.isCancelled else { return }
+                apply(auto.found(found))
+            }
+        case let .wait(seconds):
+            autoTask?.cancel()
+            autoTask = Task {
+                try? await Task.sleep(for: .seconds(seconds))
+                guard !Task.isCancelled else { return }
+                apply(auto.retry())
+            }
+        case let .verify(endpoint):
+            autoTask?.cancel()
+            autoTask = Task {
+                let result = await link(endpoint)
+                let next = auto.verified(result, for: endpoint)
+                // A link that finished after the machine moved on is closed, unless a session now uses it.
+                if result == .linked, auto.phase != .ready(endpoint), !connecting, session == nil || sessionSerial != Self.adbSerial(endpoint) {
+                    return apply(.drop(endpoint))
+                }
+                apply(next)
+            }
+        case let .mirror(endpoint):
+            wantWireless = true
+            switchSession {
+                self.sessionNetwork = self.currentNetworkKey()
+                await self.startSession(serial: Self.adbSerial(endpoint), wireless: true)
+            }
+        case let .drop(endpoint):
+            autoTask?.cancel()
+            guard let runner = services?.runner else { break }
+            Task { _ = try? await runner.run(.disconnect(ip: endpoint.ip, port: endpoint.port), timeout: 5) }
+        }
+        showAutoState()
+    }
+
+    /// Shows the machine's state on the idle screens only; failure screens stay until the user acts.
+    private func showAutoState() {
+        guard session == nil, !connecting, reconnectTask == nil, !wantWireless, pinned?.pins != nil, wifiUp,
+              settings.connectionMode != .usbOnly, usbDevice == nil else { return }
+        let idle: Set<UIStateCode> = [.searching, .notConnected, .phoneReady, .notPaired, .wifiOff, .disconnected]
+        guard idle.contains(phone.state) else { return }
+        switch auto.phase {
+        case .searching, .verifying: phone.show(state: .searching)
+        case .ready: phone.show(state: .phoneReady)
+        case .off, .waiting: phone.show(state: .notConnected)
+        case .mirroring, .halted: break
+        }
+    }
+
+    /// mDNS answers for the pinned serial's Wireless debugging service; no port scan.
+    private func browsePinned() async -> [Device.Endpoint] {
+        guard let serial = pinned?.pins?.serial else { return [] }
+        var found: [Device.Endpoint] = []
+        for service in await Bonjour.browse(type: Bonjour.connectType, for: .seconds(3)) where service.name.hasPrefix("adb-\(serial)-") {
+            if let r = await Bonjour.resolve(service) { found.append(Device.Endpoint(ip: r.ip, port: r.port)) }
+        }
+        return found
+    }
+
+    /// Probe (route, plaintext refusal), pinned adb TLS key, then `adb connect`; remembers the endpoint for this network.
+    private func link(_ endpoint: Device.Endpoint) async -> AutoConnect.Verification {
+        guard let services, let device = pinned, let pins = device.pins else { return .unreachable }
+        switch await WirelessProbe.probe(ip: endpoint.ip, port: endpoint.port) {
+        case let .wirelessDebugging(keyHash):
+            do {
+                try services.keys.verify(serial: pins.serial, keyHash: keyHash)
+            } catch {
+                show(failure: error == .trustIdentityChanged ? .pinMismatchKnownDevice : .unknownDevice)
+                return .refused
+            }
+        case .plaintextRefused:
+            show(failure: .legacyPlaintextOffered)
+            return .refused
+        case .viaTunnel, .unreachable, .notAdb, .refusedAddress:
+            return .unreachable
+        }
+        guard (try? await services.runner.runChecked(.connect(ip: endpoint.ip, port: endpoint.port), timeout: 10)) != nil,
+              await waitForDevice(Self.adbSerial(endpoint)) else { return .unreachable }
+        if let key = currentNetworkKey() {
+            var updated = device
+            updated.lastKnownEndpoints[key] = endpoint
+            try? services.keys.pin(updated)
+        }
+        return .linked
+    }
+
+    /// The "Mirror" button on the Ready screen.
+    func openMirror() {
+        apply(auto.openMirror())
     }
 
     private func waitForDevice(_ serial: String) async -> Bool {
@@ -385,6 +519,7 @@ final class SessionController {
         sessionLive = false
         transport = nil
         status = StatusLine.Snapshot()
+        defer { refreshAuto() }
         guard let failure = reason.failureClass else { return }
         if wasLive, failure == .connectionLost {
             scheduleReconnect()
@@ -445,6 +580,8 @@ final class SessionController {
         reconnectTask?.cancel()
         reconnectTask = nil
         reconnectStarted = nil
+        wantWireless = false
+        defer { refreshAuto() }
         guard let current = session else { return }
         let serial = sessionSerial
         let wasWireless = transport == .wifi
@@ -455,7 +592,8 @@ final class SessionController {
         await current.stop()
         mirror.video.reset()
         status = StatusLine.Snapshot()
-        if wasWireless, reason != .guardEvent, let serial, let services {
+        // With auto-connect the companion keeps Wireless debugging on for the trusted network only.
+        if wasWireless, reason != .guardEvent, !settings.autoConnect, let serial, let services {
             _ = try? await services.runner.run(.disableWirelessDebugging(serial: serial), timeout: 5)
         }
         phone.show(state: .disconnected)
@@ -541,6 +679,8 @@ final class SessionController {
         reconnectAttempt = 0
         reconnectStarted = nil
         h265Failed = false
+        wantWireless = true
+        auto.resume()
         evaluate()
     }
 
@@ -668,6 +808,8 @@ final class SessionController {
             switchSession { await self.startSession(serial: serial, wireless: true) }
         case .showDebugHUD:
             refreshHUD()
+        case .autoConnect:
+            refreshAuto()
         default:
             break
         }
