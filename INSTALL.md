@@ -92,6 +92,35 @@ bash scripts/build-mac.sh --install
 ```
 You should see `valid on disk`, `satisfies its Designated Requirement` and a SHA-256 line for `dist/CarbonMirror-<version>.dmg`; CarbonMirror opens. If the repository is private, `git clone` asks for your GitHub username and a personal access token (GitHub → Settings → Developer settings → Personal access tokens) instead of your password.
 
+### 4b. Updating to a new version (reinstall in a minute)
+Your pairing, settings and keys stay; only the app is replaced.
+
+**From a release DMG** (download `CarbonMirror-<version>.dmg` from the releases page first).
+Quit CarbonMirror.
+```bash
+osascript -e 'tell application id "com.nomadicrebel.carbonmirror" to quit'
+```
+Check the download against `SHA256SUMS.txt` on the release page (the line must match).
+```bash
+shasum -a 256 ~/Downloads/CarbonMirror-*.dmg
+```
+Let macOS open it (only needed for DMGs that are not notarised).
+```bash
+xattr -d com.apple.quarantine ~/Downloads/CarbonMirror-*.dmg
+```
+Open it, then drag **CarbonMirror** onto **Applications** and choose **Replace**.
+```bash
+open ~/Downloads/CarbonMirror-*.dmg
+```
+
+**From source** (one command; also builds your own signed DMG in `dist/`).
+```bash
+cd ~/CarbonMirror && git pull && bash scripts/build-mac.sh --install
+```
+If no release of the new version exists yet, download the **phone** artifact of the latest Release run (Actions → Release → newest run → Artifacts → phone) and unpack it in Downloads first (`~/Downloads/phone/Resources/…`); the script uses it.
+
+**After every update:** plug the phone in by USB once and choose Settings → Connection → **Install over USB…**, so the companion matches the new version. If the app asks for Keychain access, click **Always Allow**; if the signature changed (a DMG from GitHub after your own build, or the other way round), pair the phone again (menu bar → Pair New Device…).
+
 ## 5. Phone setup (GrapheneOS and stock Android)
 
 1. **Developer options:** Settings → About phone → tap **Build number** 7 times. (GrapheneOS: only in the Owner profile.)
