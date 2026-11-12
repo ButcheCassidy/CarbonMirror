@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Monochrome like the Mac app: black, white and greys only. -->
 <resources>
-    <color name="ic_background">#FF000000</color>
+    <color name="black">#FF000000</color>
+    <color name="primary">#FFFFFFFF</color>
+    <color name="secondary">#99FFFFFF</color>
+    <color name="pill">#29FFFFFF</color>
+    <color name="pill_pressed">#47FFFFFF</color>
 </resources>
