@@ -94,7 +94,9 @@ jobs:
           osascript -e 'tell application "System Events" to keystroke "," using command down' || true
           sleep 2
           screencapture -x -t jpg shots/settings.jpg
+          pgrep -x CarbonMirror >/dev/null && echo "APP ALIVE after Settings" >> build.log || echo "APP DIED after Settings" >> build.log
           pkill -x CarbonMirror || true
+          cp ~/Library/Logs/DiagnosticReports/CarbonMirror* shots/ 2>/dev/null || true
           system_profiler SPDisplaysDataType | grep -E "Resolution|Retina" || true
       - name: Upload build log and screenshots
         if: always()

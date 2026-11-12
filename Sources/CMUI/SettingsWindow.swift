@@ -98,7 +98,9 @@ final class SettingsWindowController {
     // MARK: Sections
 
     private func show(_ section: Section) {
-        actions.removeAll { $0 !== pickerAction }
+        // Read first: `pickerAction` reads `actions`, which `removeAll` holds exclusively (a runtime trap otherwise).
+        let keep = pickerAction
+        actions.removeAll { $0 !== keep }
         let rows: [(String, NSView)]
         switch section {
         case .connection: rows = connectionRows()
