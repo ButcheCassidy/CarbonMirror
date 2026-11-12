@@ -50,7 +50,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - run: ./gradlew --no-daemon lint test assembleDebug
 
   # macOS minutes are billed at 10x: this job never runs on push, only from Actions -> CI -> Run workflow.
