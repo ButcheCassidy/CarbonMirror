@@ -61,8 +61,10 @@ rustup self uninstall
 
 ## 4. Installing the Mac app
 
-1. Open `dist/CarbonMirror-0.1.0.dmg` and drag **CarbonMirror** onto **Applications**.
-2. The first time, macOS says it can't verify the developer (the app is signed with your own certificate, not notarised). Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to CarbonMirror. Don't turn Gatekeeper off.
+1. Open `CarbonMirror-1.0.0.dmg` (from the GitHub release, or `dist/` when you build it yourself) and drag **CarbonMirror** onto **Applications**.
+   - Check the download first: `shasum -a 256 ~/Downloads/CarbonMirror-1.0.0.dmg` must print the DMG line of `SHA256SUMS.txt` from the release.
+   - The release DMG is signed in GitHub Actions with a one-time "CarbonMirror Dev" certificate that was deleted after the build. It runs the same, but when you later switch to your own build (section 8), macOS asks once more for Keychain access and you pair the phone again (the identity key is tied to the app's signature).
+2. The first time, macOS says it can't verify the developer (the app is self-signed, not notarised). Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to CarbonMirror. Don't turn Gatekeeper off.
 3. Allow **Local Network** when asked (needed to find your phone on Wi-Fi). If macOS asks about the USB accessory, allow it.
 
 You should see: the startup animation (3 seconds, on black, centred in the phone-shaped window), then the window saying "Not paired" (or your phone if it is plugged in), and a two-phone icon in the menu bar.
@@ -74,7 +76,7 @@ You should see: the startup animation (3 seconds, on black, centred in the phone
 3. **Wireless debugging:** in the same screen, **Wireless debugging** on when you want Wi-Fi mirroring.
 4. **Quick Settings tile:** Developer options → **Quick settings developer tiles** → Wireless debugging. Now you can switch it per session from the pull-down.
 5. **Mullvad:** in the Mullvad app on the phone **and** on the Mac: Settings → VPN settings → **Local network sharing** on.
-6. **Companion:** plug the phone in by USB, unlock it, then in CarbonMirror: Settings → Connection → **Install over USB…** → Install. You should see "Companion installed".
+6. **Companion:** plug the phone in by USB, unlock it, then in CarbonMirror: Settings → Connection → **Install over USB…** → Install. You should see "Companion installed". (Or install `CarbonMirrorCompanion-1.0.0.apk` from the release. If the release environment had no keystore, that APK is signed with a one-time key: before installing a later build signed with your own key, uninstall the companion — the Mac re-grants its permission on the next USB connection.)
 7. **CarbonMirror tile:** pull down Quick Settings twice → edit (pencil) → drag **CarbonMirror** into place. It shows Off / Ready / Mirroring.
 8. **Battery: Unrestricted** (needed for auto-connect): Settings → Apps → **CarbonMirror Companion** → App battery usage → **Unrestricted** (or tap the battery button in the companion). Also allow its notification — it is the small "Ready for auto-connect" service that keeps working after reboots, OS updates and app updates.
 9. **Auto-connect:** on by default on the Mac (Settings → Connection → *Auto-connect to my phone at launch*). It starts after the first USB connection and QR pairing. The first time the companion turns Wireless debugging on for your Wi-Fi, Android asks *Allow wireless debugging on this network?* — tick **Always allow on this network** → Allow.
@@ -149,7 +151,7 @@ You should see "valid on disk" and "satisfies its Designated Requirement".
 
 Verify the DMG.
 ```bash
-codesign --verify --verbose=2 dist/CarbonMirror-0.1.0.dmg
+codesign --verify --verbose=2 dist/CarbonMirror-1.0.0.dmg
 ```
 You should see "valid on disk".
 

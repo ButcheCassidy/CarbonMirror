@@ -330,7 +330,7 @@ ln -s /Applications build/dmg/Applications
 ```
 Create the DMG (a deprecation warning on macOS 27 is normal).
 ```bash
-hdiutil create -volname "CarbonMirror 0.1.0" -srcfolder build/dmg -ov -format UDZO dist/CarbonMirror-0.1.0.dmg
+hdiutil create -volname "CarbonMirror 1.0.0" -srcfolder build/dmg -ov -format UDZO dist/CarbonMirror-1.0.0.dmg
 ```
 Remove the DMG folder.
 ```bash
@@ -338,11 +338,11 @@ rm -rf build/dmg
 ```
 Sign the DMG.
 ```bash
-codesign --force --timestamp=none --sign "CarbonMirror Dev" dist/CarbonMirror-0.1.0.dmg
+codesign --force --timestamp=none --sign "CarbonMirror Dev" dist/CarbonMirror-1.0.0.dmg
 ```
 Open it and drag CarbonMirror onto Applications (choose Replace when updating).
 ```bash
-open dist/CarbonMirror-0.1.0.dmg
+open dist/CarbonMirror-1.0.0.dmg
 ```
 
 Or install straight away without the DMG. Quit the running copy.
