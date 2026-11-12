@@ -79,6 +79,11 @@ final class MirrorView: NSView {
         needsLayout = true
     }
 
+    /// New session: fresh input state, keyboard created before the first key.
+    func sessionStarted(typingMode mode: AppSettings.TypingMode) {
+        deliver(engine.sessionStarted(typingMode: mode))
+    }
+
     func setTypingMode(_ mode: AppSettings.TypingMode) {
         deliver(engine.setTypingMode(mode))
     }

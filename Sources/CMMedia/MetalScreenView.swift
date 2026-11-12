@@ -128,6 +128,8 @@ public final class MetalScreenView: NSView {
         link = nil
         guard window != nil else { return }
         let l = displayLink(target: self, selector: #selector(step(_:)))
+        // Both ends are adaptive (phone 1–120 Hz, ProMotion): run up to 120 Hz so each frame shows when it arrives.
+        l.preferredFrameRateRange = CAFrameRateRange(minimum: 1, maximum: 120, preferred: 120)
         l.add(to: .main, forMode: .common)
         link = l
     }

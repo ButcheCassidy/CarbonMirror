@@ -149,7 +149,9 @@ public final class InputEngine {
 
     // MARK: Keyboard
 
-    /// Switches typing mode; creates or removes the virtual UHID keyboard as needed.
+    /// Switches typing mode; creates or removes the virtual UHID keyboard as needed. The keyboard is created
+    /// here (session start) rather than on the first key: Android reconfigures when a keyboard appears (an open
+    /// app drawer closes) and drops input sent before the device is registered.
     public func setTypingMode(_ mode: AppSettings.TypingMode) -> [[UInt8]] {
         var out = releaseAll()
         if mode == .phone, keyboardCreated, let m = try? ControlMessage.uhidDestroy(id: Self.keyboardID) {
@@ -157,7 +159,19 @@ public final class InputEngine {
             keyboardCreated = false
         }
         typingMode = mode
+        if mode == .hardware { out += ensureKeyboard() }
         return out
+    }
+
+    /// A new phone session: the previous server and its UHID keyboard are gone, so nothing is held or created
+    /// any more (one engine lives as long as the window; without this, later sessions never got a keyboard).
+    public func sessionStarted(typingMode mode: AppSettings.TypingMode) -> [[UInt8]] {
+        touching = false
+        pinchCenter = nil
+        heldKeys = []
+        keyboardCreated = false
+        typingMode = mode
+        return mode == .hardware ? ensureKeyboard() : []
     }
 
     private func ensureKeyboard() -> [[UInt8]] {

@@ -487,7 +487,7 @@ final class SessionController {
             status.reconnecting = false
             mirror.video.dimmed = false
             mirror.sender = { [source] message in source.send(message) }
-            mirror.setTypingMode(settings.typingMode)
+            mirror.sessionStarted(typingMode: settings.typingMode)
             if settings.phoneScreenOff { mirror.deliver([try? ControlMessage.simple(.displayPowerOff)].compactMap { $0 }) }
             phone.show(state: .mirroring)
             phone.content.chrome.setConnectionBadge(text: transport == .usb ? "USB · \(maxFPS)" : "Wi-Fi",
@@ -515,10 +515,10 @@ final class SessionController {
             status.charging = charging
         case let .latency(ms):
             status.latencyMs = ms
+            adapt(latencyMs: ms)
         case let .throughput(fps, mbps):
             status.fps = fps
             bitrate = mbps
-            adapt(fps: fps)
         case let .ended(reason):
             ended(reason, session: source)
         }
@@ -616,10 +616,9 @@ final class SessionController {
 
     // MARK: Adaptive USB profile (4.5)
 
-    /// Judges only seconds with moving content (Android sends no frames for a still screen).
-    private func adapt(fps: Double) {
-        guard transport == .usb, fps >= 30 else { slowSince = nil; return }
-        guard fps < AdaptiveProfile.threshold else { slowSince = nil; return }
+    /// Judged on the round trip, never on frame rate (the phone's adaptive display sends fewer frames on purpose).
+    private func adapt(latencyMs: Double) {
+        guard transport == .usb, latencyMs > AdaptiveProfile.thresholdMs else { slowSince = nil; return }
         let since = slowSince ?? Date()
         slowSince = since
         guard Date().timeIntervalSince(since) >= AdaptiveProfile.window, let next = AdaptiveProfile.next(maxSize: maxSize, maxFPS: maxFPS),
@@ -842,9 +841,7 @@ final class SessionController {
 
     private func everySecond() {
         if sessionLive {
-            status.quality = ConnectionQuality.classify(fps: (status.fps ?? 0) >= 1 ? status.fps : nil,
-                                                        targetFPS: Double(transport == .usb ? maxFPS : settings.wirelessProfile.maxFPS),
-                                                        latencyMs: status.latencyMs)
+            status.quality = ConnectionQuality.classify(latencyMs: status.latencyMs)
             if Date().timeIntervalSince(lastInput) >= Double(settings.idleTimeoutMinutes * 60) {
                 Task { await end(.idle) }
             }

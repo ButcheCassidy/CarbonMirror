@@ -11,7 +11,8 @@
 - Tests: `cargo test` 46, clippy clean; `swift test` 81 (Linux). No macOS CI used. Version stays **1.0.1** (unpublished), so the 1.0.1 phone parts still match; the phone side is unchanged.
 - Commits are SSH-signed with a new session-5 key (ed25519 `SHA256:g5Jso1MpxhGtp8rsRoFz0h1b3aWObBC6DcsdpXpJv0Y`, key only in the session-5 container); add its public key on GitHub as a Signing Key.
 - Not changed (audited, by design): auto-connect needs the companion key proof (`autoConditions`); manual **Mirror** after pairing does not.
-- **Next:** user runs `cd ~/CarbonMirror && git pull && bash scripts/build-mac.sh --install`, pairs again, then `REAL_DEVICE_CHECKS.md` A–F.
+- Round 2 (user report: pairing + USB mirroring work, low latency; Wi-Fi blocked on enterprise Wi-Fi): findings 44–47 — keyboard created at session start and per session; CleanUp helper runs from a private copy (Android 17 crash); quality/adaptive profile on round trip, not fps (adaptive 1–120 Hz displays), display link 1–120 Hz; Settings checkbox titles as white labels. New `carbonmirror-server` built here (SHA-256 `1f6e1eed4dca225a186a25581055e9b5d776da95d41c365678e78f2df03ebd3f`) and sent in chat; `libcarbon_core.so` and the APK are unchanged from 1.0.1.
+- **Next:** user copies the new `carbonmirror-server` into `~/CarbonMirror/Resources/`, runs `git pull && bash scripts/build-mac.sh --install`, checks typing (Hardware keyboard; *Phone keyboard* mode injects Mac characters exactly), the crash notice, the quality word, then `REAL_DEVICE_CHECKS.md` A–F.
 
 ## 0a. Session 4 (2026-11-12 → 13) — read this first
 

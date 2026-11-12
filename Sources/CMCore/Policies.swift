@@ -22,19 +22,18 @@ public enum ReconnectSchedule {
     }
 }
 
-/// Connection quality word for the status line (spec 8.2.5), from fixed thresholds:
-/// Excellent — ≥ 95 % of the target frame rate and ≤ 20 ms round trip;
-/// Good — ≥ 80 % and ≤ 50 ms; Fair — ≥ 50 % and ≤ 120 ms; Poor — anything worse.
+/// Connection quality word for the status line (spec 8.2.5), from the round trip only:
+/// Excellent ≤ 20 ms, Good ≤ 50 ms, Fair ≤ 120 ms, Poor above.
+/// Frame rate is not a link signal: both ends are adaptive displays (phone 1–120 Hz, ProMotion), and
+/// Android sends frames only when the screen changes, so a low rate is normal on a quiet screen.
 public enum ConnectionQuality: String, CaseIterable, Sendable {
     case excellent = "Excellent", good = "Good", fair = "Fair", poor = "Poor"
 
-    /// Frame rate is judged only when the screen is changing (Android sends no frames for a still screen).
-    public static func classify(fps: Double?, targetFPS: Double, latencyMs: Double?) -> ConnectionQuality {
-        let ratio = fps.map { targetFPS > 0 ? $0 / targetFPS : 1 } ?? 1
+    public static func classify(latencyMs: Double?) -> ConnectionQuality {
         let rtt = latencyMs ?? 0
-        if ratio >= 0.95 && rtt <= 20 { return .excellent }
-        if ratio >= 0.80 && rtt <= 50 { return .good }
-        if ratio >= 0.50 && rtt <= 120 { return .fair }
+        if rtt <= 20 { return .excellent }
+        if rtt <= 50 { return .good }
+        if rtt <= 120 { return .fair }
         return .poor
     }
 }
@@ -158,11 +157,12 @@ public enum TransportChoice: Equatable, Sendable {
     }
 }
 
-/// Adaptive USB fallback (spec 4.5): if fewer than 110 fps arrive over 3 s, step the size down before the fps.
+/// Adaptive USB fallback (spec 4.5): if the round trip stays above 50 ms for 3 s, step the size down before
+/// the fps. Not judged on frame rate: the phone's adaptive display (1–120 Hz) sends fewer frames on purpose.
 public enum AdaptiveProfile {
     public static let sizeSteps = [2992, 2560, 2240, 1920]
     public static let fpsSteps = [120, 90, 60]
-    public static let threshold = 110.0
+    public static let thresholdMs = 50.0
     public static let window: TimeInterval = 3
 
     /// Next (maxSize, maxFPS) after a slow window, or nil when already at the floor.

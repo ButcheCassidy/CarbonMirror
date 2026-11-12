@@ -230,10 +230,8 @@ final class SettingsWindowController {
         let s = settings
         let shown = Set(s.toolbarItems)
         return ToolbarItem.optional.enumerated().map { index, item in
-            let box = toggle(item.title, shown.contains(item)) { s.setToolbarItem(item, shown: $0) }
-            box.image = Theme.symbol(item.symbol, size: Theme.toolbarGlyphPointSize, weight: .regular)
-            box.imagePosition = .imageLeading
-            return (index == 0 ? "Toolbar" : "", box)
+            let icon = Theme.symbol(item.symbol, size: Theme.toolbarGlyphPointSize, weight: .regular)
+            return (index == 0 ? "Toolbar" : "", toggle(item.title, shown.contains(item), icon: icon) { s.setToolbarItem(item, shown: $0) })
         }
     }
 
@@ -275,15 +273,31 @@ final class SettingsWindowController {
         control.action = #selector(Action.fire(_:))
     }
 
-    private func toggle(_ title: String, _ on: Bool, _ set: @escaping (Bool) -> Void) -> NSButton {
-        let box = NSButton(checkboxWithTitle: title, target: nil, action: nil)
+    /// Checkbox with its title as a plain white label (clicking it toggles): on macOS 26 glass a checkbox draws its
+    /// own title black, even with a white attributed title, while labels keep their colour.
+    private func toggle(_ title: String, _ on: Bool, icon: NSImage? = nil, _ set: @escaping (Bool) -> Void) -> NSView {
+        let box = NSButton(checkboxWithTitle: "", target: nil, action: nil)
         box.state = on ? .on : .off
         box.contentTintColor = Theme.primaryText
-        // Glass content can resolve to the light appearance (system label colour = black): explicit white.
-        box.attributedTitle = NSAttributedString(string: title, attributes: [.foregroundColor: Theme.primaryText,
-                                                                            .font: NSFont.systemFont(ofSize: 13)])
+        box.setAccessibilityLabel(title)
         bind(box) { set(($0 as? NSButton)?.state == .on) }
-        return box
+        let text = ClickLabel(labelWithString: title)
+        text.font = NSFont.systemFont(ofSize: 13)
+        text.textColor = Theme.primaryText
+        text.setAccessibilityElement(false)
+        text.onClick = { [weak box] in box?.performClick(nil) }
+        var views: [NSView] = [box]
+        if let icon {
+            let image = NSImageView(image: icon)
+            image.contentTintColor = Theme.primaryText
+            image.setAccessibilityElement(false)
+            views.append(image)
+        }
+        views.append(text)
+        let row = NSStackView(views: views)
+        row.orientation = .horizontal
+        row.spacing = 6
+        return row
     }
 
     private func popup(_ items: [String], _ selected: Int, _ set: @escaping (Int) -> Void) -> NSPopUpButton {
@@ -307,6 +321,12 @@ final class SettingsWindowController {
         NSWorkspace.shared.open(folder)
     }
 }
+/// Label that forwards a click (a checkbox's title).
+private final class ClickLabel: NSTextField {
+    var onClick: (() -> Void)?
+    override func mouseDown(with event: NSEvent) { onClick?() }
+}
+
 /// Scroll-view document that starts at the top (a plain NSView would pin short content to the bottom).
 private final class TopAlignedView: NSView {
     override var isFlipped: Bool { true }

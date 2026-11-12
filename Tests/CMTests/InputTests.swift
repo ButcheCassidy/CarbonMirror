@@ -95,6 +95,16 @@ struct InputTests {
         #expect(e.keyUp(keyCode: 0x00, flags: 0) == [try ControlMessage.uhidInput(id: 1, report: [0, 0, 0, 0, 0, 0, 0, 0])])
     }
 
+    @Test func everySessionCreatesItsKeyboardBeforeTheFirstKey() throws {
+        let e = Self.engine()
+        for _ in 0..<2 {
+            let start = e.sessionStarted(typingMode: .hardware)
+            #expect(start.count == 1 && start[0].first == 12, "UHID create at session start")
+            #expect(e.keyDown(keyCode: 0x00, flags: 0, characters: "a", isRepeat: false).count == 1, "first key is only the report")
+        }
+        #expect(e.sessionStarted(typingMode: .phone).isEmpty)
+    }
+
     @Test func phoneKeyboardTypesTextAndSendsKeysForEditing() throws {
         let e = Self.engine()
         let switched = e.setTypingMode(.phone)

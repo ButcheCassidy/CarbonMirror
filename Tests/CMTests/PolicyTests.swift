@@ -19,11 +19,11 @@ struct PolicyTests {
     }
 
     @Test func qualityThresholds() {
-        #expect(ConnectionQuality.classify(fps: 118, targetFPS: 120, latencyMs: 9) == .excellent)
-        #expect(ConnectionQuality.classify(fps: 100, targetFPS: 120, latencyMs: 30) == .good)
-        #expect(ConnectionQuality.classify(fps: 70, targetFPS: 120, latencyMs: 80) == .fair)
-        #expect(ConnectionQuality.classify(fps: 30, targetFPS: 120, latencyMs: 300) == .poor)
-        #expect(ConnectionQuality.classify(fps: nil, targetFPS: 60, latencyMs: 15) == .excellent, "a still screen is not a slow link")
+        #expect(ConnectionQuality.classify(latencyMs: 6) == .excellent, "10 fps on a quiet adaptive screen is not a slow link")
+        #expect(ConnectionQuality.classify(latencyMs: 30) == .good)
+        #expect(ConnectionQuality.classify(latencyMs: 80) == .fair)
+        #expect(ConnectionQuality.classify(latencyMs: 300) == .poor)
+        #expect(ConnectionQuality.classify(latencyMs: nil) == .excellent)
     }
 
     @Test func statusLineFormatting() {

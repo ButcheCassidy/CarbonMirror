@@ -12,7 +12,10 @@ import android.system.ErrnoException;
 import android.system.Os;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
@@ -176,20 +179,26 @@ public final class CleanUp {
     }
 
     /**
-     * CarbonMirror: the clean-up process loads its classes from its own hard link to the server jar, so the shared
-     * jar can be replaced or removed (next session's push, the Mac's end-of-session removal) before it has started.
-     * The process unlinks that link itself ({@link #unlinkSelf()}); without hard-link support the shared path is used.
+     * CarbonMirror: the clean-up process loads its classes from its own copy of the server jar, so the shared jar
+     * can be replaced or removed (next session's push, the Mac's end-of-session removal) before it has started.
+     * A copy, not a hard link: SELinux denies {@code link} to the shell domain (Android 17), and the old fallback to
+     * the shared path crashed app_process with ClassNotFoundException once that file was gone. The process removes
+     * its copy itself ({@link #unlinkSelf()}). If no copy can be made, no clean-up process is started.
      */
-    private static String privateClassPath() {
-        String link = Server.SERVER_PATH + ".cleanup." + android.os.Process.myPid();
-        try {
-            new File(link).delete();
-            Os.link(Server.SERVER_PATH, link);
-            return link;
-        } catch (ErrnoException e) {
-            Ln.w("Could not link the server for clean up: " + e.getMessage());
-            return Server.SERVER_PATH;
+    private static String privateClassPath() throws IOException {
+        File copy = new File(Server.SERVER_PATH + ".cleanup." + android.os.Process.myPid());
+        copy.delete();
+        try (InputStream in = new FileInputStream(Server.SERVER_PATH); OutputStream out = new FileOutputStream(copy)) {
+            byte[] buffer = new byte[64 * 1024];
+            int n;
+            while ((n = in.read(buffer)) != -1) {
+                out.write(buffer, 0, n);
+            }
+        } catch (IOException e) {
+            copy.delete();
+            throw e;
         }
+        return copy.getPath();
     }
 
     public synchronized void setRestoreDisplayPower(boolean restoreDisplayPower) {
