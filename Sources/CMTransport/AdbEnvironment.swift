@@ -84,7 +84,12 @@ public struct AdbEnvironment: Sendable {
             "TMPDIR": directory.path,
             "PATH": "/usr/bin:/bin",
             "ADB_SERVER_SOCKET": "localfilesystem:\(serverSocket)",
-            "ADB_MDNS_OPENSCREEN": "1",
+            // No emulator scan: adb would otherwise connect, in plaintext and without authenticating the
+            // device, to whatever listens on 127.0.0.1:5555–5585 and sign its challenges with the adb key.
+            "ADB_EMU": "0",
+            // No adb-side mDNS: discovery is CarbonMirror's own (allowlist first), and adb must never
+            // auto-connect to an address taken from an mDNS answer.
+            "ADB_MDNS": "0",
         ]
     }
 
