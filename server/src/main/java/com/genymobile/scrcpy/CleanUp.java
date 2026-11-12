@@ -146,7 +146,7 @@ public final class CleanUp {
         };
 
         ProcessBuilder builder = new ProcessBuilder(cmd);
-        builder.environment().put("CLASSPATH", Server.SERVER_PATH);
+        builder.environment().put("CLASSPATH", privateClassPath());
         Process process = builder.start();
         OutputStream out = process.getOutputStream();
 
@@ -172,6 +172,23 @@ public final class CleanUp {
                 out.write(localPendingRestoreDisplayPower ? 1 : 0);
                 out.flush();
             }
+        }
+    }
+
+    /**
+     * CarbonMirror: the clean-up process loads its classes from its own hard link to the server jar, so the shared
+     * jar can be replaced or removed (next session's push, the Mac's end-of-session removal) before it has started.
+     * The process unlinks that link itself ({@link #unlinkSelf()}); without hard-link support the shared path is used.
+     */
+    private static String privateClassPath() {
+        String link = Server.SERVER_PATH + ".cleanup." + android.os.Process.myPid();
+        try {
+            new File(link).delete();
+            Os.link(Server.SERVER_PATH, link);
+            return link;
+        } catch (ErrnoException e) {
+            Ln.w("Could not link the server for clean up: " + e.getMessage());
+            return Server.SERVER_PATH;
         }
     }
 

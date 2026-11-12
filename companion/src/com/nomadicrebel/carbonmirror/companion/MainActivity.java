@@ -108,6 +108,7 @@ public final class MainActivity extends Activity {
         status.animate().alpha(1).setDuration(250);
         status.findViewById(R.id.primary).setOnClickListener(view -> primaryAction());
         status.findViewById(R.id.add_tile).setOnClickListener(view -> addTile());
+        status.findViewById(R.id.pair).setOnClickListener(view -> pair());
         status.findViewById(R.id.battery).setOnClickListener(view -> askUnrestricted());
         status.findViewById(R.id.forget).setOnClickListener(view -> {
             TrustedNetworks.forgetAll(this);
@@ -155,6 +156,16 @@ public final class MainActivity extends Activity {
             startActivity(WirelessDebugging.developerOptions());
         } catch (ActivityNotFoundException e) {
             // Developer options are still off: About phone is where Build number is tapped.
+            startActivity(new Intent(Settings.ACTION_DEVICE_INFO_SETTINGS));
+        }
+    }
+
+    /** Android's own QR scanner lives in Developer options → Wireless debugging; open it with the steps shown. */
+    private void pair() {
+        Toast.makeText(this, R.string.pair_hint, Toast.LENGTH_LONG).show();
+        try {
+            startActivity(WirelessDebugging.developerOptions());
+        } catch (ActivityNotFoundException e) {
             startActivity(new Intent(Settings.ACTION_DEVICE_INFO_SETTINGS));
         }
     }

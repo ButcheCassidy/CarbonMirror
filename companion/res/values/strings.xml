@@ -20,4 +20,6 @@
     <string name="ready_setup">Connect to your Mac by USB once to finish setup.</string>
     <string name="battery_hint">Set Battery to Unrestricted so auto-connect keeps working.</string>
     <string name="forget_networks">Forget trusted Wi-Fi networks</string>
+    <string name="pair">Pair with your Mac (QR code)</string>
+    <string name="pair_hint">Wireless debugging → Pair device with QR code, then scan the code shown by CarbonMirror on your Mac (menu bar → Pair New Device…).</string>
 </resources>
