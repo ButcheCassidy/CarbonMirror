@@ -12,6 +12,9 @@
 **New code:** `Sources/CMTransport/AutoConnect.swift` (pure state machine, 10 tests in `Tests/CMTests/AutoConnectTests.swift`); `SessionController` auto-connect section (`autoConditions`, `apply`, `link`, `stillWanted`, `openMirror`); UI states `phoneReady` 12, `notConnected` 13, `launchCheckFailed` 14 (Rust `UiState`, C header, Swift, `StatusContent`); companion `ReadyService`, `StartReceiver`, `TrustedNetworks` + `companion/test/CompanionTest.java` run by `scripts/test-companion.sh` (19 checks); server `Controller.swipeUpForAppDrawer` (Android 11); `.github/workflows/release.yml` (phone → mac → publish).
 **Findings 25–30** (RELEASE_CHECK): auto-connect connect-after-lock race, refusal screen over a live session, companion read the VPN instead of Wi-Fi, companion re-enable loop vs Android's per-network prompt, lock-screen notification, stale probe results.
 
+**Released:** v1.0.0 at `680ab05` (DMG `a7b988b9…dd72`, APK `7cd9377c…9627`). macOS CI ≈ 9 runner-minutes this session (≈ 29 of 100 total).
+**Next:** user runs `REAL_DEVICE_CHECKS.md` A–F; add a release keystore to environment `release` (secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`) before the next release; ML-DSA signatures when rcgen/webpki/Keychain support them.
+
 ## 0. Where things stand (end of session 3, 2026-11-12)
 
 **Stopped by the user (usage limit). Nothing is mid-edit; `main` is clean and pushed (last code commit `7cbfccb`).**

@@ -109,4 +109,5 @@ Every event arrived in order, byte-exact; every frame sent was received; descrip
 | Mac launch | `APP ALIVE after real launch + Settings`, `APP ALIVE in demo`; window absent from `screencapture` with *Hide from capture* on |
 | Mac UI | 44 demo screenshots: startup animation (slide & settle), every status screen incl. Ready / Not connected / Can't start safely; Settings shows *Auto-connect to my phone at launch* under Mode |
 | APK | `apksigner verify` v2 + v3; permissions exactly the 8 in the manifest; exported = launcher activity + tile |
+| Published | Release run 6 → https://github.com/ButcheCassidy/CarbonMirror/releases/tag/v1.0.0 (commit `680ab05`); SHA-256: DMG `a7b988b952cd68809fd9593fc4c1fb99d8b0d352a2c8b2b37f7a327639ffdd72`, APK `7cd9377c798e1270de853e195d4e64b7d0f4be10b3050b78dd8f301beefc9627`, source zip `d117b63bb03889afe7740e16c4fa12f5e1eab2919d0c2eeba095f15e48716955` |
 | Real hardware | `REAL_DEVICE_CHECKS.md` A–F — **NOT RUN, needs your Mac and phone** |
