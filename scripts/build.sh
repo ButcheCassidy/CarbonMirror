@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Builds, signs and packages CarbonMirror on the Mac (README / spec 10.4 steps B–F).
 # Usage: scripts/build.sh [--install]
+# Public release: CM_SIGN_IDENTITY="Developer ID Application: <name> (<team>)" CM_NOTARY_PROFILE=<profile> bash scripts/build.sh
 # Needs: Apple Command Line Tools, Rust (Step A-3), the "CarbonMirror Dev" certificate (scripts/make-cert.sh),
 # Resources/adb (Step A-2), and Resources/carbonmirror-server, Resources/libcarbon_core.so,
 # Resources/CarbonMirrorCompanion.apk (scripts/build-server.sh, scripts/build-apk.sh).
@@ -12,6 +13,9 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")/.." 2>/dev/null && pwd)"
 [ -f "$ROOT/Package.swift" ] || { echo "Open Terminal in the CarbonMirror folder and run: bash scripts/build.sh" >&2; exit 1; }
 cd "$ROOT"
 IDENTITY="${CM_SIGN_IDENTITY:-CarbonMirror Dev}"
+# A Developer ID certificate gets Apple's secure timestamp (needed for notarisation); the self-signed one does not.
+TIMESTAMP="--timestamp=none"
+case "$IDENTITY" in "Developer ID Application:"*) TIMESTAMP="--timestamp" ;; esac
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
 APP=build/CarbonMirror.app
 
@@ -69,8 +73,8 @@ iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/CarbonMirror.icns"
 rm -rf "$ICONSET"
 
 echo "==> Step E: sign inside-out and verify"
-codesign --force --options runtime --timestamp=none --entitlements Resources/adb-helper.entitlements --sign "$IDENTITY" "$APP/Contents/Helpers/adb"
-codesign --force --options runtime --timestamp=none --entitlements Resources/CarbonMirror.entitlements --sign "$IDENTITY" "$APP"
+codesign --force --options runtime "$TIMESTAMP" --entitlements Resources/adb-helper.entitlements --sign "$IDENTITY" "$APP/Contents/Helpers/adb"
+codesign --force --options runtime "$TIMESTAMP" --entitlements Resources/CarbonMirror.entitlements --sign "$IDENTITY" "$APP"
 codesign --verify --deep --strict --verbose=2 "$APP"
 
 echo "==> Step F: DMG"
@@ -80,8 +84,16 @@ ditto "$APP" build/dmg/CarbonMirror.app
 ln -s /Applications build/dmg/Applications
 hdiutil create -volname "CarbonMirror $VERSION" -srcfolder build/dmg -ov -format UDZO "$DMG"
 rm -rf build/dmg
-codesign --force --timestamp=none --sign "$IDENTITY" "$DMG"
+codesign --force "$TIMESTAMP" --sign "$IDENTITY" "$DMG"
 codesign --verify --verbose=2 "$DMG"
+# Optional: notarise and staple, so the DMG opens without a Gatekeeper warning on any Mac.
+# One-time: xcrun notarytool store-credentials <profile> --apple-id <id> --team-id <team> --password <app-specific password>
+if [ -n "${CM_NOTARY_PROFILE:-}" ]; then
+  echo "==> Notarising (Apple)"
+  xcrun notarytool submit "$DMG" --keychain-profile "$CM_NOTARY_PROFILE" ${CM_NOTARY_KEYCHAIN:+--keychain "$CM_NOTARY_KEYCHAIN"} --wait
+  xcrun stapler staple "$DMG"
+  spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG"
+fi
 shasum -a 256 "$DMG"
 
 if [ "${1:-}" = "--install" ]; then

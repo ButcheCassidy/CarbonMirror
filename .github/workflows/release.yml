@@ -72,6 +72,7 @@ jobs:
   mac:
     needs: phone
     runs-on: macos-26
+    environment: release
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -97,25 +98,46 @@ jobs:
           unzip -q "$RUNNER_TEMP/pt.zip" -d "$RUNNER_TEMP"
           cp "$RUNNER_TEMP/platform-tools/adb" Resources/adb
           shasum -a 256 "$RUNNER_TEMP/pt.zip"
-      - name: Ephemeral "CarbonMirror Dev" identity (exists only in this run)
+      - name: Signing identity (Developer ID from the release environment, else an ephemeral "CarbonMirror Dev")
+        env:
+          CERT_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
           umask 077
           cd "$RUNNER_TEMP"
           KC="$RUNNER_TEMP/cm.keychain-db"
           KCP="$(openssl rand -hex 24)"
-          P12P="$(openssl rand -hex 24)"
           security create-keychain -p "$KCP" "$KC"
           security set-keychain-settings -lut 3600 "$KC"
           security unlock-keychain -p "$KCP" "$KC"
           security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
-          printf '[req]\ndistinguished_name=dn\nprompt=no\n[dn]\nCN=CarbonMirror Dev\n[ext]\nbasicConstraints=critical,CA:false\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=critical,codeSigning\n' > cert.cnf
-          /usr/bin/openssl ecparam -name secp384r1 -genkey -noout -out key.pem
-          /usr/bin/openssl req -x509 -new -key key.pem -sha384 -days 30 -config cert.cnf -extensions ext -out cert.pem
-          /usr/bin/openssl pkcs12 -export -inkey key.pem -in cert.pem -name "CarbonMirror Dev" -passout "pass:$P12P" -out cert.p12
-          security import cert.p12 -k "$KC" -P "$P12P" -x -T /usr/bin/codesign
+          if [ -n "$CERT_BASE64" ]; then
+            printf '%s' "$CERT_BASE64" | base64 -D > cert.p12
+            security import cert.p12 -k "$KC" -P "$CERT_PASSWORD" -x -T /usr/bin/codesign
+            rm -f cert.p12
+          else
+            echo "::warning::No MACOS_CERT_P12_BASE64 in the release environment: ephemeral self-signed identity (Gatekeeper will warn users)."
+            P12P="$(openssl rand -hex 24)"
+            printf '[req]\ndistinguished_name=dn\nprompt=no\n[dn]\nCN=CarbonMirror Dev\n[ext]\nbasicConstraints=critical,CA:false\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=critical,codeSigning\n' > cert.cnf
+            /usr/bin/openssl ecparam -name secp384r1 -genkey -noout -out key.pem
+            /usr/bin/openssl req -x509 -new -key key.pem -sha384 -days 30 -config cert.cnf -extensions ext -out cert.pem
+            /usr/bin/openssl pkcs12 -export -inkey key.pem -in cert.pem -name "CarbonMirror Dev" -passout "pass:$P12P" -out cert.p12
+            security import cert.p12 -k "$KC" -P "$P12P" -x -T /usr/bin/codesign
+            rm -f key.pem cert.pem cert.p12 cert.cnf
+          fi
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KCP" "$KC" > /dev/null
-          rm -f key.pem cert.pem cert.p12 cert.cnf
-          cp /usr/bin/true sign-test && codesign --force --sign "CarbonMirror Dev" sign-test && codesign --verify sign-test && rm sign-test
+          IDENTITY="$(security find-identity -p codesigning "$KC" | sed -n 's/^ *1) [0-9A-F]* "\([^"]*\)".*/\1/p' | head -1)"
+          [ -n "$IDENTITY" ] || { echo "no signing identity in the keychain" >&2; exit 1; }
+          echo "CM_SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          cp /usr/bin/true sign-test && codesign --force --sign "$IDENTITY" sign-test && codesign --verify sign-test && rm sign-test
+          if [ -n "$APPLE_ID" ] && [ -n "$APPLE_TEAM_ID" ] && [ -n "$APPLE_APP_PASSWORD" ]; then
+            xcrun notarytool store-credentials cm-notary --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" --keychain "$KC"
+            echo "CM_NOTARY_PROFILE=cm-notary" >> "$GITHUB_ENV"
+            echo "CM_NOTARY_KEYCHAIN=$KC" >> "$GITHUB_ENV"
+          fi
       - name: Build, sign and package (scripts/build.sh)
         run: bash scripts/build.sh
       - name: Signature, entitlement and launch checks; screenshots
@@ -123,7 +145,7 @@ jobs:
           APP=build/CarbonMirror.app
           mkdir -p shots
           {
-            codesign -dvvv "$APP" 2>&1 | grep -E "Authority|Runtime Version|CodeDirectory|Identifier|Hash type"
+            codesign -dvvv "$APP" 2>&1 | grep -E "Authority|Runtime Version|CodeDirectory|Identifier|Hash type|Timestamp"
             codesign -d --entitlements - "$APP" 2>&1 | grep -v "^Executable"
             codesign -d --entitlements - "$APP/Contents/Helpers/adb" 2>&1 | grep -v "^Executable"
             codesign --verify --deep --strict --verbose=2 "$APP" 2>&1

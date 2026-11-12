@@ -84,6 +84,31 @@ GrapheneOS notes: its default *USB-C port: charging-only when locked* stops USB 
 
 Everything is built from the command line — no Xcode, no Homebrew. The full step-by-step guide, including signing and the sizes of everything, is in [`INSTALL.md`](INSTALL.md). The scripts run the same commands as below: `scripts/make-cert.sh` (Step A), `scripts/build-server.sh`, `scripts/build-apk.sh`, `scripts/build.sh` (Steps B–F).
 
+### Public releases that open without warnings
+Anyone downloading CarbonMirror should never sign anything. For a DMG that opens on any Mac without the "Apple could not verify…" warning, it must be signed with an Apple **Developer ID Application** certificate (Apple Developer Program) and **notarised**; the self-signed "CarbonMirror Dev" certificate always triggers the warning.
+
+One-time setup:
+1. In **Keychain Access**, right-click your *Developer ID Application* certificate → **Export…** → save as `cert.p12` with a password.
+2. Copy it as text.
+```bash
+base64 -i cert.p12 | pbcopy
+```
+3. Create an app-specific password at **account.apple.com** → Sign-In and Security → App-Specific Passwords.
+4. GitHub → repository **Settings → Environments → release → Add environment secret**, five times: `MACOS_CERT_P12_BASE64` (paste), `MACOS_CERT_PASSWORD`, `APPLE_ID`, `APPLE_TEAM_ID`, `APPLE_APP_SPECIFIC_PASSWORD`.
+5. Delete the exported file.
+```bash
+rm -P cert.p12
+```
+From then on, **Actions → Release → Run workflow** signs with your certificate, notarises and staples the DMG, and publishes it. Without these secrets the workflow still works but uses a throwaway self-signed certificate.
+
+On your own Mac the same works with `scripts/build.sh`: store the notary login once, then build.
+```bash
+xcrun notarytool store-credentials carbonmirror --apple-id <your Apple ID> --team-id <your team ID>
+```
+```bash
+CM_SIGN_IDENTITY="Developer ID Application: <your name> (<team ID>)" CM_NOTARY_PROFILE=carbonmirror bash scripts/build.sh
+```
+
 ### Quick build: one command
 From the source folder (Step 0), after installing the release DMG once (it supplies the phone parts):
 ```bash
