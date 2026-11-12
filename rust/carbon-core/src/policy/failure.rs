@@ -63,6 +63,10 @@ pub enum UiState {
     IdentityChanged = 9,
     RetryingSilently = 10,
     InsecureConnectionRefused = 11,
+    /// Auto-connect verified the pinned phone and holds an encrypted link; one button starts mirroring.
+    PhoneReady = 12,
+    /// Paired, auto-connect off: waits for USB or the Connect button.
+    NotConnected = 13,
 }
 
 /// Automatic retries allowed for failures that may be network blips rather than key problems.

@@ -23,7 +23,7 @@ public final class AppSettings {
     }
 
     public enum Key: String, CaseIterable, Sendable {
-        case connectionMode, usbFPS, usbBitrate, usbCodec, wifiFPS, wifiBitrate, wifiCodec
+        case connectionMode, autoConnect, usbFPS, usbBitrate, usbCodec, wifiFPS, wifiBitrate, wifiCodec
         case cornerFineTune, rememberSize
         case autoBlurSeconds, touchIDToReveal, typingMode, landscapeOffer, landscapeBehaviour, powerSavingWhenHidden
         case statusLine, pinAcrossSpaces, pinOnTop, phoneScreenOff, rightClickBack
@@ -74,6 +74,12 @@ public final class AppSettings {
     public var connectionMode: ConnectionMode {
         get { choice(.connectionMode, .auto) }
         set { set(newValue.rawValue, .connectionMode) }
+    }
+
+    /// At launch, find the pinned phone on a known Wi-Fi network and hold a verified link (owner addition to 6.3).
+    public var autoConnect: Bool {
+        get { bool(.autoConnect, true) }
+        set { set(newValue, .autoConnect) }
     }
 
     /// USB "Performance" profile (spec 4.5): 120 fps, H.264, 32 Mbps.
@@ -187,9 +193,9 @@ public final class AppSettings {
 
     // MARK: Security
 
-    /// Inner TLS over USB too. Owner decision (deviation from spec 7.3 "off by default"): on by default.
+    /// Inner TLS over USB too (spec 7.3): off by default; the cable is a physical link and adb USB needs the phone's approval.
     public var encryptOverUSB: Bool {
-        get { bool(.encryptOverUSB, true) }
+        get { bool(.encryptOverUSB, false) }
         set { set(newValue, .encryptOverUSB) }
     }
 

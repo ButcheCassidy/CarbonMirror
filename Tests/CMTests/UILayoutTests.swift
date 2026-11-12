@@ -73,7 +73,7 @@ struct UILayoutTests {
         #expect(s.usbProfile == .init(maxFPS: 120, bitrateMbps: 32, codec: .h264))
         #expect(s.wirelessProfile == .init(maxFPS: 60, bitrateMbps: 12, codec: .h265))
         #expect(s.clipboardSync && s.hideFromCapture && s.statusLine && s.landscapeOffer && s.rememberSize)
-        #expect(s.encryptOverUSB)
+        #expect(!s.encryptOverUSB && s.autoConnect)
         #expect(!s.touchIDToReveal && !s.phoneScreenOff && !s.pinOnTop)
         #expect(s.autoBlurSeconds == 0)
         #expect(s.idleTimeoutMinutes == 10)
