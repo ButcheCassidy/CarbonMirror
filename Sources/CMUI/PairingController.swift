@@ -163,7 +163,11 @@ final class PairingController {
         var connect: Device.Endpoint?
         for _ in 0..<5 where connect == nil {
             let found = await Bonjour.browse(type: Bonjour.connectType, for: .seconds(2)).first { $0.name == guid }
-            if let found, let address = await Bonjour.resolve(found) { connect = Device.Endpoint(ip: address.ip, port: address.port) }
+            // Only the address that just completed the password-authenticated pairing: an mDNS answer
+            // pointing elsewhere is ignored (the key captured below becomes the pin for this phone).
+            if let found, let address = await Bonjour.resolve(found), address.ip == ip {
+                connect = Device.Endpoint(ip: address.ip, port: address.port)
+            }
         }
         if connect == nil {
             let fields = EndpointPrompt.Fields(code: false, ip: ip)

@@ -77,6 +77,21 @@ struct KeyTests {
         #expect(throws: CoreStatus.trustNotPaired) { try manager.verify(serial: "3A091FDJH00ABC", keyHash: [UInt8](repeating: 0xAB, count: 32)) }
     }
 
+    @Test func deviceKeyBelongsToOnePhoneAndGoesWithIt() throws {
+        let (manager, _, _) = try Self.setup()
+        let key = try CoreCrypto.randomBytes(32)
+        #expect(manager.deviceKey(serial: "3A091FDJH00ABC") == nil)
+        try manager.storeDeviceKey(key, serial: "3A091FDJH00ABC")
+        #expect(manager.deviceKey(serial: "3A091FDJH00ABC") == key)
+        #expect(manager.deviceKey(serial: "OTHER") == nil, "another phone never inherits the key")
+        #expect(throws: CoreStatus.invalidArgument) { try manager.storeDeviceKey([1, 2, 3], serial: "3A091FDJH00ABC") }
+        try manager.forgetDevice()
+        #expect(manager.deviceKey(serial: "3A091FDJH00ABC") == nil, "Forget device removes it")
+        try manager.storeDeviceKey(key, serial: "3A091FDJH00ABC")
+        try manager.createNewKey()
+        #expect(manager.deviceKey(serial: "3A091FDJH00ABC") == nil, "Create new key removes it")
+    }
+
     @Test func tamperedAdbKeyIsDetected() throws {
         let (manager, store, dir) = try Self.setup()
         try manager.recordAdbKey()

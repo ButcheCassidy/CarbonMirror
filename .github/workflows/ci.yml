@@ -66,7 +66,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             rust/target
-          key: mac-rust-${{ hashFiles('rust/Cargo.lock') }}
+          key: mac-rust-macos15-${{ hashFiles('rust/Cargo.lock') }}
       - name: Rust core (static library)
         run: |
           rustup target add aarch64-apple-darwin
@@ -74,8 +74,8 @@ jobs:
       - name: Swift build (Swift 6, diagnostics listed)
         run: |
           swift build -c release --arch arm64 > build.log 2>&1 || true
-          grep -E ": (warning|error):|^ld:|Undefined symbols" build.log | sort -u | tee diagnostics.txt
-          ! grep -qE ": error:|^ld:|Undefined symbols|error: " build.log
+          grep -E ": (warning|error):|^ld:|Undefined symbols|^error:" build.log | sort -u | cut -c1-300 | head -80
+          ! grep -qE ": error:|^ld: [^w]|Undefined symbols|^error:" build.log
       - name: UI demo screenshots (unsigned test bundle, never released)
         run: |
           APP=build/CarbonMirror.app

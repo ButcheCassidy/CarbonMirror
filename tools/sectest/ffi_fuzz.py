@@ -98,9 +98,15 @@ def tls_client_parser(b):
         LIB.cm_tls_session_free(session)
 
 
+def hmac_verify(b):
+    """The device-key proof a wireless endpoint presents: key | data | tag split at hostile offsets."""
+    k, d = len(b) // 3, 2 * len(b) // 3
+    call(LIB.cm_hmac_sha256_verify, b[:k], k, b[k:d], d - k, b[d:], len(b) - d)
+
+
 ENTRIES = {f.__name__: f for f in [video_header, device_message, device_name, adb_parse_devices, adb_track_frame,
                                     net_check_ip, net_check_endpoint, adb_validate, annexb, corner_radius,
-                                    clipboard, probe_classify, tls_client_parser]}
+                                    clipboard, probe_classify, tls_client_parser, hmac_verify]}
 
 # Raw bytes, plus inputs shaped like real messages with hostile length fields (up to 2^32-1).
 lengths = st.sampled_from([0, 1, 255, 256, 65535, 1 << 20, (1 << 20) + 1, 1 << 23, (1 << 31) - 1, (1 << 32) - 1]) | st.integers(0, (1 << 32) - 1)

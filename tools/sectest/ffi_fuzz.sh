@@ -11,7 +11,7 @@ SECONDS_EACH="${1:-120}"
 cargo build -q --release --manifest-path rust/Cargo.toml || exit 1
 PY="$HOME/carbonmirror-deps/venv/bin/python"
 LIB="rust/target/release/libcarbon_core.so"
-ENTRIES="video_header device_message device_name adb_parse_devices adb_track_frame net_check_ip net_check_endpoint adb_validate annexb corner_radius clipboard probe_classify tls_client_parser"
+ENTRIES="video_header device_message device_name adb_parse_devices adb_track_frame net_check_ip net_check_endpoint adb_validate annexb corner_radius clipboard probe_classify tls_client_parser hmac_verify"
 status=0
 echo "$ENTRIES" | tr ' ' '\n' | xargs -P 4 -I{} "$PY" -I tools/sectest/ffi_fuzz.py "$LIB" {} "$SECONDS_EACH" || status=1
 exit "$status"

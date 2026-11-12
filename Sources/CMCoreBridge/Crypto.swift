@@ -33,6 +33,28 @@ public enum CoreCrypto {
         try check(code)
     }
 
+    /// HMAC-SHA-256 of `data` under `key`.
+    public static func hmacSHA256(key: [UInt8], _ data: [UInt8]) throws(CoreStatus) -> [UInt8] {
+        var out = [UInt8](repeating: 0, count: Int(SHA256_LEN))
+        let code = key.withUnsafeBufferPointer { k in
+            data.withUnsafeBufferPointer { d in
+                out.withUnsafeMutableBufferPointer { cm_hmac_sha256(k.baseAddress, k.count, d.baseAddress, d.count, $0.baseAddress) }
+            }
+        }
+        try check(code)
+        return out
+    }
+
+    /// Throws `digestMismatch` unless `tag` is the HMAC-SHA-256 of `data` under `key` (constant-time compare).
+    public static func verifyHMACSHA256(key: [UInt8], _ data: [UInt8], tag: [UInt8]) throws(CoreStatus) {
+        let code = key.withUnsafeBufferPointer { k in
+            data.withUnsafeBufferPointer { d in
+                tag.withUnsafeBufferPointer { t in cm_hmac_sha256_verify(k.baseAddress, k.count, d.baseAddress, d.count, t.baseAddress, t.count) }
+            }
+        }
+        try check(code)
+    }
+
     /// Parses 64 hex characters into 32 bytes.
     public static func bytes(fromHex hex: String) throws(CoreStatus) -> [UInt8] {
         let chars = Array(hex.utf8)

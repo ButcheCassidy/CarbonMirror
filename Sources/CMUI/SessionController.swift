@@ -37,6 +37,8 @@ final class SessionController {
 
     private var session: MirrorSession?
     private var sessionSerial: String?
+    /// A new device key sent with the running USB session; kept once that session has connected.
+    private var pendingDeviceKey: [UInt8]?
     private var transport: StatusLine.Transport?
     private var sessionLive = false
     private var encrypted = false
@@ -291,13 +293,17 @@ final class SessionController {
             encryption = nil
         }
         if !wireless { maxFPS = profile.maxFPS }
+        // USB provisions the device key (a new one until the first USB session has connected); wireless must prove it.
+        let stored = (wireless ? pinned?.serial : serial).flatMap { services.keys.deviceKey(serial: $0) }
+        let deviceKey = stored ?? (wireless ? nil : try? CoreCrypto.randomBytes(32))
+        pendingDeviceKey = stored == nil ? deviceKey : nil
         let codec: VideoCodec = profile.codec == .h265 && !h265Failed ? .h265 : .h264
         requestedMaxSize = wireless ? AdaptiveProfile.sizeSteps[0] : maxSize
         let parameters = SessionParameters(serial: serial, wireless: wireless,
                                            serverVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0",
                                            codec: codec, maxSize: requestedMaxSize,
                                            maxFPS: wireless ? profile.maxFPS : maxFPS, bitRate: profile.bitrateMbps * 1_000_000,
-                                           clipboardSync: settings.clipboardSync, encryption: encryption)
+                                           clipboardSync: settings.clipboardSync, encryption: encryption, deviceKey: deviceKey)
         let session = MirrorSession(parameters: parameters, link: services.link, connector: { path in try await POSIXStream.connect(unixPath: path) },
                                     video: decoder)
         self.session = session
@@ -321,6 +327,10 @@ final class SessionController {
         switch event {
         case let .connected(_, codec, suite, group):
             sessionLive = true
+            if let key = pendingDeviceKey, let serial = sessionSerial {
+                try? services?.keys.storeDeviceKey(key, serial: serial)
+                pendingDeviceKey = nil
+            }
             self.codec = codec
             tls = suite.flatMap { s in group.map { (suite: s, group: $0) } }
             reconnectTask?.cancel()
