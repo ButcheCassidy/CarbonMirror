@@ -38,7 +38,7 @@ jobs:
           cargo install cargo-ndk --version 4.1.2 --locked
       - name: Server and phone core library
         run: bash scripts/build-server.sh
-      - name: Companion APK (release key from the release environment)
+      - name: Companion APK (release key from the release environment, else a one-time key)
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           CM_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -47,9 +47,18 @@ jobs:
         run: |
           umask 077
           export CM_KEYSTORE="$RUNNER_TEMP/release.keystore"
-          export CM_KEY_PASS="${CM_KEY_PASS:-$CM_KEYSTORE_PASS}"
-          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$CM_KEYSTORE"
           trap 'rm -f "$CM_KEYSTORE"' EXIT
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            export CM_KEY_PASS="${CM_KEY_PASS:-$CM_KEYSTORE_PASS}"
+            printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$CM_KEYSTORE"
+          else
+            echo "::warning::No release keystore in the release environment: signing with a one-time P-384 key that is discarded after this run."
+            export CM_KEYSTORE_PASS="$(openssl rand -hex 32)" CM_KEY_ALIAS=carbonmirror
+            export CM_KEY_PASS="$CM_KEYSTORE_PASS"
+            keytool -genkeypair -keyalg EC -groupname secp384r1 -sigalg SHA384withECDSA -validity 10000 \
+              -dname "CN=CarbonMirror Companion one-time release key" -alias carbonmirror -storetype PKCS12 \
+              -keystore "$CM_KEYSTORE" -storepass:env CM_KEYSTORE_PASS > /dev/null
+          fi
           bash scripts/build-apk.sh
       - uses: actions/upload-artifact@v4
         with:
