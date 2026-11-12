@@ -15,7 +15,7 @@ git config user.email "354005634+ButcheCassidy@users.noreply.github.com"
 ## Workflow
 - All work is committed and pushed directly to `main`. No feature branches, no PRs.
 - Before committing: `git pull --ff-only origin main`; run the relevant build/tests; never force-push `main`.
-- Releases: see `docs/RELEASING.md` (tag `vX.Y.Z` or run the Release workflow).
+- Releases: Actions → Release → Run workflow (manual only; `publish` tags `v<CFBundleShortVersionString>` and publishes). APK signed with the `release` environment secrets, DMG with an ephemeral "CarbonMirror Dev" identity.
 
 ## Security / encryption
 - Never commit secrets, keystores, `.p12`, `.env`, `local.properties`. Secrets live in GitHub Environment `release`.
