@@ -2,4 +2,16 @@
 <resources>
     <string name="app_name">CarbonMirror Companion</string>
     <string name="tile_label">CarbonMirror</string>
+    <string name="state_off">Off</string>
+    <string name="state_ready">Ready</string>
+    <string name="state_mirroring">Mirroring</string>
+    <string name="hint_off">Turn on Wireless debugging to connect without a cable.</string>
+    <string name="hint_ready">Wireless debugging is on. Open CarbonMirror on your Mac.</string>
+    <string name="hint_mirroring">Your phone is showing on your Mac.</string>
+    <string name="hint_setup">Turn on Developer options and USB debugging, then connect to your Mac with a cable once. CarbonMirror finishes the setup.</string>
+    <string name="turn_on">Turn on</string>
+    <string name="turn_off">Turn off</string>
+    <string name="developer_options">Developer options</string>
+    <string name="add_tile">Add Quick Settings tile</string>
+    <string name="tile_already_added">The tile is already in Quick Settings.</string>
 </resources>

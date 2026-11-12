@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Adaptive icon (spec 8.1): solid black background, the two phones + grid from the SVG, white outlines for themed icons. -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@color/ic_background" />
+    <background android:drawable="@color/black" />
     <foreground android:drawable="@drawable/ic_foreground" />
     <monochrome android:drawable="@drawable/ic_monochrome" />
 </adaptive-icon>

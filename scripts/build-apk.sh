@@ -30,7 +30,10 @@ rm -rf "$BUILD"
 mkdir -p "$BUILD/gen" "$BUILD/classes" "$BUILD/dex" dist Resources
 
 echo "==> aapt2 ($VERSION, code $VERSION_CODE)"
-"$BT/aapt2" compile --dir companion/res -o "$BUILD/res.zip"
+cp -R companion/res "$BUILD/res"
+mkdir -p "$BUILD/res/raw"
+cp Resources/CarbonMirror-startup.mp4 "$BUILD/res/raw/startup.mp4"
+"$BT/aapt2" compile --dir "$BUILD/res" -o "$BUILD/res.zip"
 "$BT/aapt2" link -I "$ANDROID_JAR" --manifest companion/AndroidManifest.xml --min-sdk-version 30 --target-sdk-version 36 \
   --version-code "$VERSION_CODE" --version-name "$VERSION" --java "$BUILD/gen" -o "$BUILD/unaligned.apk" "$BUILD/res.zip"
 
