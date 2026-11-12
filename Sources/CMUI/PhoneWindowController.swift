@@ -136,6 +136,13 @@ final class PhoneWindowController: NSObject, NSWindowDelegate {
         window.setFrame(frame, display: true, animate: animated)
     }
 
+    /// "1:1 = 351 × 782 pt" for Settings → Display.
+    func realSizeDescription() -> String {
+        guard let screen = window.screen ?? NSScreen.main else { return "–" }
+        let real = sizer.realSize(on: screen)
+        return "1:1 = \(Int(real.width.rounded())) × \(Int(real.height.rounded())) pt (\(Int(sizer.pointsPerInch(on: screen).rounded())) pt per inch)"
+    }
+
     /// ⌘0: real size.
     func snapToRealSize() {
         setScale(1)

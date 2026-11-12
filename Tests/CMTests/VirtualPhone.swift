@@ -178,7 +178,7 @@ final class VirtualPhone: @unchecked Sendable {
             identity = id
             if attack == .wrongPin { pin[0] ^= 0xFF }
             lineContinuation.yield("[server] INFO: Device: [Google] google Pixel 10 Pro XL (Android 16)")
-            lineContinuation.yield("CM-PIN " + MirrorSession.hex(pin))
+            lineContinuation.yield("CM-PIN " + CoreCrypto.hex(pin))
         }
         Thread.detachNewThread { [self] in
             Task { await self.serve() }

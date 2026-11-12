@@ -106,21 +106,23 @@ public actor MirrorSession {
     // MARK: Lifecycle
 
     public func start() async throws(SessionEnd) {
-        if parameters.wireless && parameters.encryption == nil {
-            throw .tlsFailed(.tlsPolicyViolation)
-        }
-        do {
-            try await link.prepare(serial: parameters.serial)
-        } catch {
-            throw .deployFailed
-        }
-        if let radius = await link.cornerRadius(serial: parameters.serial) {
-            eventSink.yield(.cornerRadius(pixels: radius))
-        }
-        do {
+        do throws(SessionEnd) {
+            if parameters.wireless && parameters.encryption == nil {
+                throw SessionEnd.tlsFailed(.tlsPolicyViolation)
+            }
+            do {
+                try await link.prepare(serial: parameters.serial)
+            } catch {
+                throw SessionEnd.deployFailed
+            }
+            if let radius = await link.cornerRadius(serial: parameters.serial) {
+                eventSink.yield(.cornerRadius(pixels: radius))
+            }
             try await connect()
         } catch {
+            ended = true
             await teardown()
+            eventSink.finish()
             throw error
         }
         Log.info(.transport, "session started", ["wireless": parameters.wireless ? "yes" : "no", "tls": parameters.encryption != nil ? "yes" : "no"])
@@ -146,7 +148,7 @@ public actor MirrorSession {
                                     stayAwake: true)
         let mode = parameters.encryption == nil ? "plain" : "tls"
         let ca = parameters.encryption.map { Data($0.macCA).base64EncodedString() } ?? "-"
-        let setup = "CM1 \(mode) \(Self.hex(secret)) \(ca)\n"
+        let setup = "CM1 \(mode) \(CoreCrypto.hex(secret)) \(ca)\n"
         let handle: any ServerHandle
         do {
             handle = try await link.startServer(serial: parameters.serial, options: options, setupLine: setup)
@@ -407,12 +409,5 @@ public actor MirrorSession {
         server = nil
         if port != 0 { await link.removeForward(serial: parameters.serial, port: port) }
         await link.cleanup(serial: parameters.serial)
-    }
-
-    static func hex(_ bytes: [UInt8]) -> String {
-        bytes.map { b in
-            let s = String(b, radix: 16)
-            return s.count == 1 ? "0" + s : s
-        }.joined()
     }
 }

@@ -14,7 +14,12 @@ public enum CoreCrypto {
 
     /// Lower-case hex SHA-256 of `data`.
     public static func sha256Hex(_ data: [UInt8]) throws(CoreStatus) -> String {
-        try sha256(data).map { byte in
+        hex(try sha256(data))
+    }
+
+    /// Lower-case hex of `bytes`.
+    public static func hex(_ bytes: [UInt8]) -> String {
+        bytes.map { byte in
             let s = String(byte, radix: 16)
             return s.count == 1 ? "0" + s : s
         }.joined()

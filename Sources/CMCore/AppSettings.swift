@@ -28,7 +28,7 @@ public final class AppSettings {
         case autoBlurSeconds, touchIDToReveal, typingMode, landscapeOffer, landscapeBehaviour, powerSavingWhenHidden
         case statusLine, pinAcrossSpaces, pinOnTop, phoneScreenOff, rightClickBack
         case encryptOverUSB, idleTimeoutMinutes, hideFromCapture, clipboardSync, rotationReminderDays, lastKeyRotation
-        case showDebugHUD
+        case showDebugHUD, macPinResetPending, companionInstalled
     }
 
     /// Allowed values offered in Settings.
@@ -84,9 +84,10 @@ public final class AppSettings {
                     codec: choice(.usbCodec, .h264))
         }
         set {
-            set(newValue.maxFPS, .usbFPS)
-            set(newValue.bitrateMbps, .usbBitrate)
-            set(newValue.codec.rawValue, .usbCodec)
+            let old = usbProfile
+            if newValue.maxFPS != old.maxFPS { set(newValue.maxFPS, .usbFPS) }
+            if newValue.bitrateMbps != old.bitrateMbps { set(newValue.bitrateMbps, .usbBitrate) }
+            if newValue.codec != old.codec { set(newValue.codec.rawValue, .usbCodec) }
         }
     }
 
@@ -98,9 +99,10 @@ public final class AppSettings {
                     codec: choice(.wifiCodec, .h265))
         }
         set {
-            set(newValue.maxFPS, .wifiFPS)
-            set(newValue.bitrateMbps, .wifiBitrate)
-            set(newValue.codec.rawValue, .wifiCodec)
+            let old = wirelessProfile
+            if newValue.maxFPS != old.maxFPS { set(newValue.maxFPS, .wifiFPS) }
+            if newValue.bitrateMbps != old.bitrateMbps { set(newValue.bitrateMbps, .wifiBitrate) }
+            if newValue.codec != old.codec { set(newValue.codec.rawValue, .wifiCodec) }
         }
     }
 
@@ -217,6 +219,18 @@ public final class AppSettings {
     public var lastKeyRotation: Date? {
         get { defaults.object(forKey: Key.lastKeyRotation.rawValue) as? Date }
         set { set(newValue, .lastKeyRotation) }
+    }
+
+    /// After "Create new key": the phone still pins the old Mac identity until the next session removes it.
+    public var macPinResetPending: Bool {
+        get { bool(.macPinResetPending, false) }
+        set { set(newValue, .macPinResetPending) }
+    }
+
+    /// The companion APK was installed from this Mac (its permission is re-granted on every USB connect).
+    public var companionInstalled: Bool {
+        get { bool(.companionInstalled, false) }
+        set { set(newValue, .companionInstalled) }
     }
 
     /// True when the rotation reminder is due at `now`.

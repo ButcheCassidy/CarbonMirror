@@ -31,6 +31,58 @@ final class PillButton: NSButton {
     }
 }
 
+/// "Switch to landscape · Not now" (spec 8.2.6): a small monochrome pill at the top of the screen.
+@MainActor
+final class LandscapeOfferView: NSView {
+    var onAccept: (() -> Void)?
+    var onDismiss: (() -> Void)?
+
+    private let row = NSStackView()
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        layer?.cornerCurve = .continuous
+        layer?.backgroundColor = NSColor(white: 0.12, alpha: 0.92).cgColor
+        layer?.borderWidth = 1
+        layer?.borderColor = Theme.hairline.cgColor
+        row.orientation = .horizontal
+        row.spacing = 6
+        row.edgeInsets = NSEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
+        row.addArrangedSubview(link("Switch to landscape", #selector(accept)))
+        let dot = NSTextField(labelWithString: "·")
+        dot.font = Theme.pillFont
+        dot.textColor = Theme.secondaryText
+        row.addArrangedSubview(dot)
+        row.addArrangedSubview(link("Not now", #selector(dismiss)))
+        addSubview(row)
+        isHidden = true
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
+
+    private func link(_ title: String, _ action: Selector) -> NSButton {
+        let button = NSButton(title: title, target: self, action: action)
+        button.isBordered = false
+        button.attributedTitle = NSAttributedString(string: title, attributes: [.font: Theme.pillFont, .foregroundColor: Theme.primaryText])
+        return button
+    }
+
+    override var fittingSize: NSSize {
+        NSSize(width: row.fittingSize.width, height: 28)
+    }
+
+    override func layout() {
+        super.layout()
+        row.frame = bounds
+        layer?.cornerRadius = bounds.height / 2
+    }
+
+    @objc private func accept() { onAccept?() }
+    @objc private func dismiss() { onDismiss?() }
+}
+
 /// Centred glyph + bold title + one-line subtitle + grey pill buttons (spec 2.4), on Liquid Glass
 /// (`NSGlassEffectView`, macOS 26+) or a dark behind-window blur on macOS 15–25. Only shown while not
 /// connected; while mirroring this view is hidden and the screen is fully opaque.
@@ -129,6 +181,11 @@ final class StatusView: NSView {
         }
         needsLayout = true
         setAccessibilityLabel("\(content.title). \(content.subtitle)")
+    }
+
+    /// Keeps only the glass (another view draws on it).
+    func setContentHidden(_ hidden: Bool) {
+        stack.isHidden = hidden
     }
 
     override func layout() {

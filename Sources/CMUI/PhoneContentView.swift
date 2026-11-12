@@ -7,6 +7,7 @@ import CMCore
 @MainActor
 final class ScreenView: NSView {
     let statusView = StatusView()
+    let landscapeOffer = LandscapeOfferView()
     /// Video surface (Metal layer view); installed once the media pipeline exists.
     private(set) var videoView: NSView?
 
@@ -19,16 +20,26 @@ final class ScreenView: NSView {
         statusView.autoresizingMask = [.width, .height]
         statusView.frame = bounds
         addSubview(statusView)
+        addSubview(landscapeOffer)
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { nil }
+
+    /// Landscape offer pill: centred, 12 pt below the top edge, never wider than the screen minus margins.
+    override func layout() {
+        super.layout()
+        let size = landscapeOffer.fittingSize
+        let width = min(size.width, max(0, bounds.width - 24))
+        landscapeOffer.frame = NSRect(x: (bounds.width - width) / 2, y: bounds.height - 12 - size.height, width: width, height: size.height)
+    }
 
     func install(videoView view: NSView) {
         videoView?.removeFromSuperview()
         view.frame = bounds
         view.autoresizingMask = [.width, .height]
         addSubview(view, positioned: .below, relativeTo: statusView)
+        addSubview(landscapeOffer, positioned: .above, relativeTo: statusView)
         videoView = view
     }
 
@@ -39,17 +50,30 @@ final class ScreenView: NSView {
         }
     }
 
+    private var status: StatusContent?
+    private var overlay: NSView?
+
     /// Status screens sit on glass (clear fill); mirroring is fully opaque black.
     func showStatus(_ content: StatusContent?) {
-        if let content {
-            statusView.show(content)
-            statusView.isHidden = false
-            layer?.backgroundColor = NSColor.clear.cgColor
-        } else {
-            statusView.isHidden = true
-            layer?.backgroundColor = Theme.background.cgColor
+        status = content
+        let glass = content != nil || overlay != nil
+        if let content { statusView.show(content) }
+        statusView.isHidden = !glass
+        statusView.setContentHidden(overlay != nil)
+        layer?.backgroundColor = (glass ? NSColor.clear : Theme.background).cgColor
+        videoView?.isHidden = glass
+    }
+
+    /// A full-screen view on the status glass (QR pairing); nil returns to the current state.
+    func showOverlay(_ view: NSView?) {
+        overlay?.removeFromSuperview()
+        overlay = view
+        if let view {
+            view.frame = bounds
+            view.autoresizingMask = [.width, .height]
+            addSubview(view, positioned: .above, relativeTo: statusView)
         }
-        videoView?.isHidden = content != nil
+        showStatus(status)
     }
 
     /// 1 px inner hairline while the chrome is shown.
