@@ -366,22 +366,24 @@ final class SessionController {
 
     /// Probe (route, plaintext refusal), pinned adb TLS key, then `adb connect`; remembers the endpoint for this network.
     private func link(_ endpoint: Device.Endpoint) async -> AutoConnect.Verification {
-        guard let services, let device = pinned, let pins = device.pins else { return .unreachable }
+        guard let services, let device = pinned, let pins = device.pins, stillWanted(endpoint) else { return .unreachable }
         switch await WirelessProbe.probe(ip: endpoint.ip, port: endpoint.port) {
         case let .wirelessDebugging(keyHash):
             do {
                 try services.keys.verify(serial: pins.serial, keyHash: keyHash)
             } catch {
-                show(failure: error == .trustIdentityChanged ? .pinMismatchKnownDevice : .unknownDevice)
+                showIfIdle(failure: error == .trustIdentityChanged ? .pinMismatchKnownDevice : .unknownDevice)
                 return .refused
             }
         case .plaintextRefused:
-            show(failure: .legacyPlaintextOffered)
+            showIfIdle(failure: .legacyPlaintextOffered)
             return .refused
         case .viaTunnel, .unreachable, .notAdb, .refusedAddress:
             return .unreachable
         }
-        guard (try? await services.runner.runChecked(.connect(ip: endpoint.ip, port: endpoint.port), timeout: 10)) != nil,
+        // Conditions may have changed during the probe (lock, sleep, USB, network): never connect then.
+        guard stillWanted(endpoint),
+              (try? await services.runner.runChecked(.connect(ip: endpoint.ip, port: endpoint.port), timeout: 10)) != nil,
               await waitForDevice(Self.adbSerial(endpoint)) else { return .unreachable }
         if let key = currentNetworkKey() {
             var updated = device
@@ -389,6 +391,16 @@ final class SessionController {
             try? services.keys.pin(updated)
         }
         return .linked
+    }
+
+    private func stillWanted(_ endpoint: Device.Endpoint) -> Bool {
+        auto.phase == .verifying(endpoint) && !macLocked && !macAsleep && autoConditions().busy == false
+    }
+
+    /// An auto-connect refusal never covers a session that started meanwhile.
+    private func showIfIdle(failure: FailureClass) {
+        guard session == nil, !connecting else { return }
+        show(failure: failure)
     }
 
     /// The "Mirror" button on the Ready screen.

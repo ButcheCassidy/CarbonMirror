@@ -14,6 +14,7 @@ import android.net.ConnectivityManager;
 import android.net.LinkProperties;
 import android.net.Network;
 import android.net.NetworkCapabilities;
+import android.net.NetworkRequest;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -43,18 +44,11 @@ public final class ReadyService extends Service {
         }
     };
 
+    /** The Wi-Fi network itself, not the default one: with Mullvad always on the default network is the VPN. */
     private final ConnectivityManager.NetworkCallback network = new ConnectivityManager.NetworkCallback() {
         @Override
-        public void onCapabilitiesChanged(Network n, NetworkCapabilities caps) {
-            if (!caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                changed(null);
-            }
-        }
-
-        @Override
         public void onLinkPropertiesChanged(Network n, LinkProperties properties) {
-            NetworkCapabilities caps = connectivity.getNetworkCapabilities(n);
-            changed(caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ? TrustedNetworks.subnet(properties) : null);
+            changed(TrustedNetworks.subnet(properties));
         }
 
         @Override
@@ -80,7 +74,9 @@ public final class ReadyService extends Service {
         startForeground(NOTIFICATION, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
         if (!registered) {
             WirelessDebugging.observe(this, settings);
-            connectivity.registerDefaultNetworkCallback(network, main);
+            // Wi-Fi with or without internet access; VPNs are excluded by the request's default NOT_VPN capability.
+            connectivity.registerNetworkCallback(new NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                    .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build(), network, main);
             registered = true;
         }
         scheduleWatchdog();
@@ -161,6 +157,7 @@ public final class ReadyService extends Service {
                 .setContentText(getString(text))
                 .setContentIntent(open)
                 .setOngoing(true)
+                .setVisibility(Notification.VISIBILITY_SECRET)
                 .setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
                 .build();
     }
