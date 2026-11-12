@@ -118,7 +118,11 @@ It creates the certificate, fetches and checks Google's adb, installs Rust, copi
 
 ### Step 0. Every Terminal window: go to the project folder
 Every command below runs **inside the project folder**; a new Terminal window starts in your home folder, so do this first each time.
-Download `CarbonMirror-<version>-source.zip` from the release page in Safari, then unpack it into your home folder (skip this if Safari already made a `CarbonMirror-<version>` folder in Downloads — move that folder to your home folder instead).
+Easiest: clone it (then `cd ~/CarbonMirror` instead of the two commands below).
+```bash
+git clone https://github.com/ButcheCassidy/CarbonMirror.git ~/CarbonMirror
+```
+Or download `CarbonMirror-<version>-source.zip` from the release page in Safari, then unpack it into your home folder (skip this if Safari already made a `CarbonMirror-<version>` folder in Downloads — move that folder to your home folder instead).
 ```bash
 ditto -x -k ~/Downloads/CarbonMirror-1.0.0-source.zip ~/
 ```

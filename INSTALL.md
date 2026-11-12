@@ -69,6 +69,29 @@ rustup self uninstall
 
 You should see: the startup animation (3 seconds, on black, centred in the phone-shaped window), then the window saying "Not paired" (or your phone if it is plugged in), and a two-phone icon in the menu bar.
 
+### 4a. Or build it yourself from GitHub (one folder, one command)
+Install Apple's Command Line Tools (includes `git`; skip if already installed).
+```bash
+xcode-select --install
+```
+Download the source into a folder in your home folder.
+```bash
+git clone https://github.com/ButcheCassidy/CarbonMirror.git ~/CarbonMirror
+```
+Go into it (do this first in every new Terminal window).
+```bash
+cd ~/CarbonMirror
+```
+Get the latest changes later on.
+```bash
+git pull
+```
+Build, sign, make the DMG and install (needs the release app in Applications once for the phone parts; see README "Quick build").
+```bash
+bash scripts/build-mac.sh --install
+```
+You should see `valid on disk`, `satisfies its Designated Requirement` and a SHA-256 line for `dist/CarbonMirror-<version>.dmg`; CarbonMirror opens. If the repository is private, `git clone` asks for your GitHub username and a personal access token (GitHub → Settings → Developer settings → Personal access tokens) instead of your password.
+
 ## 5. Phone setup (GrapheneOS and stock Android)
 
 1. **Developer options:** Settings → About phone → tap **Build number** 7 times. (GrapheneOS: only in the Owner profile.)
