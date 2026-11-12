@@ -4,7 +4,11 @@
 # a correct TLS 1.3 client without the pinned Mac certificate (mutual authentication). Exit 0 = all refused.
 set -uo pipefail
 
-cd "$(dirname "$0")/../.."
+# Find the repository whether the script is run, sourced or started from another folder.
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")/../.." 2>/dev/null && pwd)"
+[ -f "$ROOT/Package.swift" ] || ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+[ -f "$ROOT/Package.swift" ] || { echo "Open Terminal in the CarbonMirror folder and run: bash tools/sectest/tls_downgrade.sh" >&2; exit 1; }
+cd "$ROOT"
 PORT="${1:-47311}"
 cargo build -q --release --example tls_endpoint --manifest-path rust/Cargo.toml || exit 1
 LOG="$(mktemp)"

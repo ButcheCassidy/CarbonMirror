@@ -7,8 +7,12 @@
 # Nothing is downloaded here; SDK pieces are installed once by scripts/setup-env.sh (Linux) or by hand (Mac).
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
-ROOT="$PWD"
+# Find the repository whether the script is run, sourced or started from another folder.
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")/.." 2>/dev/null && pwd)"
+[ -f "$ROOT/Package.swift" ] || ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+[ -f "$ROOT/Package.swift" ] || { echo "Open Terminal in the CarbonMirror folder and run: bash scripts/build-server.sh" >&2; exit 1; }
+cd "$ROOT"
+
 SERVER_VERSION="$(grep -A1 '<key>CFBundleShortVersionString</key>' Resources/Info.plist | sed -n 's/.*<string>\(.*\)<\/string>.*/\1/p')"
 PLATFORM="${ANDROID_PLATFORM:-android-36}"
 BUILD_TOOLS="${ANDROID_BUILD_TOOLS:-36.0.0}"

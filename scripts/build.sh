@@ -6,7 +6,11 @@
 # Resources/CarbonMirrorCompanion.apk (scripts/build-server.sh, scripts/build-apk.sh).
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+# Find the repository whether the script is run, sourced or started from another folder.
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")/.." 2>/dev/null && pwd)"
+[ -f "$ROOT/Package.swift" ] || ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+[ -f "$ROOT/Package.swift" ] || { echo "Open Terminal in the CarbonMirror folder and run: bash scripts/build.sh" >&2; exit 1; }
+cd "$ROOT"
 IDENTITY="${CM_SIGN_IDENTITY:-CarbonMirror Dev}"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
 APP=build/CarbonMirror.app
