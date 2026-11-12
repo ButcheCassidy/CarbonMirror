@@ -44,6 +44,20 @@ public final class ChildProcesses: Sendable {
         for pid in live where kill(pid, 0) == 0 { kill(pid, SIGKILL) }
     }
 
+    /// Stops one child: SIGTERM, then SIGKILL after `grace`. Needed because children inherit the app's
+    /// `SIG_IGN` for SIGTERM (set for the signal sources below), so SIGTERM alone may be ignored.
+    public func stop(_ pid: Int32, grace: TimeInterval = 0.5) {
+        guard pid > 0 else { return }
+        remove(pid)
+        guard kill(pid, SIGTERM) == 0 else { return }
+        let deadline = Date().addingTimeInterval(grace)
+        while Date() < deadline, kill(pid, 0) == 0 {
+            if waitpid(pid, nil, WNOHANG) == pid { return }
+            usleep(20_000)
+        }
+        if kill(pid, 0) == 0 { kill(pid, SIGKILL) }
+    }
+
     /// Kills all children and exits when the app receives SIGTERM, SIGINT or SIGHUP.
     public func installSignalHandlers() {
         signalSources.withLock { sources in

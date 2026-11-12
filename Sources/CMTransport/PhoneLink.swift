@@ -69,10 +69,8 @@ final class AdbServerProcess: ServerHandle, @unchecked Sendable {
     }
 
     func terminate() {
-        let pid = process.processIdentifier
-        if process.isRunning { kill(pid, SIGTERM) }
         try? stdin.fileHandleForWriting.close()
-        ChildProcesses.shared.remove(pid)
+        if process.isRunning { ChildProcesses.shared.stop(process.processIdentifier) }
     }
 }
 
