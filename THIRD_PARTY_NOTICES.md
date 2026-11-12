@@ -21,8 +21,8 @@ It contains or links the third-party software below, each under its own licence.
 | aws-lc-sys (AWS-LC, includes BoringSSL/OpenSSL-derived code) | 0.47.0 | ISC AND (Apache-2.0 OR ISC) AND Apache-2.0 AND MIT AND BSD-3-Clause AND (Apache-2.0 OR ISC OR MIT) AND (Apache-2.0 OR ISC OR MIT-0) |
 | rcgen | 0.14.7 | MIT OR Apache-2.0 |
 | yasna | 0.5.2 | MIT OR Apache-2.0 |
-| time / time-core | 0.3.45 / 0.1.7 | MIT OR Apache-2.0 |
-| deranged, num-conv, powerfmt | 0.5.9, 0.1.0, 0.2.1 | MIT OR Apache-2.0 |
+| time / time-core | 0.3.55 / 0.1.9 | MIT OR Apache-2.0 |
+| deranged, num-conv, powerfmt | 0.5.9, 0.2.2, 0.2.1 | MIT OR Apache-2.0 |
 | zeroize / zeroize_derive | 1.9.1 / 1.5.0 | Apache-2.0 OR MIT |
 | subtle | 2.6.1 | BSD-3-Clause |
 | untrusted | 0.7.1, 0.9.0 | ISC |
