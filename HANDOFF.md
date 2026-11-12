@@ -61,8 +61,8 @@
 Everything in `REAL_DEVICE_CHECKS.md` A–F; the 1.0.1 deadlock fix on the real Pixel (Android 17, CP3A); companion service on device (battery, reboot, OS update, per-network prompt); Android 11 swipe; Developer ID/notarisation path; performance targets.
 
 ### Next steps
-1. Confirm v1.0.1 is published (else re-run Release with publish = true).
-2. User: `cd ~/CarbonMirror && git pull && bash scripts/build-mac.sh --install` (or install the v1.0.1 DMG), mirror over USB; if no picture, send `log show --last 15m --predicate 'subsystem == "com.nomadicrebel.carbonmirror"' | tail -40` (now includes the phone server's stop reason).
+1. v1.0.1 is **not published yet**: run 9's macOS job never got a GitHub `macos-26` runner (queued, auto-cancelled after 15 min, re-run queued again; no logs, so likely runner capacity or the account's macOS minutes/billing — check github.com/settings/billing). Re-run **Actions → Release → Run workflow (publish = true)** later.
+2. Until then the user builds 1.0.1 locally: download run 9's **phone** artifact (Actions → Release → run 9 → Artifacts → phone), unpack it in Downloads (`~/Downloads/phone/Resources/…`), then `cd ~/CarbonMirror && git pull && bash scripts/build-mac.sh --install` (the script now replaces phone parts of another version via `Resources/phone-parts.version`); reinstall the companion (Settings → Connection → Install over USB…); mirror over USB; if no picture, send `log show --last 15m --predicate 'subsystem == "com.nomadicrebel.carbonmirror"' | tail -40` (now includes the phone server's stop reason).
 3. Run `REAL_DEVICE_CHECKS.md` A–F; record results in RELEASE_CHECK.md.
 4. Add the `release` secrets (APK keystore; Developer ID + notarisation) before a public release.
 5. Later: ML-DSA signatures when rcgen/webpki/Keychain support them.

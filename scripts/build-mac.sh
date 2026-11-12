@@ -53,11 +53,17 @@ parts_from_dmg() {
   rmdir "$mount" 2> /dev/null || true
   return $ok
 }
+# Parts are reused only when they belong to this version (marker written below); otherwise fetched again.
 missing=0
+[ "$(cat Resources/phone-parts.version 2> /dev/null)" = "$VERSION" ] || missing=1
 for part in $PARTS; do [ -f "Resources/$part" ] || missing=1; done
 if [ "$missing" = 1 ]; then
   DMG="$HOME/Downloads/CarbonMirror-$VERSION.dmg"
-  if ! parts_from /Applications/CarbonMirror.app && ! { [ -f "$DMG" ] && parts_from_dmg "$DMG"; }; then
+  # The release workflow's "phone" artifact (Actions → Release run → Artifacts → phone), unpacked in Downloads.
+  ARTIFACT="$HOME/Downloads/phone/Resources"
+  if [ -f "$ARTIFACT/carbonmirror-server" ] && [ -f "$ARTIFACT/libcarbon_core.so" ] && [ -f "$ARTIFACT/CarbonMirrorCompanion.apk" ]; then
+    for part in $PARTS; do cp "$ARTIFACT/$part" "Resources/$part" && xattr -c "Resources/$part"; done
+  elif ! parts_from /Applications/CarbonMirror.app && ! { [ -f "$DMG" ] && parts_from_dmg "$DMG"; }; then
     mkdir -p deps
     curl -fL --retry 5 -o "deps/CarbonMirror-$VERSION.dmg" "https://github.com/ButcheCassidy/CarbonMirror/releases/download/v$VERSION/CarbonMirror-$VERSION.dmg" \
       && parts_from_dmg "deps/CarbonMirror-$VERSION.dmg" \
@@ -65,6 +71,7 @@ if [ "$missing" = 1 ]; then
   fi
 fi
 for part in $PARTS; do [ -f "Resources/$part" ] || fail "missing Resources/$part"; done
+echo "$VERSION" > Resources/phone-parts.version
 
 echo "==> 5/5 App, signature and DMG"
 bash scripts/build.sh "$@"

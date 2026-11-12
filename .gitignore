@@ -38,3 +38,4 @@ Resources/libcarbon_core.so
 build.log
 server/build/
 companion/build/
+Resources/phone-parts.version
