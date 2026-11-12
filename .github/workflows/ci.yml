@@ -89,12 +89,12 @@ jobs:
           screencapture -x -t jpg shots/hidden-from-capture.jpg
           kill $PID
           defaults write com.nomadicrebel.carbonmirror hideFromCapture -bool false
-          "$APP/Contents/MacOS/CarbonMirror" --demo & PID=$!
+          open -a "$PWD/$APP" --args --demo
           for i in $(seq -w 1 44); do sleep 0.45; screencapture -x -t jpg "shots/demo-$i.jpg"; done
           osascript -e 'tell application "System Events" to keystroke "," using command down' || true
           sleep 2
           screencapture -x -t jpg shots/settings.jpg
-          kill $PID
+          pkill -x CarbonMirror || true
           system_profiler SPDisplaysDataType | grep -E "Resolution|Retina" || true
       - name: Upload build log and screenshots
         if: always()
