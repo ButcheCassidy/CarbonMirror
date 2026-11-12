@@ -11,9 +11,16 @@ import VideoToolbox
 /// synchronously into a reused buffer, so no per-frame copy of the bitstream is kept.
 public final class VideoDecoder: VideoSink, @unchecked Sendable {
     /// Newest decoded frame, delivered on the decode thread.
-    public var onFrame: (@Sendable (CVPixelBuffer) -> Void)?
+    public var onFrame: (@Sendable (CVPixelBuffer) -> Void)? {
+        get { lock.withLock { frameHandler } }
+        set { lock.withLock { frameHandler = newValue } }
+    }
+
+    private var frameHandler: (@Sendable (CVPixelBuffer) -> Void)?
     /// Last decode duration in milliseconds (debug HUD).
-    public private(set) var lastDecodeMs: Double = 0
+    public var lastDecodeMs: Double { lock.withLock { decodeMs } }
+
+    private var decodeMs: Double = 0
 
     private let lock = NSLock()
     private var codec: VideoCodecID = .h264
@@ -157,16 +164,18 @@ public final class VideoDecoder: VideoSink, @unchecked Sendable {
             guard CMSampleBufferCreateReady(allocator: kCFAllocatorDefault, dataBuffer: block, formatDescription: format, sampleCount: 1,
                                             sampleTimingEntryCount: 1, sampleTimingArray: &timing, sampleSizeEntryCount: 1,
                                             sampleSizeArray: &sizes, sampleBufferOut: &sample) == noErr, let sample else { return }
-            let handler = onFrame
+            let handler = frameHandler
             let status = VTDecompressionSessionDecodeFrame(session, sampleBuffer: sample, flags: [._1xRealTimePlayback], infoFlagsOut: nil) { status, _, image, _, _ in
                 if status == noErr, let image { handler?(image) }
             }
+            // The block buffer points into `scratch` without copying: wait until the decoder is done with it.
+            VTDecompressionSessionWaitForAsynchronousFrames(session)
             if status != noErr {
                 Log.error(.media, "decode failed", ["status": "\(status)"])
                 awaitingKeyFrame = true
             }
         }
-        lastDecodeMs = Double(DispatchTime.now().uptimeNanoseconds - start) / 1e6
+        decodeMs = Double(DispatchTime.now().uptimeNanoseconds - start) / 1e6
     }
 
     private func invalidate() {
