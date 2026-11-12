@@ -40,6 +40,8 @@ Before starting: build and install the app (`INSTALL.md`), connect the Pixel by 
    *Expect:* "No such file or directory", or a folder with no window images.
 6c. [ ] **Entitlement trim.** Re-sign a copy without `com.apple.security.network.server` (remove that key from `Resources/CarbonMirror.entitlements`, run `bash scripts/build.sh`). *Expect:* mirroring still works → keep it removed and report back; if adb fails to start, put it back.
 
+A-S. **Startup animation (Mac).** Open CarbonMirror. Expected: the 3-second animation plays at once on pure black, exactly centred in the phone window, sharp, no stutter; then the status screen fades in. Resize the window to its smallest and largest size and reopen: still centred, never cut off. `NOT RUN — needs my Mac`
+
 ## B. USB mirroring (≈ 1.5 min)
 
 6. [ ] **Server push and clean-up.** With the phone on USB, CarbonMirror connects by itself. *Expect:* the phone screen appears within ~2 s. Quit CarbonMirror, then:
@@ -85,6 +87,9 @@ Before starting: build and install the app (`INSTALL.md`), connect the Pixel by 
 27. [ ] **Tile.** Add the CarbonMirror tile in Quick Settings, tap it. *Expect:* Wireless debugging on, tile says Ready; during mirroring it says Mirroring; Disconnect on the Mac turns it Off.
 28. [ ] **GrapheneOS update.** After an OS update and "Optimizing apps", tap the tile without opening anything. *Expect:* still works; if the permission was reset, the tile opens Developer options and the Mac re-grants it next USB connect ("Companion permission re-granted").
 29. [ ] **USB while locked (GrapheneOS).** Lock the phone during USB mirroring. *Expect:* USB stops (GrapheneOS charging-only-when-locked); wireless still works.
+
+D-S. **Companion screen.** Open *CarbonMirror Companion* from the app drawer. Expected: black screen, the animation plays at once in the exact centre (no white flash, no icon first), then "Off / Ready / Mirroring" with **Turn on** and **Add Quick Settings tile**; all dark. Rotate, split-screen and largest font size: nothing cut off. `NOT RUN — needs real device`
+D-K. **Device key.** After one USB session, start a wireless session: it connects. Then run `adb shell rm /data/local/tmp/carbonmirror-device.key` from another computer and start wireless again. Expected: "Untrusted device"; plugging in USB once repairs it. `NOT RUN — needs real device`
 
 ## E. 5-minute soak (USB, then Wi-Fi)
 

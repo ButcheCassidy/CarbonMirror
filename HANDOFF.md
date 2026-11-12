@@ -1,4 +1,4 @@
-# CarbonMirror — HANDOFF (full spec · Phases 1–10 built · Phase 11 Linux stages done · Mac + phone checks NOT RUN)
+# CarbonMirror — HANDOFF (full spec · Phases 1–10 built · Mac app compiles and launches on macOS 26 CI · Phase 11 Linux stages re-run · real Mac + phone checks NOT RUN)
 
 > **Resume instruction:** Paste this file plus the latest source bundle (repo `ButcheCassidy/CarbonMirror`, branch `main`) into a new chat and say: *Continue CarbonMirror from the Next steps in HANDOFF.md.*
 > Then: `source ~/carbonmirror-deps/env.sh` (Linux build env, §5) and start at **§12 Next steps, step 1**. The full spec is §14 (verbatim, with per-requirement status).
@@ -12,9 +12,9 @@
 | Milestone | Past Milestone 2 (user waived milestone stops). Phase 11 release check: Linux stages 1–4 done; release gate open |
 | Date | 2026-11-12 |
 | Author credit | **ButcheCassidy - The Nomadic Rebel** |
-| Repo / branch | `ButcheCassidy/CarbonMirror`, `main` only (last code commit `f66e3d3`, then this HANDOFF commit) |
-| Phase 1 Base project & packaging | ✅ code + scripts · Mac build/sign/DMG NOT RUN |
-| Phase 2 Window & UI | ✅ code · uncompiled on Mac |
+| Repo / branch | `ButcheCassidy/CarbonMirror`, `main` only (see `git log`; session 3 starts at `7321add`) |
+| Phase 1 Base project & packaging | ✅ code + scripts · `swift build -c release` passes on macOS 26 CI (0 warnings) · sign/DMG NOT RUN |
+| Phase 2 Window & UI | ✅ compiles; `--demo` screenshots taken on macOS CI; UI audit (12 findings) fixed |
 | Phase 3 Infrastructure | ✅ (adb on private Unix sockets since Phase 11) |
 | Phase 4 Mirroring pipeline | ✅ code · decoder/renderer uncompiled |
 | Phase 5 Input & control | ✅ Linux-tested engine · AppKit glue uncompiled |
@@ -23,9 +23,10 @@
 | Phase 8 Settings, menu bar, icon, extras | ✅ code · uncompiled |
 | Phase 9 Companion APK | ✅ builds + verifies on Linux (test key) · device NOT RUN |
 | Phase 10 Docs & delivery | ✅ docs · DMG NOT RUN · performance targets unmeasured |
-| Phase 11 Release check | 🟡 Stages 1–4 on Linux ✅ (17 findings, all High fixed) · release gate ⬜ |
+| Phase 11 Release check | 🟡 Stages 1–4 on Linux ✅ re-run in session 3 (21 findings, all High/Medium fixed) · release gate ⬜ |
+| Startup animation | ✅ both apps (session 3) |
 
-**One-line state:** every spec feature has code; all Linux-runnable tests and attack harnesses pass; **the macOS-only Swift has never been compiled** (Linux has no AppKit) and nothing has run on the Mac or the Pixel yet.
+**One-line state:** every spec feature has code; all Linux tests and attack harnesses pass; the Mac app **compiles with zero warnings and launches (`--demo`) on a macOS 26 GitHub runner**; nothing has run on the user's Mac or the Pixel yet (signing, sandbox, adb, Keychain, Metal with a real phone).
 
 ## 2. Session log (everything that happened, in order)
 
@@ -51,7 +52,17 @@
     - `6f895ef` no Resume snapshots, no Universal Clipboard, non-synchronizable Keychain items, adb keys out of backups.
     - `f66e3d3` RELEASE_CHECK.md, docs, edge test; then this HANDOFF.
 
+**Session 3 (2026-11-12)** — user answers: animation = **slide & settle**; Android gets a **minimal launcher Activity**; Mac splash **fits inside the phone window**; **macOS CI allowed**, budget ≤ 100 runner-minutes total (used ≈ 12), job is manual-only.
+13. `7321add`…`d6c33b7` macOS job in CI (`macos-26`, Xcode 26.6); first Mac compile: 8 errors fixed (`Theme`/`EndpointPrompt.Fields` isolation, slider value, deprecated `String(cString:)`); job made manual (`workflow_dispatch`) after the user's budget note.
+14. `1a59ac5` startup animation: `tools/startup/render_carbonmirror.py` (user's script + multiprocessing; both variants 2 min 24 s), `Resources/CarbonMirror-startup.mp4`, `SplashView`. `8895797` companion launcher screen.
+15. Security re-run (all harnesses pass) + self-attack: `9de3a7c` finding 18 (adb emulator scan / adb mDNS), `621c3b2` finding 19 (device key proof), 20, 21.
+16. `416b035` UI audit by one sub-agent (12 findings) + sweep, all fixed; window-size floor found from the CI screenshots.
+
 ## 3. User rules (mandatory — keep obeying)
+- **Token economy:** one-line progress notes, shortest possible replies, no long tool output.
+- **macOS CI minutes:** job `macos` in `ci.yml` runs only via Actions → CI → Run workflow (or the `run_workflow` API); never on push; batch fixes; hard cap 100 runner-minutes in total.
+- **USB must stay plug-and-play:** no extra tools or steps for wired mirroring.
+- Sub-agents only when the user asks (session 3: one small UI-audit agent, done).
 - Work and push **directly on `main`**. No branches, no PRs (the cloud harness proposes a branch; the user overrode it twice). Before any commit: `git config user.name "ButcheCassidy"` and `git config user.email "354005634+ButcheCassidy@users.noreply.github.com"`. **No** `Co-Authored-By`, "Generated with Claude", session IDs or links in commits, code, docs or comments. Everything committed in the user's name.
 - Responses: structured, concise, **no conversational filler**; while working, one-line notes of what is being done.
 - No sub-agents unless asked. No research tangents.
@@ -78,7 +89,11 @@
 - **Session hygiene:** ends on lock (verified with the window server), sleep, user switch, network change, idle (10 min default); blur on display sleep/screensaver; Wireless debugging turned off after final ends; reconnect only to the pinned phone, never while locked/asleep.
 - **Phone side:** server runs as `shell` via `app_process` (GrapheneOS app restrictions don't apply), core lib deleted after `System.load`, jar unlinks itself, no key files, strict option allowlist, audio/camera/files removed.
 
+- **Device key (session 3):** adb never authenticates the phone to the Mac. USB sessions deliver a random 256-bit key (Mac Keychain item `CarbonMirror device key` = key ‖ serial; phone `/data/local/tmp/carbonmirror-device.key`, shell-only). Wireless: the phone must print `CM-PIN <pin> <HMAC-SHA-256(key, pin)>`; missing/wrong proof → `SessionEnd.deviceNotProven` → "Untrusted device" before any socket opens. Never sent over Wi-Fi. A phone never connected by USB stays TOFU.
+- **adb environment:** `ADB_EMU=0` (no localhost emulator scan), `ADB_MDNS=0` (no adb-side mDNS/auto-connect).
+
 ## 5. Environment (Linux build box)
+- **macOS CI:** trigger `ci.yml` by hand; artifact `mac-build-log` = `build.log` + `shots/*.jpg` (demo screenshots, 1024×768 runner display). Download via the artifact URL, never paste the log (hundreds of lines).
 - `source ~/carbonmirror-deps/env.sh` sets `JAVA_HOME` (OpenJDK 21), `ANDROID_HOME=/root/carbonmirror-deps/android-sdk`, `ANDROID_NDK_HOME=…/ndk/30.0.16248370`, `CM_TEST_VIDEO_DIR`, PATH (Swift 6.4.2, build-tools 36.0.0, platform-tools, cargo). Unset `JAVA_TOOL_OPTIONS` to silence proxy noise from Java tools.
 - Versions: Swift 6.4.2, Rust 1.97.0 (crate MSRV 1.88), cargo-ndk 4.1.2, cbindgen 0.29.4, cargo-audit 0.23.0, NDK 30.0.16248370, platform android-36, build-tools 36.0.0, platform-tools 37.0.1, scrcpy v5.0 (`19871982cefb9de4c981c2314dfda2ac81564b48`), Python 3.13 venv (hypothesis 6.170.15, dpkt, cryptography), ffmpeg 6.1.1, OpenSSL 3.0.13. netns **yes** (as root), `tc netem` **no**, `dummy` kernel module **no** (use veth).
 - Test streams `~/carbonmirror-deps/test-video/pixel10proxl-{60fps,120fps}.h264`, `…60fps.h265`.
@@ -132,6 +147,15 @@
 44. Test-only code stays in `Tests/` (TCP loopback connect for the fake adbd, `TapStream`, soak, LAN test) — production has no test hooks.
 45. Virtual LAN must be outside `10.64.0.0/10` (Mullvad range, refused by design) → `192.168.77.0/24`.
 
+46. Setup line is now `CM1 <plain|tls> <secret> <mac-ca | -> <device-key hex | ->` (5 fields); pin line `CM-PIN <pin hex> [<proof hex>]`. Device key provisioned on every USB session, stored on the Mac only after that session reaches `.connected`.
+47. Pairing: the `_adb-tls-connect` answer is used only if its IP equals the IP that completed `adb pair`; otherwise the IP/port prompt.
+48. Companion has a launcher Activity (user decision; deviates from spec 9.1/9.2 "tile only / no other exported component"): `MainActivity` exported for LAUNCHER only, ignores its Intent, no new permission. `WirelessDebugging` holds the logic shared with the tile.
+49. Startup clip: slide & settle, 1024×1024, 120 fps, 3.0 s, H.264 High, ≈ 236 KB, committed (`Resources/CarbonMirror-startup.mp4`); Mac shows it at min(512 pt, window) on black for 3.0 s then fades 0.25 s; Android at min(512 dp, 1024 px, window). Hover chrome is suppressed while it plays.
+50. Points per inch clamped to 96–254 (TVs/virtual displays report unusable sizes).
+51. Mac controls use the Graphite accent (`AppleAccentColor = -1` in the app's own defaults) — no asset catalog needed.
+52. `.cargo/config.toml` sets `MACOSX_DEPLOYMENT_TARGET=15.0` for the Rust core.
+53. CI: template `macos` job replaced; `android` template job still skipped (no `android/gradlew`).
+
 ## 7. Security log (Phase 11 findings and attack results)
 
 ### Findings
@@ -155,7 +179,16 @@
 | 16 | Event stream not finished on start failure | Low | finish on failure (`6190096`) | suite |
 | 17 | Scripts failed when not started from the repo (`dirname: illegal option -- z`) | Low | locate repo (`502ad5e`) | run from `/tmp` |
 
+| 18 | adb server connected in plaintext, without device authentication, to localhost 5555–5585 and ran its own mDNS | **Medium** | `ADB_EMU=0`, `ADB_MDNS=0` (`9de3a7c`) | `adb_local_exposure.sh`: 8 → 0 connections, UDP 2 → 0 |
+| 19 | Wireless pin taken from an unauthenticated mDNS answer; a LAN device could be pinned as the phone | **Medium** | device key + proof, pairing IP binding (`621c3b2`) | 2 new tests; impostor refused |
+| 20 | Phone: per-read handshake timeout, none for the secret | Low | one 10 s deadline (`621c3b2`) | builds; NOT RUN (device) |
+| 21 | Rust C objects built for macOS 26.5, linked for 15.0 | Low | `.cargo/config.toml` (`9de3a7c`) | macOS CI: 0 linker notes |
+
+Open, documented (SECURITY_NOTES §6): wireless TOFU for a phone never connected by USB; USB identity = serial; phone → Mac clipboard injection by design.
+
 ### Attack results (Linux, with evidence in `RELEASE_CHECK.md`)
+- **Session 3 re-run:** tls_downgrade 8/8, capture clean, virtual LAN PASS, cargo audit 0, clippy clean (host + Android), soak 300 s (23 sessions, 142 600 events, fds 44 → 48, RSS 36.3 → 49.3 MiB), fuzz 14 entry points × 120 s (220k–276k examples each, incl. `hmac_verify`), `adb_local_exposure.sh` PASS.
+- **macOS 26 CI:** window absent from `screencapture` with *Hide from capture* on (default).
 - **TLS downgrade/impersonation** (`tools/sectest/tls_downgrade.sh`, OpenSSL 3.0.13): TLS 1.0, 1.1, 1.2 (strong and any suite), TLS 1.3 AES-128-only, P-256-only → refused (`TlsHandshakeFailed`/`TlsPolicyViolation`); TLS 1.3 allowed suite without the pinned Mac cert (with/without ALPN) → `TlsPinMismatch`. 8/8. Success case: suite `0x1302`, group `0x11EC`.
 - **Plaintext/leakage** (`capture_session.sh`): encrypted session entropy 7.84–8.00, no device name, clipboard text or H.264 start codes; plain control flagged.
 - **Virtual LAN** (`virtual_lan.sh`): plaintext adb (5555 + other port) refused; Mullvad tunnel, public IPv4/IPv6 refused; Mac TCP listeners 0, UDP 0; attacker scan of 65 535 ports → none open; fake `utun9` TX 0.
@@ -170,7 +203,7 @@
 - Bundle ids `com.nomadicrebel.carbonmirror` / `com.nomadicrebel.carbonmirror.companion`; cert "CarbonMirror Dev" (P-384/SHA-384, 5 y, non-extractable, codesign-only; RSA-4096 fallback).
 - Phone paths `/data/local/tmp/carbonmirror-server.jar`, `/data/local/tmp/libcarbon_core.so`, `/data/local/tmp/carbonmirror-mac.pin`; class `com.genymobile.scrcpy.Server`; abstract socket `scrcpy_<scid 8 hex, 31-bit>`; Global setting `carbonmirror_session`.
 - Mac sockets: `<container>/Data/tmp/cm/cm-adb` (server), `…/cm-f<16 hex>` (forwards); adb HOME `<container>/Data/Library/Application Support/CarbonMirror/adb/` (0700/0600).
-- Artifact SHA-256 (Linux build of `f66e3d3`, gitignored): server jar `27022687bd4240ef56934cc3880572ce804bd1e617f50ab0fafcfd9324e5b2f4`, `libcarbon_core.so` arm64 `cb2cb165ab87807b4f006b938dbf0e01d50c4e13f4110ee94984a38713e04aec`. Rebuild on the Mac; `build.sh` writes the hashes into the bundle.
+- Artifact SHA-256 (Linux build of `621c3b2`, gitignored): server jar `38b313b98d0c585143e09866b0e2501aa86e5ef5be0fab852a1d4ffc22a70b0b`, `libcarbon_core.so` arm64 `d6984aeb7c837fd6aec377b757ccffcccb3994ca490a6fa68cc8c17e14ec1a01`; startup clip `96523ac717d30103edc47be434a4514dd7dd95b2f8c8bf207a3a69631df30bb3`. Rebuild on the Mac; `build.sh` writes the hashes into the bundle.
 - USB profile H.264, 2992, 120 fps, 32 Mbps; adaptive 2992→2560→2240→1920 then 120→90→60 when < 110 fps over 3 s. Wireless "Secure" 60 fps, H.265 (→ H.264), 12 Mbps; 90/120 experimental.
 - Size 0.75×–2.0×, fallback 127 pt/inch, corner fallback 9.5 % width, fine-tune ±15 %; Pixel 10 Pro XL 1344×2992 @ 486 ppi.
 - Chrome: toolbar 44 pt + status line 14 pt, margins 10, hover zone 28, reveal 0.2 s ease-out, hide 1.2 s; buttons 22 pt; traffic lights x 8/28/48; landscape pill 28 pt high, 12 pt from top.
@@ -181,7 +214,7 @@
 - Limits: video packet ≤ 8 MiB, frame dim ≤ 8192, clipboard ≤ 1 MiB, UHID ≤ 64 B, inject text ≤ 300 B, adb output ≤ 1 MiB, dumpsys ≤ 4 MiB, adb line ≤ 4096 B, setup line ≤ 8192 B, socket path ≤ 103 B.
 - UHID keyboard id 1 "CarbonMirror Keyboard" 0x18D1/0x4EE7. Android keys HOME 3, BACK 4, VOL 24/25, POWER 26, SYSRQ 120, MUTE 164, APP_SWITCH 187, ALL_APPS 284.
 - Crates: rustls 0.23.46 (aws_lc_rs, prefer-post-quantum, std; no tls12), aws-lc-rs 1.19.0, rustls-webpki 0.103.16, rcgen 0.14.7, time 0.3.55, zeroize 1.9.1, jni 0.21.1 (Android); dev: serde, serde_json, proptest. `Cargo.lock` committed.
-- C ABI version 2, 65 functions (list in `rust/include/carbon_core.h`). Status codes: Ok 0, NullPointer 1, InvalidUtf8 2, InvalidArgument 3, BufferTooSmall 4, Panic 5, NeedMoreData 6, Ip* 10–14, InterfaceTunnelRefused 15, PortInvalid 16, PortLegacyTcpipRefused 17, Adb* 30–34, DigestMismatch 50, ParseMalformed 60, ParseTooLarge 61, InputOutside 70, Tls* 80–85, Pairing/Trust 90–94, AdbProbeMalformed 100.
+- C ABI version **3**, 67 functions (+ `cm_hmac_sha256`, `cm_hmac_sha256_verify`) (list in `rust/include/carbon_core.h`). Status codes: Ok 0, NullPointer 1, InvalidUtf8 2, InvalidArgument 3, BufferTooSmall 4, Panic 5, NeedMoreData 6, Ip* 10–14, InterfaceTunnelRefused 15, PortInvalid 16, PortLegacyTcpipRefused 17, Adb* 30–34, DigestMismatch 50, ParseMalformed 60, ParseTooLarge 61, InputOutside 70, Tls* 80–85, Pairing/Trust 90–94, AdbProbeMalformed 100.
 - Defaults keys (non-secret): all 8.3 settings + `macPinResetPending`, `companionInstalled`. Keychain: §6.13/6.27.
 
 ## 9. File tree (one-line purpose each)
@@ -201,19 +234,24 @@
 - **companion/:** `AndroidManifest.xml`, `src/com/nomadicrebel/carbonmirror/companion/WirelessDebuggingTile.java`, `res/{drawable/ic_foreground,ic_monochrome,ic_tile, mipmap-anydpi/ic_launcher, values/strings,colors}.xml`.
 - **tools/sectest/:** `tls_downgrade.sh`, `capture_session.sh` + `capture_scan.py`, `virtual_lan.sh` + `fake_adbd.py` + `port_scan.py`, `ffi_fuzz.sh` + `ffi_fuzz.py`.
 
+- **Session 3 files:** `Sources/CMUI/SplashView.swift` · `Resources/CarbonMirror-startup.mp4` · `tools/startup/render_carbonmirror.py` · `tools/sectest/adb_local_exposure.sh` · `.cargo/config.toml` · `companion/src/…/{MainActivity,WirelessDebugging}.java` · `companion/res/{layout/status,drawable/pill,values/styles}.xml` · `.github/workflows/ci.yml` (manual `macos` job).
+
 ## 10. Build, sign, package & install commands
+**Startup clip:** `python3 tools/startup/render_carbonmirror.py Resources/CarbonMirror-icon.svg <out> slide 120` → copy to `Resources/CarbonMirror-startup.mp4` (needs Pillow, numpy, ffmpeg). **Attack:** `bash tools/sectest/adb_local_exposure.sh`.
 **Linux (verified):** `source ~/carbonmirror-deps/env.sh` · `cargo test --release --manifest-path rust/Cargo.toml` · `cargo clippy --release --all-targets --manifest-path rust/Cargo.toml -- -D warnings` · `(cd rust/carbon-core && cargo ndk -t arm64-v8a -P 30 clippy --release -- -D warnings)` · `(cd rust && cargo audit)` · `cargo build --release --manifest-path rust/Cargo.toml && touch Sources/CMCoreBridge/*.swift && swift build --build-tests && swift test` · `bash scripts/build-server.sh` · `bash scripts/build-apk.sh --test-key` · `bash tools/sectest/tls_downgrade.sh` · `bash tools/sectest/capture_session.sh encryptedSessionStreamsVideoAndControl` · `bash tools/sectest/virtual_lan.sh` (root) · `bash tools/sectest/ffi_fuzz.sh 120` · `CM_SOAK_SECONDS=300 swift test --filter soak`.
 **Mac (NOT RUN):** order = Step A `bash scripts/make-cert.sh` (or README) → Step A-2 platform-tools → `Resources/adb` → Step A-3 Rust → JDK + Android SDK/NDK (INSTALL §8.4) → `bash scripts/build-server.sh` → release keystore (INSTALL §8.4) → `bash scripts/build-apk.sh` → `bash scripts/build.sh` (`--install` to copy to /Applications). Every 10.4 command is written out one per line in README.
 
 ## 11. Test status
-- `cargo test --release`: **43 passed**; clippy clean (host + Android); `cargo audit` exit 0.
-- `swift build --build-tests`: 0 warnings (Linux). `swift test`: **68 tests in 10 suites passed** (soak and LAN tests run via their harnesses).
+- `cargo test --release`: **44 passed**; clippy clean (host + Android); `cargo audit` exit 0.
+- `swift build --build-tests`: 0 warnings (Linux). `swift test`: **70 tests in 10 suites passed** (soak and LAN tests run via their harnesses).
 - Phase 11 harnesses: all PASS (§7).
 - **NOT RUN — needs my Mac:** every macOS-only Swift file (never compiled), `build.sh`, `make-cert.sh`, codesign/DMG, Keychain, sandbox, Liquid Glass, Metal/VideoToolbox, UI layout on screen. **NOT RUN — needs real device:** all of `REAL_DEVICE_CHECKS.md` (A1–A5, 6a–6c, B6–B15, C16–C24, D25–D29, E30).
-- **Known open issues:** (1) first Mac compile pending; (2) horizontal scroll sign unverified; (3) `ALL_APPS` swipe fallback not implemented; (4) companion permission-fallback only checked on device; (5) no `tc netem` → no loss/latency simulation; (6) `network.server` entitlement possibly removable; (7) landscape pill width at 0.75× (~239 pt) to verify on screen; (8) performance targets (latency, CPU, idle memory) only measurable on the Mac.
+- **macOS 26 CI:** release build 0 errors / 0 warnings; `--demo` launches, splash plays, status states render (screenshots).
+- **Known open issues:** (1) first build + sign on the user's Mac pending (`scripts/build.sh`); (2) horizontal scroll sign unverified; (3) `ALL_APPS` swipe fallback not implemented; (4) companion permission-fallback only checked on device; (5) no `tc netem` → no loss/latency simulation; (6) `network.server` entitlement possibly removable; (7) landscape pill width at 0.75× (~239 pt) to verify on screen; (8) performance targets (latency, CPU, idle memory) only measurable on the Mac.
 
 ## 12. Next steps (ordered; start at 1)
-1. **Mac first build.** User runs (from the repo folder): Step A-2 adb → `bash scripts/build-server.sh` → `bash scripts/build-apk.sh` → `bash scripts/build.sh`, and sends the tail of `build.log`. Fix compile errors in the macOS-only files (Swift 6 strict concurrency, zero warnings). Expect issues in: SessionController (`@MainActor` closures in notifications/timers), Bonjour (`dnssd` C callbacks), MetalScreenView, SettingsWindow (`NSGlassEffectView.contentView`), PairingController.
+0. Session 3 leftovers: none half-finished. Android screen and both splashes are NOT RUN on real hardware → `REAL_DEVICE_CHECKS.md` A/D.
+1. **Mac first build.** (Compile errors are already cleared on CI.) User runs (from the repo folder): Step A-2 adb → `bash scripts/build-server.sh` → `bash scripts/build-apk.sh` → `bash scripts/build.sh`, and sends the tail of `build.log`. Fix compile errors in the macOS-only files (Swift 6 strict concurrency, zero warnings). Expect issues in: SessionController (`@MainActor` closures in notifications/timers), Bonjour (`dnssd` C callbacks), MetalScreenView, SettingsWindow (`NSGlassEffectView.contentView`), PairingController.
 2. `REAL_DEVICE_CHECKS.md` A–E on the Mac and Pixel; record results in `RELEASE_CHECK.md`; fix findings and re-run the affected Phase 11 stage. Try removing `network.server` (6c).
 3. Second pass (user attaches the full prompt): go requirement by requirement through §14, adding all remaining detail.
 4. Release gate: version bump, CHANGELOG, signed DMG + APK, SHA-256 checksums, evidence table, INSTALL final pass. Commit + push to `main` after every step.
