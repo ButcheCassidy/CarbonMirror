@@ -4,7 +4,8 @@
 # and Resources/CarbonMirrorCompanion.apk (bundled into the Mac app).
 #   scripts/build-apk.sh              sign with the release key (password typed in, never stored)
 #   scripts/build-apk.sh --test-key   sign with a throwaway P-384 key (Linux checks only, never released)
-# Release keystore: CM_KEYSTORE, default ~/Library/Application Support/CarbonMirror/signing/carbonmirror-release.p12
+# Release keystore: CM_KEYSTORE, default ~/Library/Application Support/CarbonMirror/signing/carbonmirror-release.p12;
+# alias CM_KEY_ALIAS (default carbonmirror).
 set -euo pipefail
 
 # Find the repository whether the script is run, sourced or started from another folder.
@@ -60,7 +61,10 @@ if [ "${1:-}" = "--test-key" ]; then
 else
   KEYSTORE="${CM_KEYSTORE:-$HOME/Library/Application Support/CarbonMirror/signing/carbonmirror-release.p12}"
   [ -f "$KEYSTORE" ] || { echo "build-apk.sh: no keystore at $KEYSTORE (create it with keytool, see INSTALL.md)" >&2; exit 1; }
-  "$BT/apksigner" sign --ks "$KEYSTORE" --ks-key-alias carbonmirror \
+  # Passwords are typed in; CI passes them as environment variables only (CM_KEYSTORE_PASS, CM_KEY_PASS).
+  PASSWORDS=()
+  [ -n "${CM_KEYSTORE_PASS:-}" ] && PASSWORDS=(--ks-pass env:CM_KEYSTORE_PASS --key-pass env:CM_KEY_PASS)
+  "$BT/apksigner" sign --ks "$KEYSTORE" --ks-key-alias "${CM_KEY_ALIAS:-carbonmirror}" ${PASSWORDS[@]+"${PASSWORDS[@]}"} \
     --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled true --out "$OUT" "$BUILD/aligned.apk"
 fi
 cp "$OUT" Resources/CarbonMirrorCompanion.apk

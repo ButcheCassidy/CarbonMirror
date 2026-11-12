@@ -3,32 +3,14 @@ name: CI
 on:
   push:
     branches: [main]
-  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: ci-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  detect:
-    runs-on: ubuntu-latest
-    outputs:
-      android: ${{ steps.d.outputs.android }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: d
-        run: |
-          [ -f android/gradlew ] && echo "android=true" >> "$GITHUB_OUTPUT" || echo "android=false" >> "$GITHUB_OUTPUT"
-
   secret-scan:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,80 +18,3 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  android:
-    needs: detect
-    if: needs.detect.outputs.android == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: android
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew --no-daemon lint test assembleDebug
-
-  # macOS minutes are billed at 10x: this job never runs on push, only from Actions -> CI -> Run workflow.
-  macos:
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: macos-26
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            rust/target
-          key: mac-rust-macos15-${{ hashFiles('rust/Cargo.lock') }}
-      - name: Rust core (static library)
-        run: |
-          rustup target add aarch64-apple-darwin
-          cargo build --release --target aarch64-apple-darwin --manifest-path rust/carbon-core/Cargo.toml
-      - name: Swift build (Swift 6, diagnostics listed)
-        run: |
-          swift build -c release --arch arm64 > build.log 2>&1 || true
-          grep -E ": (warning|error):|^ld:|Undefined symbols|^error:" build.log | sort -u | cut -c1-300 | head -80
-          ! grep -qE ": error:|^ld: [^w]|Undefined symbols|^error:" build.log
-      - name: UI demo screenshots (unsigned test bundle, never released)
-        run: |
-          APP=build/CarbonMirror.app
-          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" shots
-          cp .build/release/CarbonMirror "$APP/Contents/MacOS/CarbonMirror"
-          cp Resources/Info.plist "$APP/Contents/Info.plist"
-          cp Resources/CarbonMirror-startup.mp4 "$APP/Contents/Resources/"
-          codesign --force --sign - "$APP"
-          "$APP/Contents/MacOS/CarbonMirror" --demo & PID=$!
-          sleep 5
-          screencapture -x -t jpg shots/hidden-from-capture.jpg
-          kill $PID
-          defaults write com.nomadicrebel.carbonmirror hideFromCapture -bool false
-          open -a "$PWD/$APP" --args --demo
-          for i in $(seq -w 1 44); do sleep 0.45; screencapture -x -t jpg "shots/demo-$i.jpg"; done
-          osascript -e 'tell application "System Events" to keystroke "," using command down' || true
-          sleep 2
-          screencapture -x -t jpg shots/settings.jpg
-          pgrep -x CarbonMirror >/dev/null && echo "APP ALIVE after Settings" >> build.log || echo "APP DIED after Settings" >> build.log
-          pkill -x CarbonMirror || true
-          cp ~/Library/Logs/DiagnosticReports/CarbonMirror* shots/ 2>/dev/null || true
-          open -a "$PWD/$APP"
-          sleep 6
-          screencapture -x -t jpg shots/real-launch.jpg
-          pgrep -x CarbonMirror >/dev/null && echo "APP ALIVE after real launch" >> build.log || echo "APP DIED on real launch" >> build.log
-          pkill -x CarbonMirror || true
-          awk '/shaderSource = """/{on=1;next} on&&/"""/{exit} on' Sources/CMMedia/MetalScreenView.swift > shader.metal
-          (xcrun -sdk macosx metal -c shader.metal -o shader.air 2>&1 | tail -15; echo "METAL exit ${PIPESTATUS[0]}") >> build.log
-          system_profiler SPDisplaysDataType | grep -E "Resolution|Retina" || true
-      - name: Upload build log and screenshots
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: mac-build-log
-          path: |
-            build.log
-            shots

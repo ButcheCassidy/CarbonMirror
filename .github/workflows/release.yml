@@ -1,18 +1,12 @@
 name: Release
 
-# Two ways to release:
-#  1. Actions tab -> Release -> Run workflow -> enter version (e.g. 1.2.0). Creates tag v1.2.0.
-#  2. Push an annotated tag: git tag -a v1.2.0 -m "v1.2.0" && git push origin v1.2.0
+# Manual only (macOS minutes are billed at 10x). publish=false builds, signs, checks and uploads the artifacts;
+# publish=true also tags v<CFBundleShortVersionString> and publishes the GitHub release.
 on:
-  push:
-    tags: ['v*.*.*']
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Version without "v" (semver, e.g. 1.2.0 or 1.2.0-beta.1)'
-        required: true
-      prerelease:
-        description: 'Mark as pre-release'
+      publish:
+        description: Publish the GitHub release
         type: boolean
         default: false
 
@@ -24,238 +18,158 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    outputs:
-      tag: ${{ steps.v.outputs.tag }}
-      version: ${{ steps.v.outputs.version }}
-      prerelease: ${{ steps.v.outputs.prerelease }}
-      android: ${{ steps.d.outputs.android }}
-      macos: ${{ steps.d.outputs.macos }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Resolve version
-        id: v
-        env:
-          INPUT_VERSION: ${{ inputs.version }}
-          INPUT_PRERELEASE: ${{ inputs.prerelease }}
-        run: |
-          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
-            VERSION="${INPUT_VERSION#v}"
-            PRE="$INPUT_PRERELEASE"
-          else
-            VERSION="${GITHUB_REF_NAME#v}"
-            case "$VERSION" in *-*) PRE=true ;; *) PRE=false ;; esac
-          fi
-          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
-            echo "::error::Invalid semver: $VERSION"; exit 1
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
-          echo "prerelease=$PRE" >> "$GITHUB_OUTPUT"
-
-      - name: Create tag (manual run only)
-        if: github.event_name == 'workflow_dispatch'
-        env:
-          TAG: ${{ steps.v.outputs.tag }}
-        run: |
-          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-            echo "::error::Tag $TAG already exists"; exit 1
-          fi
-          git config user.name "ButcheCassidy"
-          git config user.email "354005634+ButcheCassidy@users.noreply.github.com"
-          git tag -a "$TAG" -m "Release $TAG"
-          git push origin "refs/tags/$TAG"
-
-      - name: Detect platforms
-        id: d
-        run: |
-          [ -f android/gradlew ] && echo "android=true" >> "$GITHUB_OUTPUT" || echo "android=false" >> "$GITHUB_OUTPUT"
-          if ls macos/*.xcodeproj >/dev/null 2>&1; then
-            echo "macos=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "macos=false" >> "$GITHUB_OUTPUT"
-          fi
-
-  android:
-    needs: prepare
-    if: needs.prepare.outputs.android == 'true'
-    runs-on: ubuntu-latest
+  phone:
+    runs-on: ubuntu-24.04
     environment: release
-    defaults:
-      run:
-        working-directory: android
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.prepare.outputs.tag }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
-
-      - name: Decode signing keystore
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          java-version: '21'
+      - name: Android SDK pieces
         run: |
-          : "${ANDROID_KEYSTORE_BASE64:?Missing secret ANDROID_KEYSTORE_BASE64}"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-36" "build-tools;36.0.0" "ndk;30.0.16248370" > /dev/null
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/30.0.16248370" >> "$GITHUB_ENV"
+      - name: Rust for the phone
+        run: |
+          rustup target add aarch64-linux-android
+          cargo install cargo-ndk --version 4.1.2 --locked
+      - name: Server and phone core library
+        run: bash scripts/build-server.sh
+      - name: Companion APK (release key from the release environment)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          CM_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          CM_KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          CM_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
           umask 077
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
-
-      - name: Build signed release
-        env:
-          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          VERSION_NAME: ${{ needs.prepare.outputs.version }}
-          VERSION_CODE: ${{ github.run_number }}
-        run: ./gradlew --no-daemon assembleRelease bundleRelease
-
-      - name: Remove keystore
-        if: always()
-        run: rm -f "$RUNNER_TEMP/release.jks"
-
-      - name: Collect artifacts
-        run: |
-          mkdir -p "$RUNNER_TEMP/dist"
-          V="${{ needs.prepare.outputs.version }}"
-          for f in app/build/outputs/apk/release/*.apk; do
-            cp "$f" "$RUNNER_TEMP/dist/CarbonMirror-android-$V.apk"
-          done
-          for f in app/build/outputs/bundle/release/*.aab; do
-            cp "$f" "$RUNNER_TEMP/dist/CarbonMirror-android-$V.aab"
-          done
+          export CM_KEYSTORE="$RUNNER_TEMP/release.keystore"
+          export CM_KEY_PASS="${CM_KEY_PASS:-$CM_KEYSTORE_PASS}"
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$CM_KEYSTORE"
+          trap 'rm -f "$CM_KEYSTORE"' EXIT
+          bash scripts/build-apk.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: android
-          path: ${{ runner.temp }}/dist/*
-          if-no-files-found: error
+          name: phone
+          path: |
+            Resources/carbonmirror-server
+            Resources/libcarbon_core.so
+            Resources/CarbonMirrorCompanion.apk
+            dist/*.apk
 
-  macos:
-    needs: prepare
-    if: needs.prepare.outputs.macos == 'true'
-    runs-on: macos-latest
-    environment: release
-    env:
-      MACOS_SCHEME: ${{ vars.MACOS_SCHEME }}
-      VERSION: ${{ needs.prepare.outputs.version }}
-    defaults:
-      run:
-        working-directory: macos
+  mac:
+    needs: phone
+    runs-on: macos-26
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.prepare.outputs.tag }}
-
-      - name: Import Developer ID certificate (temporary keychain)
-        env:
-          MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
-          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
-        run: |
-          : "${MACOS_CERT_P12_BASE64:?Missing secret MACOS_CERT_P12_BASE64}"
-          KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
-          KEYCHAIN_PW="$(openssl rand -base64 32)"
-          umask 077
-          printf '%s' "$MACOS_CERT_P12_BASE64" | base64 -d > "$RUNNER_TEMP/cert.p12"
-          security create-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
-          security set-keychain-settings -lut 3600 "$KEYCHAIN"
-          security unlock-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
-          security import "$RUNNER_TEMP/cert.p12" -P "$MACOS_CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
-          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PW" "$KEYCHAIN" >/dev/null
-          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
-          rm -f "$RUNNER_TEMP/cert.p12"
-
-      - name: Archive and export
-        env:
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          : "${MACOS_SCHEME:?Set repository variable MACOS_SCHEME}"
-          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0"><dict>
-            <key>method</key><string>developer-id</string>
-            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
-          </dict></plist>
-          EOF
-          xcodebuild -scheme "$MACOS_SCHEME" -configuration Release \
-            -archivePath "$RUNNER_TEMP/app.xcarchive" \
-            MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Developer ID Application" OTHER_CODE_SIGN_FLAGS="--timestamp --options=runtime" \
-            archive
-          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/app.xcarchive" \
-            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export"
-
-      - name: Notarize and staple
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          APP="$(find "$RUNNER_TEMP/export" -maxdepth 1 -name '*.app' | head -1)"
-          mkdir -p "$RUNNER_TEMP/dist"
-          ZIP="$RUNNER_TEMP/dist/CarbonMirror-macos-$VERSION.zip"
-          ditto -c -k --keepParent "$APP" "$RUNNER_TEMP/notarize.zip"
-          xcrun notarytool submit "$RUNNER_TEMP/notarize.zip" \
-            --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
-          xcrun stapler staple "$APP"
-          ditto -c -k --keepParent "$APP" "$ZIP"
-
-      - name: Delete temporary keychain
-        if: always()
-        run: security delete-keychain "$RUNNER_TEMP/build.keychain-db" || true
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macos
-          path: ${{ runner.temp }}/dist/*
-          if-no-files-found: error
-
-  publish:
-    needs: [prepare, android, macos]
-    if: always() && needs.prepare.result == 'success' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-      attestations: write
-    steps:
       - uses: actions/download-artifact@v4
         with:
-          path: dist
-          merge-multiple: true
-
-      - name: Checksums
-        run: |
-          mkdir -p dist
-          cd dist
-          if ls * >/dev/null 2>&1; then sha256sum * > SHA256SUMS.txt; fi
-
-      - name: Build provenance attestation
-        if: hashFiles('dist/*.apk', 'dist/*.aab', 'dist/*.zip') != ''
-        uses: actions/attest-build-provenance@v2
+          name: phone
+          path: .
+      - uses: actions/cache@v4
         with:
-          subject-path: |
-            dist/*.apk
-            dist/*.aab
-            dist/*.zip
-
-      - name: Create GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.prepare.outputs.tag }}
-          PRE: ${{ needs.prepare.outputs.prerelease }}
+          path: |
+            ~/.cargo/bin/cbindgen
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/target
+          key: mac-release-${{ hashFiles('rust/Cargo.lock') }}
+      - name: Toolchain
         run: |
-          FLAGS=(--repo "$GITHUB_REPOSITORY" --title "CarbonMirror $TAG" --generate-notes --verify-tag)
-          [ "$PRE" = "true" ] && FLAGS+=(--prerelease)
-          shopt -s nullglob
-          FILES=(dist/*)
-          gh release create "$TAG" "${FLAGS[@]}" "${FILES[@]}"
+          rustup target add aarch64-apple-darwin
+          command -v cbindgen || cargo install cbindgen --version 0.29.4 --locked
+      - name: Google platform-tools adb (signature checked by build.sh)
+        run: |
+          curl -fsSL --retry 5 --retry-delay 2 -o "$RUNNER_TEMP/pt.zip" https://dl.google.com/android/repository/platform-tools-latest-darwin.zip
+          unzip -q "$RUNNER_TEMP/pt.zip" -d "$RUNNER_TEMP"
+          cp "$RUNNER_TEMP/platform-tools/adb" Resources/adb
+          shasum -a 256 "$RUNNER_TEMP/pt.zip"
+      - name: Ephemeral "CarbonMirror Dev" identity (exists only in this run)
+        run: |
+          umask 077
+          cd "$RUNNER_TEMP"
+          KC="$RUNNER_TEMP/cm.keychain-db"
+          KCP="$(openssl rand -hex 24)"
+          P12P="$(openssl rand -hex 24)"
+          security create-keychain -p "$KCP" "$KC"
+          security set-keychain-settings -lut 3600 "$KC"
+          security unlock-keychain -p "$KCP" "$KC"
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          printf '[req]\ndistinguished_name=dn\nprompt=no\n[dn]\nCN=CarbonMirror Dev\n[ext]\nbasicConstraints=critical,CA:false\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=critical,codeSigning\n' > cert.cnf
+          /usr/bin/openssl ecparam -name secp384r1 -genkey -noout -out key.pem
+          /usr/bin/openssl req -x509 -new -key key.pem -sha384 -days 30 -config cert.cnf -extensions ext -out cert.pem
+          /usr/bin/openssl pkcs12 -export -inkey key.pem -in cert.pem -name "CarbonMirror Dev" -passout "pass:$P12P" -out cert.p12
+          security import cert.p12 -k "$KC" -P "$P12P" -x -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KCP" "$KC" > /dev/null
+          rm -f key.pem cert.pem cert.p12 cert.cnf
+          cp /usr/bin/true sign-test && codesign --force --sign "CarbonMirror Dev" sign-test && codesign --verify sign-test && rm sign-test
+      - name: Build, sign and package (scripts/build.sh)
+        run: bash scripts/build.sh
+      - name: Signature, entitlement and launch checks; screenshots
+        run: |
+          APP=build/CarbonMirror.app
+          mkdir -p shots
+          {
+            codesign -dvvv "$APP" 2>&1 | grep -E "Authority|Runtime Version|CodeDirectory|Identifier|Hash type"
+            codesign -d --entitlements - "$APP" 2>&1 | grep -v "^Executable"
+            codesign -d --entitlements - "$APP/Contents/Helpers/adb" 2>&1 | grep -v "^Executable"
+            codesign --verify --deep --strict --verbose=2 "$APP" 2>&1
+            codesign --verify --verbose=2 dist/*.dmg 2>&1
+            shasum -a 256 dist/*.dmg dist/*.apk
+          } > checks.log
+          open -a "$PWD/$APP"
+          sleep 6
+          screencapture -x -t jpg shots/real-launch-hidden-from-capture.jpg
+          osascript -e 'tell application "System Events" to keystroke "," using command down' || true
+          sleep 2
+          screencapture -x -t jpg shots/settings.jpg
+          pgrep -x CarbonMirror > /dev/null && echo "APP ALIVE after real launch + Settings" >> checks.log || echo "APP DIED after real launch + Settings" >> checks.log
+          pkill -x CarbonMirror || true
+          sleep 1
+          defaults write "$HOME/Library/Containers/com.nomadicrebel.carbonmirror/Data/Library/Preferences/com.nomadicrebel.carbonmirror" hideFromCapture -bool false
+          open -a "$PWD/$APP" --args --demo
+          for i in $(seq -w 1 44); do sleep 0.45; screencapture -x -t jpg "shots/demo-$i.jpg"; done
+          pgrep -x CarbonMirror > /dev/null && echo "APP ALIVE in demo" >> checks.log || echo "APP DIED in demo" >> checks.log
+          pkill -x CarbonMirror || true
+          cp ~/Library/Logs/DiagnosticReports/CarbonMirror* shots/ 2> /dev/null || true
+          cat checks.log
+          ! grep -q "APP DIED" checks.log
+      - name: Remove the ephemeral identity
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/cm.keychain-db" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mac
+          path: |
+            dist/*.dmg
+            build.log
+            checks.log
+            shots
+
+  publish:
+    if: inputs.publish
+    needs: [phone, mac]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Tag and publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="$(grep -A1 '<key>CFBundleShortVersionString</key>' Resources/Info.plist | sed -n 's/.*<string>\(.*\)<\/string>.*/\1/p')"
+          mkdir out
+          cp artifacts/mac/dist/*.dmg artifacts/phone/dist/*.apk out/
+          git archive --format=zip --prefix="CarbonMirror-$VERSION/" -o "out/CarbonMirror-$VERSION-source.zip" HEAD
+          (cd out && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          awk -v v="## [$VERSION]" 'index($0, v) == 1 {on=1; next} on && /^## \[/ {exit} on' CHANGELOG.md > notes.md
+          gh release create "v$VERSION" out/* --target "$GITHUB_SHA" --title "CarbonMirror $VERSION" --notes-file notes.md
