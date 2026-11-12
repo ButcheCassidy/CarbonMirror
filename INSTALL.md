@@ -116,7 +116,7 @@ On the phone: uninstall **CarbonMirror Companion** (this also deletes its truste
 ## 8. Signing everything on your Mac (strongest settings)
 
 ### 8.1 The "CarbonMirror Dev" certificate
-Run Step A from the README (or `scripts/make-cert.sh`): an ECDSA P-384 key with SHA-384, code-signing only, 5 years, imported non-extractable and usable only by `codesign`, with the temporary file protected by a random password and deleted immediately.
+Run Step A from the README (or `bash scripts/make-cert.sh` from the project folder): an ECDSA P-384 key with SHA-384, code-signing only, 5 years, imported non-extractable and usable only by `codesign`, with the temporary file protected by a random password and deleted immediately.
 
 If the signing test fails, delete the identity.
 ```bash
@@ -161,11 +161,32 @@ macOS will still warn the first time (self-signed, not notarised) — use **Open
 The phone parts need a JDK and Android's build tools, installed from official downloads (no Homebrew):
 
 1. Download a JDK 21 `.pkg` for macOS (aarch64) from **adoptium.net** and install it.
-2. Download **Command line tools only** for Mac from **developer.android.com/studio** (bottom of the page) and unzip it to `~/Library/Android/sdk/cmdline-tools/latest/`.
+2. Download **Command line tools only** for Mac from **developer.android.com/studio** (bottom of the page). Safari saves `commandlinetools-mac-…_latest.zip` in Downloads.
+
+Check Java works (it must print version 21).
+```bash
+java -version
+```
+Make the SDK folder.
+```bash
+mkdir -p ~/Library/Android/sdk/cmdline-tools
+```
+Unpack the tools into it.
+```bash
+ditto -x -k ~/Downloads/commandlinetools-mac-*_latest.zip ~/Library/Android/sdk/cmdline-tools/
+```
+Rename the unpacked folder to `latest` (Android requires that name).
+```bash
+mv ~/Library/Android/sdk/cmdline-tools/cmdline-tools ~/Library/Android/sdk/cmdline-tools/latest
+```
 
 Tell the tools where the SDK lives.
 ```bash
 export ANDROID_HOME="$HOME/Library/Android/sdk"
+```
+Accept the SDK licences (type `y` when asked).
+```bash
+"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses
 ```
 Install the Android 16 platform, build tools and NDK (each downloaded once).
 ```bash
@@ -191,11 +212,15 @@ Create your P-384 release key (type a strong password when asked; it is never st
 ```bash
 keytool -genkeypair -keyalg EC -groupname secp384r1 -sigalg SHA384withECDSA -validity 10000 -alias carbonmirror -storetype PKCS12 -keystore ~/Library/Application\ Support/CarbonMirror/signing/carbonmirror-release.p12 -dname "CN=CarbonMirror Companion"
 ```
+Go to the project folder (README Step 0), then build the phone server and core library.
+```bash
+bash scripts/build-server.sh
+```
 Build and sign the APK (asks for the password; signs with APK Signature Scheme v2 and v3).
 ```bash
-scripts/build-apk.sh
+bash scripts/build-apk.sh
 ```
-You should see `Verified using v2 scheme (APK Signature Scheme v2): true`, `Verified using v3 scheme …: true`, `Signer #1 key algorithm: EC`, `key size (bits): 384`, and only `uses-permission: name='android.permission.WRITE_SECURE_SETTINGS'`.
+You should see `Verified using v2 scheme (APK Signature Scheme v2): true`, `Verified using v3 scheme …: true`, `Signer #1 key algorithm: EC`, `key size (bits): 384`, and exactly these permissions: `WRITE_SECURE_SETTINGS`, `ACCESS_NETWORK_STATE`, `CHANGE_NETWORK_STATE`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_CONNECTED_DEVICE`, `RECEIVE_BOOT_COMPLETED`, `POST_NOTIFICATIONS`, `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`.
 
 **Back up `carbonmirror-release.p12` and its password somewhere safe and offline.** Android only accepts updates signed with the same key.
 
