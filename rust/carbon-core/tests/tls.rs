@@ -197,3 +197,32 @@ fn tampered_record_ends_the_session() {
     let tampered = s.read_tls(&buf[..n]);
     assert!(tampered.is_err(), "{tampered:?}");
 }
+
+/// Regression (found by the Phase 11 soak): a large burst of records in one socket read — e.g. a 100 KB
+/// key frame — must decrypt completely even though rustls itself buffers only 16 KiB of plaintext.
+#[test]
+fn large_burst_in_one_read_is_delivered() {
+    let (mac, _, server_id) = pair();
+    let client_id = Identity::client(&mac, &server_id.spki_hash().unwrap()).unwrap();
+    let mut c = Session::new(&client_id).unwrap();
+    let mut s = Session::new(&server_id).unwrap();
+    pump(&mut c, &mut s).unwrap();
+    let frame: Vec<u8> = (0..300_000u32).map(|i| (i * 31 % 251) as u8).collect();
+    let mut written = 0;
+    while written < frame.len() {
+        written += s.write_plain(&frame[written..]).unwrap();
+    }
+    let mut wire = vec![0u8; 1 << 20];
+    let n = s.write_tls(&mut wire).unwrap();
+    c.read_tls(&wire[..n]).expect("whole burst accepted in one call");
+    let mut got = Vec::new();
+    let mut out = vec![0u8; 64 * 1024];
+    loop {
+        let k = c.read_plain(&mut out).unwrap();
+        if k == 0 {
+            break;
+        }
+        got.extend_from_slice(&out[..k]);
+    }
+    assert_eq!(got, frame);
+}
