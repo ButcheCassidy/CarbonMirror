@@ -13,6 +13,25 @@ struct InputTests {
         return e
     }
 
+    /// The touch messages in a recorded control stream (pings skipped; anything else is recorded as an issue).
+    static func touches(in wire: [UInt8]) -> [UInt8] {
+        guard let pingLength = try? ControlMessage.ping(0).count, let touchLength = try? touch(.down, 0, 0).count else { return [] }
+        var filtered: [UInt8] = []
+        var i = 0
+        while i < wire.count {
+            switch wire[i] {
+            case 0x41: i += pingLength
+            case 2:
+                filtered += wire[i..<min(wire.count, i + touchLength)]
+                i += touchLength
+            default:
+                Issue.record("unexpected control message type \(wire[i])")
+                i = wire.count
+            }
+        }
+        return filtered
+    }
+
     static func touch(_ action: ControlMessage.TouchAction, _ x: Int32, _ y: Int32, pointer: Int64 = ControlMessage.fingerPointer) throws -> [UInt8] {
         try ControlMessage.touch(action, pointer: pointer, at: PhonePoint(x: x, y: y, frameWidth: 1344, frameHeight: 2992), pressure: action == .up ? 0 : 1)
     }
@@ -119,23 +138,7 @@ struct InputTests {
             }
         }
         try await Task.sleep(for: .milliseconds(800))
-        let wire = phone.received.withLock { $0.flatMap { $0 } }
-        let pingLength = try ControlMessage.ping(0).count
-        let touchLength = try Self.touch(.down, 0, 0).count
-        var filtered: [UInt8] = []
-        var i = 0
-        while i < wire.count {
-            switch wire[i] {
-            case 0x41: i += pingLength
-            case 2:
-                filtered += wire[i..<min(wire.count, i + touchLength)]
-                i += touchLength
-            default:
-                Issue.record("unexpected control message type \(wire[i])")
-                i = wire.count
-            }
-        }
-        #expect(filtered == expected, "every event arrived, in order, byte-exact")
+        #expect(Self.touches(in: phone.received.withLock { $0.flatMap { $0 } }) == expected, "every event arrived, in order, byte-exact")
         await session.stop()
     }
 }

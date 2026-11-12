@@ -96,6 +96,11 @@ final class VirtualPhone: @unchecked Sendable {
     static let height = 2992
 
     let attack: Attack
+    /// Soak mode: loop the test stream at this frame rate until stopped (nil: send it once, fast).
+    let loopFPS: Int?
+    /// Frames sent (soak statistics).
+    let framesSent = Mutex(0)
+    private let running = Mutex(true)
     let received = Mutex<[[UInt8]]>([])
     let rejectedSecrets = Mutex(0)
     private let lineContinuation: AsyncStream<String>.Continuation
@@ -107,8 +112,9 @@ final class VirtualPhone: @unchecked Sendable {
     private let lock = Mutex(())
     private let frames: [(bytes: [UInt8], config: Bool, key: Bool)]
 
-    init(attack: Attack = .none) {
+    init(attack: Attack = .none, loopFPS: Int? = nil) {
         self.attack = attack
+        self.loopFPS = loopFPS
         (lines, lineContinuation) = AsyncStream.makeStream()
         frames = Self.loadTestStream()
     }
@@ -230,18 +236,24 @@ final class VirtualPhone: @unchecked Sendable {
         }
         video.send(header)
         var pts: UInt64 = 0
-        for frame in frames {
-            var flags: UInt64 = frame.config ? 1 << 62 : pts
-            if frame.key { flags |= 1 << 61 }
-            var h = [UInt8](repeating: 0, count: 12)
-            h.withUnsafeMutableBytes {
-                $0.storeBytes(of: flags.bigEndian, toByteOffset: 0, as: UInt64.self)
-                $0.storeBytes(of: UInt32(frame.bytes.count).bigEndian, toByteOffset: 8, as: UInt32.self)
+        let pause: Duration = loopFPS.map { .microseconds(1_000_000 / $0) } ?? .milliseconds(2)
+        repeat {
+            for frame in frames where running.withLock({ $0 }) {
+                var flags: UInt64 = frame.config ? 1 << 62 : pts
+                if frame.key { flags |= 1 << 61 }
+                var h = [UInt8](repeating: 0, count: 12)
+                h.withUnsafeMutableBytes {
+                    $0.storeBytes(of: flags.bigEndian, toByteOffset: 0, as: UInt64.self)
+                    $0.storeBytes(of: UInt32(frame.bytes.count).bigEndian, toByteOffset: 8, as: UInt32.self)
+                }
+                video.send(h + frame.bytes)
+                if !frame.config {
+                    pts += 16_666
+                    framesSent.withLock { $0 += 1 }
+                }
+                try? await Task.sleep(for: pause)
             }
-            video.send(h + frame.bytes)
-            if !frame.config { pts += 16_666 }
-            try? await Task.sleep(for: .milliseconds(2))
-        }
+        } while loopFPS != nil && running.withLock({ $0 })
     }
 
     private func deviceMessages(_ control: any ByteStream) async {
@@ -273,6 +285,7 @@ final class VirtualPhone: @unchecked Sendable {
     }
 
     func stop() {
+        running.withLock { $0 = false }
         lineContinuation.finish()
         lock.withLock { _ in for c in connections { c.close() } }
         if listener >= 0 {

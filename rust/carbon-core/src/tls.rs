@@ -13,6 +13,8 @@
 #![forbid(unsafe_code)]
 
 use std::io::{self, Read, Write};
+
+use zeroize::Zeroize;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -34,6 +36,8 @@ pub const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(10);
 pub const KEY_UPDATE_INTERVAL: Duration = Duration::from_secs(15 * 60);
 pub const KEY_UPDATE_BYTES: u64 = 4 * 1024 * 1024 * 1024;
 /// Plaintext buffered inside rustls before `write_plain` pushes back.
+/// Largest backlog of decrypted, unread data (above the 8 MiB video packet cap plus headroom).
+const PLAIN_LIMIT: usize = 16 << 20;
 const BUFFER_LIMIT: usize = 4 * 1024 * 1024;
 /// Session certificates are valid from one hour ago (clock skew) for one day.
 const SESSION_CERT_BACKDATE: time::Duration = time::Duration::hours(1);
@@ -280,6 +284,10 @@ fn server_name() -> ServerName<'static> {
 /// One TLS connection over a byte stream owned by the caller.
 pub struct Session {
     conn: Connection,
+    /// Decrypted data not yet read. rustls keeps at most 16 KiB of unread plaintext and refuses further
+    /// records beyond that, so every batch is moved here (bounded by `PLAIN_LIMIT`, zeroed on drop).
+    plain: Vec<u8>,
+    peer_closed: bool,
     started: Instant,
     last_key_update: Instant,
     bytes_since_update: u64,
@@ -291,7 +299,7 @@ impl Session {
     fn wrap(mut conn: Connection, captured: Option<Arc<Mutex<Option<[u8; PIN_LEN]>>>>) -> Self {
         conn.set_buffer_limit(Some(BUFFER_LIMIT));
         let now = Instant::now();
-        Self { conn, started: now, last_key_update: now, bytes_since_update: 0, policy_checked: false, captured }
+        Self { conn, plain: Vec::new(), peer_closed: false, started: now, last_key_update: now, bytes_since_update: 0, policy_checked: false, captured }
     }
 
     pub fn new(identity: &Identity) -> CmResult<Self> {
@@ -354,8 +362,30 @@ impl Session {
             if let Err(e) = self.conn.process_new_packets() {
                 return Err(self.map_error(&e));
             }
+            self.drain_plaintext()?;
         }
         self.check_progress()
+    }
+
+    /// Moves everything rustls decrypted into `plain`; a peer that outruns the reader past `PLAIN_LIMIT` fails.
+    fn drain_plaintext(&mut self) -> CmResult<()> {
+        let mut chunk = [0u8; 16 * 1024];
+        loop {
+            match self.conn.reader().read(&mut chunk) {
+                Ok(0) => {
+                    self.peer_closed = true;
+                    break;
+                }
+                Ok(n) => self.plain.extend_from_slice(&chunk[..n]),
+                Err(e) if e.kind() == io::ErrorKind::WouldBlock => break,
+                Err(_) => return Err(CmStatus::TlsFailed),
+            }
+            if self.plain.len() > PLAIN_LIMIT {
+                return Err(CmStatus::ParseTooLarge);
+            }
+        }
+        chunk.zeroize();
+        Ok(())
     }
 
     /// Ciphertext to send to the socket.
@@ -373,12 +403,14 @@ impl Session {
 
     /// Decrypted application data; 0 when nothing is pending. A closed peer is reported as `TlsClosed`.
     pub fn read_plain(&mut self, out: &mut [u8]) -> CmResult<usize> {
-        match self.conn.reader().read(out) {
-            Ok(0) if !out.is_empty() => Err(CmStatus::TlsClosed),
-            Ok(n) => Ok(n),
-            Err(e) if e.kind() == io::ErrorKind::WouldBlock => Ok(0),
-            Err(_) => Err(CmStatus::TlsFailed),
+        if self.plain.is_empty() {
+            return if self.peer_closed && !out.is_empty() { Err(CmStatus::TlsClosed) } else { Ok(0) };
         }
+        let n = out.len().min(self.plain.len());
+        out[..n].copy_from_slice(&self.plain[..n]);
+        self.plain[..n].zeroize();
+        self.plain.drain(..n);
+        Ok(n)
     }
 
     /// Queues application data for encryption; refreshes traffic keys on schedule first.
@@ -419,5 +451,11 @@ impl Session {
     /// Sends close_notify (call `write_tls` afterwards to flush it).
     pub fn close(&mut self) {
         self.conn.send_close_notify();
+    }
+}
+
+impl Drop for Session {
+    fn drop(&mut self) {
+        self.plain.zeroize();
     }
 }
