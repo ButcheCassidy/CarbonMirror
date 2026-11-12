@@ -35,6 +35,11 @@ public final class ClipboardManager {
                 || description.hasMimeType(ClipDescription.MIMETYPE_TEXT_HTML))) {
             return null;
         }
+        // CarbonMirror: clips marked sensitive (passwords from password managers, Android 13+) never leave the phone
+        android.os.PersistableBundle extras = description.getExtras();
+        if (extras != null && extras.getBoolean(ClipDescription.EXTRA_IS_SENSITIVE)) {
+            return null;
+        }
         CharSequence text = clipData.getItemAt(0).getText();
         return text == null ? null : text.toString();
     }
