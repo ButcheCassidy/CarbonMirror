@@ -68,7 +68,7 @@ func withUTF8Bytes<R>(_ text: String, _ body: (UnsafePointer<UInt8>?, Int) -> R)
 /// Core library identity checks.
 public enum CarbonCore {
     /// ABI version the bridge was written against.
-    public static let expectedABIVersion: UInt32 = 2
+    public static let expectedABIVersion: UInt32 = 3
 
     /// True when the linked Rust core speaks the ABI this bridge expects.
     public static var abiMatches: Bool {

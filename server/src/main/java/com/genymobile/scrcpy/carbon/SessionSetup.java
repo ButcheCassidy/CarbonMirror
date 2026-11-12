@@ -12,19 +12,27 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.util.Locale;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
 /**
  * Per-session parameters the Mac sends on the adb shell's stdin (never in argv, never in a file):
- * {@code CM1 <plain|tls> <secret: 64 hex> <mac-ca: base64 DER | ->}. In TLS mode the server pins the Mac's
- * identity CA on first use, creates a fresh session identity and prints {@code CM-PIN <hex>} on stdout (the
- * authenticated adb channel) for the Mac to pin. Every socket must then present the 32-byte session secret
- * before any data flows.
+ * {@code CM1 <plain|tls> <secret: 64 hex> <mac-ca: base64 DER | -> <device-key: 64 hex | ->}. In TLS mode the
+ * server pins the Mac's identity CA on first use, creates a fresh session identity and prints
+ * {@code CM-PIN <hex> [<proof hex>]} on stdout (the adb channel) for the Mac to pin. Every socket must then
+ * present the 32-byte session secret before any data flows.
+ * <p>The device key arrives only over USB and is kept in a shell-only file. adb does not authenticate the
+ * phone to the Mac, so on wireless sessions the proof, HMAC-SHA-256(device key, session pin), is what shows
+ * the Mac that this is the phone it was plugged into and not another device on the network.
  */
 public final class SessionSetup {
 
     public static final String MAC_PIN_PATH = "/data/local/tmp/carbonmirror-mac.pin";
+    private static final String DEVICE_KEY_PATH = "/data/local/tmp/carbonmirror-device.key";
     private static final int MAX_LINE = 8192;
     private static final int SECRET_LEN = 32;
 
@@ -41,7 +49,7 @@ public final class SessionSetup {
     /** Reads and validates the setup line; in TLS mode prepares the session identity. */
     public static SessionSetup read() throws IOException {
         String[] fields = readLine(System.in).split(" ");
-        if (fields.length != 4 || !"CM1".equals(fields[0])) {
+        if (fields.length != 5 || !"CM1".equals(fields[0])) {
             throw new IOException("Malformed session setup");
         }
         boolean tls;
@@ -56,6 +64,7 @@ public final class SessionSetup {
         if (secret.length != SECRET_LEN) {
             throw new IOException("Bad session secret");
         }
+        byte[] deviceKey = deviceKey(fields[4]);
         if (!tls) {
             return new SessionSetup(false, secret, 0);
         }
@@ -69,7 +78,7 @@ public final class SessionSetup {
         byte[] pin = new byte[32];
         CarbonCore.check(CarbonCore.identityPin(identity, pin));
         PrintStream out = new PrintStream(new FileOutputStream(FileDescriptor.out), true);
-        out.print("CM-PIN " + hex(pin) + "\n");
+        out.print("CM-PIN " + hex(pin) + (deviceKey == null ? "" : " " + hex(hmac(deviceKey, pin))) + "\n");
         return new SessionSetup(true, secret, identity);
     }
 
@@ -78,6 +87,7 @@ public final class SessionSetup {
         SecureChannel channel = tls ? SecureChannel.tls(socket, identity) : SecureChannel.plain(socket);
         byte[] presented = new byte[SECRET_LEN];
         InputStream in = channel.getInputStream();
+        socket.setSoTimeout(SecureChannel.HANDSHAKE_TIMEOUT_MS);
         int read = 0;
         while (read < SECRET_LEN) {
             int n = in.read(presented, read, SECRET_LEN - read);
@@ -91,6 +101,7 @@ public final class SessionSetup {
             channel.close();
             throw new IOException("Wrong session secret");
         }
+        socket.setSoTimeout(0);
         return channel;
     }
 
@@ -115,11 +126,48 @@ public final class SessionSetup {
             }
             return;
         }
-        try (FileOutputStream fos = new FileOutputStream(pinFile)) {
-            fos.write((hex(digest) + "\n").getBytes(StandardCharsets.US_ASCII));
+        writePrivate(pinFile, digest);
+    }
+
+    /** Stores the device key when the Mac sends one (USB only); otherwise returns the stored key, or null. */
+    private static byte[] deviceKey(String field) throws IOException {
+        File keyFile = new File(DEVICE_KEY_PATH);
+        if (!"-".equals(field)) {
+            byte[] key = hex(field);
+            if (key.length != SECRET_LEN) {
+                throw new IOException("Bad device key");
+            }
+            writePrivate(keyFile, key);
+            return key;
         }
-        if (!pinFile.setReadable(false, false) || !pinFile.setReadable(true, true) || !pinFile.setWritable(true, true)) {
-            throw new IOException("Could not restrict the pin file");
+        if (!keyFile.exists()) {
+            return null;
+        }
+        byte[] key = hex(readLine(new FileInputStream(keyFile)));
+        return key.length == SECRET_LEN ? key : null;
+    }
+
+    /** Writes {@code bytes} as one hex line, readable and writable by the shell user only. */
+    private static void writePrivate(File file, byte[] bytes) throws IOException {
+        if (!file.delete() && file.exists()) {
+            throw new IOException("Could not replace " + file.getName());
+        }
+        if (!file.createNewFile() || !file.setReadable(false, false) || !file.setWritable(false, false)
+                || !file.setReadable(true, true) || !file.setWritable(true, true)) {
+            throw new IOException("Could not restrict " + file.getName());
+        }
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write((hex(bytes) + "\n").getBytes(StandardCharsets.US_ASCII));
+        }
+    }
+
+    private static byte[] hmac(byte[] key, byte[] data) throws IOException {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(key, "HmacSHA256"));
+            return mac.doFinal(data);
+        } catch (GeneralSecurityException e) {
+            throw new IOException("HMAC unavailable", e);
         }
     }
 

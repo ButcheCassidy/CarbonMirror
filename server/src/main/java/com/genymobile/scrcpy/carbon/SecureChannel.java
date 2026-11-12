@@ -1,6 +1,7 @@
 package com.genymobile.scrcpy.carbon;
 
 import android.net.LocalSocket;
+import android.os.SystemClock;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -14,7 +15,7 @@ import java.io.OutputStream;
  */
 public final class SecureChannel implements Closeable {
 
-    private static final int HANDSHAKE_TIMEOUT_MS = 10_000;
+    static final int HANDSHAKE_TIMEOUT_MS = 10_000;
     private static final int BUFFER = 64 * 1024;
 
     private final LocalSocket socket;
@@ -59,9 +60,15 @@ public final class SecureChannel implements Closeable {
     }
 
     private void handshake() throws IOException {
-        socket.setSoTimeout(HANDSHAKE_TIMEOUT_MS);
+        // One deadline for the whole handshake: a peer trickling bytes cannot hold the server.
+        long deadline = SystemClock.elapsedRealtime() + HANDSHAKE_TIMEOUT_MS;
         byte[] buf = new byte[BUFFER];
         while (true) {
+            long left = deadline - SystemClock.elapsedRealtime();
+            if (left <= 0) {
+                throw new IOException("TLS handshake timed out");
+            }
+            socket.setSoTimeout((int) left);
             flush();
             int status;
             synchronized (lock) {

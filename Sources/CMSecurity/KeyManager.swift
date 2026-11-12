@@ -22,6 +22,8 @@ public enum KeyItem: String, CaseIterable, Sendable {
     case adbKeyFingerprint = "CarbonMirror adb key fingerprint"
     /// The paired phone (JSON `Device`, pins included).
     case pairedDevice = "CarbonMirror paired device"
+    /// 32-byte secret shared with one phone over USB, followed by that phone's serial; a wireless endpoint must prove it.
+    case deviceKey = "CarbonMirror device key"
 }
 
 /// Health of the stored keys at launch (spec 7.4/7.5).
@@ -113,8 +115,23 @@ public final class KeyManager: @unchecked Sendable {
     }
 
     /// "Forget device": pins, endpoints and cached data.
+    static let deviceKeyLength = 32
+
+    /// The device key, once a USB session has delivered it to the phone with this serial.
+    public func deviceKey(serial: String) -> [UInt8]? {
+        guard let data = store.data(for: .deviceKey), data.count > Self.deviceKeyLength,
+              String(decoding: data[Self.deviceKeyLength...], as: UTF8.self) == serial else { return nil }
+        return Array(data[..<Self.deviceKeyLength])
+    }
+
+    public func storeDeviceKey(_ key: [UInt8], serial: String) throws {
+        guard key.count == Self.deviceKeyLength else { throw CoreStatus.invalidArgument }
+        try store.setData(key + Array(serial.utf8), for: .deviceKey)
+    }
+
     public func forgetDevice() throws {
         try store.deleteData(for: .pairedDevice)
+        try store.deleteData(for: .deviceKey)
         Log.info(.security, "device forgotten")
     }
 

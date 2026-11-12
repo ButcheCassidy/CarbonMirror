@@ -107,6 +107,8 @@ final class VirtualPhone: @unchecked Sendable {
     let lines: AsyncStream<String>
     private var listener: Int32 = -1
     private var secret: [UInt8] = []
+    /// The phone's stored device key (the real server keeps it in a shell-only file).
+    var deviceKey: [UInt8]?
     private var identity: TLSIdentity?
     private var connections: [any ByteStream] = []
     private let lock = Mutex(())
@@ -169,7 +171,7 @@ final class VirtualPhone: @unchecked Sendable {
     /// Handles the setup line from "stdin", then serves video and control.
     func start(setupLine: String) {
         let fields = setupLine.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: " ").map(String.init)
-        guard fields.count == 4, fields[0] == "CM1", let s = try? Self.bytes(hex: fields[2]) else {
+        guard fields.count == 5, fields[0] == "CM1", let s = try? Self.bytes(hex: fields[2]) else {
             lineContinuation.finish()
             return
         }
@@ -182,7 +184,10 @@ final class VirtualPhone: @unchecked Sendable {
             identity = id
             if attack == .wrongPin { pin[0] ^= 0xFF }
             lineContinuation.yield("[server] INFO: Device: [Google] google Pixel 10 Pro XL (Android 16)")
-            lineContinuation.yield("CM-PIN " + CoreCrypto.hex(pin))
+            // Like the real server: a key in the setup line (USB) is stored; the proof uses the stored key.
+            if let provisioned = try? Self.bytes(hex: fields[4]) { deviceKey = provisioned }
+            let proof = deviceKey.flatMap { try? CoreCrypto.hmacSHA256(key: $0, pin) }
+            lineContinuation.yield("CM-PIN " + CoreCrypto.hex(pin) + (proof.map { " " + CoreCrypto.hex($0) } ?? ""))
         }
         Thread.detachNewThread { [self] in
             Task { await self.serve() }

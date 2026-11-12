@@ -11,4 +11,4 @@ pub mod status;
 pub mod tls;
 
 /// Version of the C ABI in `rust/include/carbon_core.h`; bump on any signature change.
-pub const ABI_VERSION: u32 = 2;
+pub const ABI_VERSION: u32 = 3;

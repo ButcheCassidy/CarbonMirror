@@ -9,7 +9,7 @@
 /**
  * Version of the C ABI in `rust/include/carbon_core.h`; bump on any signature change.
  */
-#define ABI_VERSION 2
+#define ABI_VERSION 3
 
 /**
  * SHA-256 output length.
@@ -25,6 +25,11 @@
  * Caller asserts the user confirmed this action in a dialog.
  */
 #define FLAG_USER_CONFIRMED (1 << 1)
+
+/**
+ * Longest Unix-socket path macOS accepts (`sun_path` is 104 bytes including the terminator).
+ */
+#define MAX_SOCKET_PATH 103
 
 /**
  * Automatic retries allowed for failures that may be network blips rather than key problems.
@@ -593,6 +598,31 @@ int32_t cm_sha256_verify(const uint8_t *data,
                          size_t data_len,
                          const uint8_t *expected,
                          size_t expected_len);
+
+/**
+ * HMAC-SHA-256 of `data` under `key`; writes 32 bytes to `out`.
+ *
+ * # Safety
+ * `key` readable for `key_len`, `data` for `data_len`; `out` writable for 32 bytes.
+ */
+int32_t cm_hmac_sha256(const uint8_t *key,
+                       size_t key_len,
+                       const uint8_t *data,
+                       size_t data_len,
+                       uint8_t *out);
+
+/**
+ * Constant-time check of an HMAC-SHA-256 tag.
+ *
+ * # Safety
+ * `key` readable for `key_len`, `data` for `data_len`, `tag` for `tag_len`.
+ */
+int32_t cm_hmac_sha256_verify(const uint8_t *key,
+                              size_t key_len,
+                              const uint8_t *data,
+                              size_t data_len,
+                              const uint8_t *tag,
+                              size_t tag_len);
 
 /**
  * Fills `out` with `len` bytes from the system CSPRNG.

@@ -15,9 +15,13 @@ public struct SessionParameters: Sendable {
     public var clipboardSync: Bool
     /// nil = plaintext (allowed only over USB with "Encrypt over USB" off).
     public var encryption: Encryption?
+    /// Secret shared with the phone over USB (the one physically authenticated channel). A USB session
+    /// provisions it; a wireless session must prove it, so a LAN device cannot pose as the paired phone.
+    public var deviceKey: [UInt8]?
 
     public init(serial: String, wireless: Bool, serverVersion: String, codec: VideoCodec, maxSize: Int, maxFPS: Int, bitRate: Int,
-                clipboardSync: Bool, encryption: Encryption?) {
+                clipboardSync: Bool, encryption: Encryption?, deviceKey: [UInt8]? = nil) {
+        self.deviceKey = deviceKey
         self.serial = serial
         self.wireless = wireless
         self.serverVersion = serverVersion
@@ -38,6 +42,8 @@ public enum SessionEnd: Error, Equatable, Sendable {
     case connectFailed
     case connectionLost
     case identityChanged
+    /// The wireless endpoint could not prove the secret the paired phone received over USB.
+    case deviceNotProven
     case tlsFailed(CoreStatus)
     case protocolViolation(CoreStatus)
 
@@ -47,6 +53,7 @@ public enum SessionEnd: Error, Equatable, Sendable {
         case .stopped: nil
         case .deployFailed, .serverFailed, .connectFailed, .connectionLost, .protocolViolation: .connectionLost
         case .identityChanged: .pinMismatchKnownDevice
+        case .deviceNotProven: .unknownDevice
         case .tlsFailed: .tlsHandshakeFailed
         }
     }
@@ -147,7 +154,9 @@ public actor MirrorSession {
                                     stayAwake: true)
         let mode = parameters.encryption == nil ? "plain" : "tls"
         let ca = parameters.encryption.map { Data($0.macCA).base64EncodedString() } ?? "-"
-        let setup = "CM1 \(mode) \(CoreCrypto.hex(secret)) \(ca)\n"
+        // The device key leaves the Mac only over USB; a wireless endpoint has to know it already.
+        let provision = parameters.wireless ? nil : parameters.deviceKey
+        let setup = "CM1 \(mode) \(CoreCrypto.hex(secret)) \(ca) \(provision.map(CoreCrypto.hex) ?? "-")\n"
         let handle: any ServerHandle
         do {
             handle = try await link.startServer(serial: parameters.serial, options: options, setupLine: setup)
@@ -155,15 +164,21 @@ public actor MirrorSession {
             throw .serverFailed
         }
         server = handle
-        let (pins, pinSink) = AsyncStream.makeStream(of: Result<[UInt8], SessionEnd>.self, bufferingPolicy: .bufferingNewest(1))
+        let (pins, pinSink) = AsyncStream.makeStream(of: Result<PhonePin, SessionEnd>.self, bufferingPolicy: .bufferingNewest(1))
         tasks.append(Task { [weak self] in await self?.watchServer(handle, pins: pinSink) })
 
         var identity: TLSIdentity?
         if let encryption = parameters.encryption {
             let pin = try await Self.awaitPin(pins)
+            if parameters.wireless, let key = parameters.deviceKey {
+                guard let proof = pin.proof, (try? CoreCrypto.verifyHMACSHA256(key: key, pin.key, tag: proof)) != nil else {
+                    Log.error(.security, "wireless endpoint did not prove the device key")
+                    throw .deviceNotProven
+                }
+            }
             Log.info(.security, "phone session key received")
             do {
-                identity = try TLSIdentity.client(signer: encryption.signer, phonePin: pin)
+                identity = try TLSIdentity.client(signer: encryption.signer, phonePin: pin.key)
             } catch {
                 throw .tlsFailed(error)
             }
@@ -195,9 +210,23 @@ public actor MirrorSession {
         ]
     }
 
-    /// Waits for `CM-PIN <hex>` (or `CM-ERROR identity-changed`) from the server's stdout watcher.
-    private static func awaitPin(_ pins: AsyncStream<Result<[UInt8], SessionEnd>>) async throws(SessionEnd) -> [UInt8] {
-        let result: Result<[UInt8], SessionEnd>? = await withTaskGroup(of: Result<[UInt8], SessionEnd>?.self) { group in
+    /// The phone's session key pin and, when the phone holds the device key, HMAC-SHA-256(device key, pin).
+    struct PhonePin: Sendable {
+        let key: [UInt8]
+        let proof: [UInt8]?
+
+        /// Parses `CM-PIN <64 hex> [<64 hex>]`.
+        init?(line: String) {
+            let fields = line.split(separator: " ")
+            guard (2...3).contains(fields.count), fields[0] == "CM-PIN", let key = try? CoreCrypto.bytes(fromHex: String(fields[1])) else { return nil }
+            self.key = key
+            proof = fields.count == 3 ? try? CoreCrypto.bytes(fromHex: String(fields[2])) : nil
+        }
+    }
+
+    /// Waits for the `CM-PIN` line (or `CM-ERROR identity-changed`) from the server's stdout watcher.
+    private static func awaitPin(_ pins: AsyncStream<Result<PhonePin, SessionEnd>>) async throws(SessionEnd) -> PhonePin {
+        let result: Result<PhonePin, SessionEnd>? = await withTaskGroup(of: Result<PhonePin, SessionEnd>?.self) { group in
             group.addTask {
                 var iterator = pins.makeAsyncIterator()
                 return await iterator.next() ?? .failure(.serverFailed)
@@ -214,11 +243,11 @@ public actor MirrorSession {
     }
 
     /// Reads the server's stdout until it exits: forwards the pin line, then ends the session on exit.
-    private func watchServer(_ handle: any ServerHandle, pins: AsyncStream<Result<[UInt8], SessionEnd>>.Continuation) async {
+    private func watchServer(_ handle: any ServerHandle, pins: AsyncStream<Result<PhonePin, SessionEnd>>.Continuation) async {
         for await line in handle.lines {
             if line.hasPrefix("CM-ERROR identity-changed") {
                 pins.yield(.failure(.identityChanged))
-            } else if line.hasPrefix("CM-PIN "), let pin = try? CoreCrypto.bytes(fromHex: String(line.dropFirst(7))) {
+            } else if let pin = PhonePin(line: line) {
                 pins.yield(.success(pin))
             }
         }

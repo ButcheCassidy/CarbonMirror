@@ -97,6 +97,42 @@ struct SessionTests {
         phone.stop()
     }
 
+    /// adb does not authenticate the phone to the Mac. A USB session hands the phone a device key; after
+    /// that a wireless endpoint must prove it, so a LAN device answering as the paired phone gets nothing.
+    @Test func usbProvisionsTheDeviceKeyAndWirelessMustProveIt() async throws {
+        let key = try CoreCrypto.randomBytes(32)
+        func session(_ phone: VirtualPhone, wireless: Bool) throws -> MirrorSession {
+            var parameters = try Self.parameters(encrypted: true, wireless: wireless)
+            parameters.deviceKey = key
+            return MirrorSession(parameters: parameters, link: VirtualPhoneLink(phone: phone),
+                                 connector: { try await POSIXStream.connect(unixPath: $0) }, video: RecordingSink())
+        }
+        let phone = VirtualPhone()
+        let usb = try session(phone, wireless: false)
+        try await usb.start()
+        #expect(phone.deviceKey == key, "USB delivers the key")
+        await usb.stop()
+        phone.stop()
+
+        let paired = VirtualPhone()
+        paired.deviceKey = key
+        let wireless = try session(paired, wireless: true)
+        try await wireless.start()
+        await wireless.stop()
+        paired.stop()
+
+        let impostor = VirtualPhone()
+        await #expect(throws: SessionEnd.deviceNotProven) { try await session(impostor, wireless: true).start() }
+        #expect(impostor.deviceKey == nil, "the key never leaves the Mac over wireless")
+        #expect(impostor.received.withLock { $0.isEmpty }, "no input reached the impostor")
+        impostor.stop()
+
+        let wrongKey = VirtualPhone()
+        wrongKey.deviceKey = try CoreCrypto.randomBytes(32)
+        await #expect(throws: SessionEnd.deviceNotProven) { try await session(wrongKey, wireless: true).start() }
+        wrongKey.stop()
+    }
+
     @Test(arguments: [VirtualPhone.Attack.unknownMessage, .oversizedClipboard, .nonTextClipboard, .forgedBattery])
     func hostileDeviceMessagesEndTheSession(attack: VirtualPhone.Attack) async throws {
         let phone = VirtualPhone(attack: attack)
@@ -113,7 +149,7 @@ struct SessionTests {
         let path = FileManager.default.temporaryDirectory.path + "/cm-f" + CoreCrypto.hex(try CoreCrypto.randomBytes(8))
         defer { try? FileManager.default.removeItem(atPath: path) }
         try phone.listen(unixPath: path)
-        phone.start(setupLine: "CM1 plain \(String(repeating: "ab", count: 32)) -\n")
+        phone.start(setupLine: "CM1 plain \(String(repeating: "ab", count: 32)) - -\n")
         let intruder = try await POSIXStream.connect(unixPath: path)
         intruder.send([UInt8](repeating: 0, count: 32))
         let reply = try await intruder.read(max: 16)

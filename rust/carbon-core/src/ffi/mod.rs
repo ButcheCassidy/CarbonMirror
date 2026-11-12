@@ -295,6 +295,37 @@ pub unsafe extern "C" fn cm_sha256_verify(
     guard(|| unsafe { crypto::sha256_verify(input(data, data_len)?, input(expected, expected_len)?) })
 }
 
+/// HMAC-SHA-256 of `data` under `key`; writes 32 bytes to `out`.
+///
+/// # Safety
+/// `key` readable for `key_len`, `data` for `data_len`; `out` writable for 32 bytes.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn cm_hmac_sha256(key: *const u8, key_len: usize, data: *const u8, data_len: usize, out: *mut u8) -> i32 {
+    guard(|| {
+        // SAFETY: caller contract on `key`, `data` and `out`.
+        let (key, src, dst) = unsafe { (input(key, key_len)?, input(data, data_len)?, output(out, crypto::SHA256_LEN)?) };
+        dst.copy_from_slice(&crypto::hmac_sha256(key, src));
+        Ok(())
+    })
+}
+
+/// Constant-time check of an HMAC-SHA-256 tag.
+///
+/// # Safety
+/// `key` readable for `key_len`, `data` for `data_len`, `tag` for `tag_len`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn cm_hmac_sha256_verify(
+    key: *const u8,
+    key_len: usize,
+    data: *const u8,
+    data_len: usize,
+    tag: *const u8,
+    tag_len: usize,
+) -> i32 {
+    // SAFETY: caller contract on the three inputs.
+    guard(|| unsafe { crypto::hmac_sha256_verify(input(key, key_len)?, input(data, data_len)?, input(tag, tag_len)?) })
+}
+
 /// Fills `out` with `len` bytes from the system CSPRNG.
 ///
 /// # Safety
