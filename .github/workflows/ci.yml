@@ -18,23 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       android: ${{ steps.d.outputs.android }}
-      macos: ${{ steps.d.outputs.macos }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - id: d
-        env:
-          BEFORE: ${{ github.event.before }}
         run: |
           [ -f android/gradlew ] && echo "android=true" >> "$GITHUB_OUTPUT" || echo "android=false" >> "$GITHUB_OUTPUT"
-          # macOS minutes are expensive: build only when something that reaches the Mac app changed.
-          if ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null \
-             || git diff --name-only "$BEFORE" "$GITHUB_SHA" -- Sources Tests Package.swift rust Resources scripts .github/workflows/ci.yml | grep -q .; then
-            echo "macos=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "macos=false" >> "$GITHUB_OUTPUT"
-          fi
 
   secret-scan:
     runs-on: ubuntu-latest
@@ -65,10 +53,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - run: ./gradlew --no-daemon lint test assembleDebug
 
+  # macOS minutes are billed at 10x: this job never runs on push, only from Actions -> CI -> Run workflow.
   macos:
-    needs: detect
-    if: needs.detect.outputs.macos == 'true'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: macos-26
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -82,17 +71,14 @@ jobs:
         run: |
           rustup target add aarch64-apple-darwin
           cargo build --release --target aarch64-apple-darwin --manifest-path rust/carbon-core/Cargo.toml
-      - name: Swift build (Swift 6, warnings listed)
+      - name: Swift build (Swift 6, diagnostics listed)
         run: |
-          set -o pipefail
-          swift --version
-          swift build -c release --arch arm64 2>&1 | tee build.log
-          grep -E ": (warning|error):" build.log | sort -u > diagnostics.txt || true
-          echo "diagnostics: $(wc -l < diagnostics.txt)"
-          cat diagnostics.txt
+          swift build -c release --arch arm64 > build.log 2>&1 || true
+          grep -E ": (warning|error):|^ld:|Undefined symbols" build.log | sort -u | tee diagnostics.txt
+          ! grep -qE ": error:|^ld:|Undefined symbols|error: " build.log
       - name: Upload build log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mac-build-log
           path: build.log
