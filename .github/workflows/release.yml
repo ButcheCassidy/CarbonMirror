@@ -132,7 +132,7 @@ jobs:
           for f in app/build/outputs/bundle/release/*.aab; do
             cp "$f" "$RUNNER_TEMP/dist/CarbonMirror-android-$V.aab"
           done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: android
           path: ${{ runner.temp }}/dist/*
@@ -213,7 +213,7 @@ jobs:
         if: always()
         run: security delete-keychain "$RUNNER_TEMP/build.keychain-db" || true
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos
           path: ${{ runner.temp }}/dist/*
