@@ -97,6 +97,13 @@ jobs:
           pgrep -x CarbonMirror >/dev/null && echo "APP ALIVE after Settings" >> build.log || echo "APP DIED after Settings" >> build.log
           pkill -x CarbonMirror || true
           cp ~/Library/Logs/DiagnosticReports/CarbonMirror* shots/ 2>/dev/null || true
+          open -a "$PWD/$APP"
+          sleep 6
+          screencapture -x -t jpg shots/real-launch.jpg
+          pgrep -x CarbonMirror >/dev/null && echo "APP ALIVE after real launch" >> build.log || echo "APP DIED on real launch" >> build.log
+          pkill -x CarbonMirror || true
+          awk '/shaderSource = """/{on=1;next} on&&/"""/{exit} on' Sources/CMMedia/MetalScreenView.swift > shader.metal
+          (xcrun -sdk macosx metal -c shader.metal -o shader.air 2>&1 | tail -15; echo "METAL exit ${PIPESTATUS[0]}") >> build.log
           system_profiler SPDisplaysDataType | grep -E "Resolution|Retina" || true
       - name: Upload build log and screenshots
         if: always()
