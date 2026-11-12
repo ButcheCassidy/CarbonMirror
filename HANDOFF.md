@@ -52,11 +52,12 @@
     - `6f895ef` no Resume snapshots, no Universal Clipboard, non-synchronizable Keychain items, adb keys out of backups.
     - `f66e3d3` RELEASE_CHECK.md, docs, edge test; then this HANDOFF.
 
-**Session 3 (2026-11-12)** — user answers: animation = **slide & settle**; Android gets a **minimal launcher Activity**; Mac splash **fits inside the phone window**; **macOS CI allowed**, budget ≤ 100 runner-minutes total (used ≈ 16 over 10 runs; billed ×10 against the included quota on a private repo), job is manual-only.
+**Session 3 (2026-11-12)** — user answers: animation = **slide & settle**; Android gets a **minimal launcher Activity**; Mac splash **fits inside the phone window**; **macOS CI allowed**, budget ≤ 100 runner-minutes total (used ≈ 20 over 13 runs; billed ×10 against the included quota on a private repo), job is manual-only.
 13. `7321add`…`d6c33b7` macOS job in CI (`macos-26`, Xcode 26.6); first Mac compile: 8 errors fixed (`Theme`/`EndpointPrompt.Fields` isolation, slider value, deprecated `String(cString:)`); job made manual (`workflow_dispatch`) after the user's budget note.
 14. `1a59ac5` startup animation: `tools/startup/render_carbonmirror.py` (user's script + multiprocessing; both variants 2 min 24 s), `Resources/CarbonMirror-startup.mp4`, `SplashView`. `8895797` companion launcher screen.
 15. Security re-run (all harnesses pass) + self-attack: `9de3a7c` finding 18 (adb emulator scan / adb mDNS), `621c3b2` finding 19 (device key proof), 20, 21.
 16. `416b035` UI audit by one sub-agent (12 findings) + sweep, all fixed; from the CI screenshots: window-size floor, centred pills (`46aa4d0`), **Settings crash** (`a5e2676`), Settings rows top-aligned (`8c0e0a7`). Final CI run: build 0 warnings, `APP ALIVE after Settings`.
+17. Whole-app sweep (no sub-agent): pattern scan clean (no `try!`, no force unwraps on untrusted data, no exclusive-access closures left); fixed launch trap with no display attached (`cf02cca`, `7cbfccb`). CI now also checks the real launch path and the Metal shader: `APP ALIVE after real launch`, `METAL exit 0`.
 
 ## 3. User rules (mandatory — keep obeying)
 - **Token economy:** one-line progress notes, shortest possible replies, no long tool output.
