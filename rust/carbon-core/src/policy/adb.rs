@@ -69,9 +69,22 @@ fn parse_uint(v: &str, min: u64, max: u64) -> CmResult<u64> {
     if (min..=max).contains(&n) { Ok(n) } else { Err(CmStatus::AdbBadArgument) }
 }
 
+/// Longest Unix-socket path macOS accepts (`sun_path` is 104 bytes including the terminator).
+pub const MAX_SOCKET_PATH: usize = 103;
+
+/// Local end of `adb forward`: only a Unix-domain socket file CarbonMirror owns
+/// (`localfilesystem:<absolute dir>/cm-f<16 lower-case hex>`). TCP is refused, so no forwarded port is ever
+/// reachable over the network or by other local users.
 fn check_local_forward(spec: &str) -> CmResult<()> {
-    let port = spec.strip_prefix("tcp:").ok_or(CmStatus::AdbBadArgument)?;
-    parse_uint(port, 1024, 65535).map(|_| ())
+    let path = spec.strip_prefix("localfilesystem:").ok_or(CmStatus::AdbBadArgument)?;
+    let (dir, name) = path.rsplit_once('/').ok_or(CmStatus::AdbBadArgument)?;
+    let name_ok = name.len() == 20
+        && name.starts_with("cm-f")
+        && name.bytes().skip(4).all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b));
+    let dir_ok = dir.starts_with('/')
+        && dir.bytes().all(|b| b.is_ascii_alphanumeric() || b"/._-".contains(&b))
+        && !dir.split('/').any(|c| c == "." || c == "..");
+    if name_ok && dir_ok && path.len() <= MAX_SOCKET_PATH { Ok(()) } else { Err(CmStatus::AdbBadArgument) }
 }
 
 fn check_scid(v: &str) -> CmResult<()> {

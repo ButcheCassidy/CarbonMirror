@@ -150,13 +150,11 @@ final class VirtualPhone: @unchecked Sendable {
 
     // MARK: Listening ("adb forward" lands here)
 
-    func listen(port: UInt16) throws {
-        let fd = socket(AF_INET, POSIXStream.streamType, 0)
-        var on: Int32 = 1
-        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, socklen_t(MemoryLayout<Int32>.size))
-        var address = POSIXStream.loopback(port: port)
+    func listen(unixPath path: String) throws {
+        guard var address = POSIXStream.unixAddress(path) else { throw StreamError.connectFailed }
+        let fd = socket(AF_UNIX, POSIXStream.streamType, 0)
         let rc = withUnsafePointer(to: &address) {
-            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { bind(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) }
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { bind(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size)) }
         }
         guard rc == 0, Glibc.listen(fd, 8) == 0 else { throw StreamError.connectFailed }
         listener = fd
@@ -325,12 +323,17 @@ final class VirtualPhoneLink: PhoneLink, @unchecked Sendable {
     func prepare(serial: String) async throws { calls.withLock { $0.append("prepare") } }
     func cornerRadius(serial: String) async -> Int? { 104 }
 
-    func forward(serial: String, port: UInt16, scid: UInt32) async throws {
+    func forward(serial: String, scid: UInt32) async throws -> String {
         calls.withLock { $0.append("forward") }
-        try phone.listen(port: port)
+        let path = FileManager.default.temporaryDirectory.path + "/cm-f" + CoreCrypto.hex(try CoreCrypto.randomBytes(8))
+        try phone.listen(unixPath: path)
+        return path
     }
 
-    func removeForward(serial: String, port: UInt16) async { calls.withLock { $0.append("removeForward") } }
+    func removeForward(serial: String, socket: String) async {
+        calls.withLock { $0.append("removeForward") }
+        try? FileManager.default.removeItem(atPath: socket)
+    }
 
     func startServer(serial: String, options: ServerOptions, setupLine: String) async throws -> any ServerHandle {
         calls.withLock { $0.append("startServer") }
@@ -339,4 +342,42 @@ final class VirtualPhoneLink: PhoneLink, @unchecked Sendable {
     }
 
     func cleanup(serial: String) async { calls.withLock { $0.append("cleanup") } }
+}
+
+/// Records every byte that crosses a session socket, both ways, when `CM_CAPTURE_DIR` is set (Phase 11
+/// Stage 3.3: the session uses Unix sockets, which tcpdump cannot see). Otherwise returns the stream as is.
+final class TapStream: ByteStream, @unchecked Sendable {
+    private let inner: any ByteStream
+    private let sent: FileHandle
+    private let received: FileHandle
+
+    static func wrap(_ stream: any ByteStream) -> any ByteStream {
+        guard let dir = ProcessInfo.processInfo.environment["CM_CAPTURE_DIR"] else { return stream }
+        let id = UUID().uuidString
+        let paths = ["\(dir)/\(id).sent", "\(dir)/\(id).received"]
+        for path in paths { _ = FileManager.default.createFile(atPath: path, contents: nil, attributes: [.posixPermissions: 0o600]) }
+        guard let sent = FileHandle(forWritingAtPath: paths[0]), let received = FileHandle(forWritingAtPath: paths[1]) else { return stream }
+        return TapStream(inner: stream, sent: sent, received: received)
+    }
+
+    private init(inner: any ByteStream, sent: FileHandle, received: FileHandle) {
+        self.inner = inner
+        self.sent = sent
+        self.received = received
+    }
+
+    func read(max: Int) async throws -> [UInt8] {
+        let bytes = try await inner.read(max: max)
+        received.write(Data(bytes))
+        return bytes
+    }
+
+    func send(_ bytes: [UInt8]) {
+        sent.write(Data(bytes))
+        inner.send(bytes)
+    }
+
+    func close() {
+        inner.close()
+    }
 }

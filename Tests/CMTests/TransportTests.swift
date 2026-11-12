@@ -10,7 +10,7 @@ struct FakeAdb {
 
     init() throws {
         directory = FileManager.default.temporaryDirectory.appendingPathComponent("cm-test-\(UUID().uuidString)", isDirectory: true)
-        let env = try AdbEnvironment.prepare(directory: directory)
+        let env = try AdbEnvironment.prepare(directory: directory, socketDirectory: directory.appendingPathComponent("s", isDirectory: true))
         let fixture = URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("Fixtures/fake-adb.sh")
         runner = AdbRunner(executable: fixture, environment: env)
     }
@@ -36,8 +36,8 @@ struct TransportTests {
             (.startServer, false, false), (.killServer, false, false), (.listDevices, false, false), (.trackDevices, false, false),
             (.connect(ip: "192.168.1.20", port: 37099), false, false), (.disconnect(ip: "fe80::1%en0", port: 40001), false, false),
             (.pair(ip: "192.168.1.20", port: 41234, secret: "482913"), false, false),
-            (.forward(serial: Self.serial, localPort: 27183, scid: 0xFBAD_CAFE), false, false),
-            (.removeForward(serial: Self.serial, localPort: 27183), false, false),
+            (.forward(serial: Self.serial, localSocket: "/tmp/cm/cm-f0123456789abcdef", scid: 0xFBAD_CAFE), false, false),
+            (.removeForward(serial: Self.serial, localSocket: "/tmp/cm/cm-f0123456789abcdef"), false, false),
             (.pushServer(serial: Self.serial, localPath: "\(Self.resources)/carbonmirror-server"), false, false),
             (.pushCoreLibrary(serial: Self.serial, localPath: "\(Self.resources)/libcarbon_core.so"), false, false),
             (.startMirrorServer(serial: Self.serial, options: options), false, false),
@@ -88,12 +88,19 @@ struct TransportTests {
         let env = fake.runner.environment
         let perms = try FileManager.default.attributesOfItem(atPath: env.directory.path)[.posixPermissions] as? Int
         #expect(perms == 0o700)
-        #expect(env.variables["ADB_SERVER_SOCKET"] == "tcp:127.0.0.1:\(env.serverPort)")
+        #expect(env.variables["ADB_SERVER_SOCKET"] == "localfilesystem:\(env.serverSocket)", "Unix socket, never TCP")
+        #expect(!env.variables.values.contains { $0.contains("tcp:") })
+        let socketPerms = try FileManager.default.attributesOfItem(atPath: env.socketDirectory.path)[.posixPermissions] as? Int
+        #expect(socketPerms == 0o700)
+        let forward = try env.newForwardSocket()
+        #expect(forward.hasPrefix(env.socketDirectory.path + "/cm-f") && forward.utf8.count <= AdbEnvironment.maxSocketPath)
+        #expect(forward != (try env.newForwardSocket()), "unguessable per session")
+        #expect(throws: AdbEnvironment.Failure.socketPathTooLong) {
+            try AdbEnvironment.prepare(directory: env.directory, socketDirectory: env.directory.appendingPathComponent(String(repeating: "x", count: 100)))
+        }
         #expect(env.variables["HOME"] == env.directory.path)
         #expect(env.variables["ANDROID_USER_HOME"] == env.directory.path)
         #expect(!(env.variables["HOME"] ?? "").hasSuffix(".android"))
-        #expect(env.serverPort != 5037)
-        #expect(AdbEnvironment.portRange.contains(UInt32(env.serverPort)))
     }
 
     @Test func runnerReturnsOutputAndExitCode() async throws {
@@ -109,7 +116,7 @@ struct TransportTests {
     @Test func supervisorLifecycle() async throws {
         let fake = try FakeAdb()
         defer { fake.remove() }
-        try "20417\n".write(to: fake.directory.appendingPathComponent("adb-server.port"), atomically: true, encoding: .utf8)
+        #expect(FileManager.default.createFile(atPath: fake.runner.environment.serverSocket, contents: nil), "stale socket from a previous run")
         let supervisor = AdbSupervisor(runner: fake.runner)
         try await supervisor.start()
         #expect(await supervisor.state == .running)
@@ -127,7 +134,7 @@ struct TransportTests {
         #expect(log.contains("start-server"))
         #expect(log.contains("track-devices -l"))
         #expect(log.last == "kill-server")
-        #expect(!FileManager.default.fileExists(atPath: fake.directory.appendingPathComponent("adb-server.port").path))
+        #expect(!FileManager.default.fileExists(atPath: fake.runner.environment.serverSocket))
     }
 
     @Test func supervisorRestartsAfterCrash() async throws {

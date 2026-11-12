@@ -3,7 +3,7 @@ import Foundation
 import Network
 import Synchronization
 
-/// Network.framework stream to 127.0.0.1 (the `adb forward` port), pinned to the loopback interface.
+/// Network.framework stream for the Wireless-debugging probe: LAN only, on a physical interface (never a VPN tunnel).
 public final class NWByteStream: ByteStream, @unchecked Sendable {
     private let connection: NWConnection
     private let queue = DispatchQueue(label: "com.nomadicrebel.carbonmirror.nwstream")
@@ -11,14 +11,6 @@ public final class NWByteStream: ByteStream, @unchecked Sendable {
 
     private init(connection: NWConnection) {
         self.connection = connection
-    }
-
-    /// Connects to 127.0.0.1:`port` over loopback only; fails after `timeout`.
-    public static func connect(port: UInt16, timeout: TimeInterval = 5) async throws -> NWByteStream {
-        guard let nwPort = NWEndpoint.Port(rawValue: port) else { throw StreamError.connectFailed }
-        let parameters = NWParameters.tcp
-        parameters.requiredInterfaceType = .loopback
-        return try await connect(endpoint: .hostPort(host: .ipv4(.loopback), port: nwPort), parameters: parameters, timeout: timeout)
     }
 
     /// Connects to `endpoint` with `parameters` (TCP_NODELAY on); fails after `timeout`.

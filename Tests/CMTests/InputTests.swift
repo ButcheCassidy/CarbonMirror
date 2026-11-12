@@ -106,7 +106,7 @@ struct InputTests {
         let phone = VirtualPhone()
         let link = VirtualPhoneLink(phone: phone)
         let session = MirrorSession(parameters: try SessionTests.parameters(encrypted: true, wireless: true), link: link,
-                                    connector: { try await POSIXStream.connect(port: $0) }, video: RecordingSink())
+                                    connector: { try await TapStream.wrap(POSIXStream.connect(unixPath: $0)) }, video: RecordingSink())
         try await session.start()
         let e = Self.engine()
         var expected: [UInt8] = []

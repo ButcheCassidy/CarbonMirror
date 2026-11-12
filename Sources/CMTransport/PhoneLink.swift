@@ -22,8 +22,9 @@ public protocol PhoneLink: Sendable {
     func prepare(serial: String) async throws
     /// Rounded-corner radius in pixels, nil when the phone does not report one.
     func cornerRadius(serial: String) async -> Int?
-    func forward(serial: String, port: UInt16, scid: UInt32) async throws
-    func removeForward(serial: String, port: UInt16) async
+    /// Forwards a new private Unix socket to the server's abstract socket; returns the socket path.
+    func forward(serial: String, scid: UInt32) async throws -> String
+    func removeForward(serial: String, socket: String) async
     /// Starts the server and writes the session-setup line to its stdin.
     func startServer(serial: String, options: ServerOptions, setupLine: String) async throws -> any ServerHandle
     /// Removes the server's files from the phone.
@@ -111,12 +112,15 @@ public struct AdbPhoneLink: PhoneLink {
         return try? ScrcpyProtocol.cornerRadius(dumpsys: result.output)
     }
 
-    public func forward(serial: String, port: UInt16, scid: UInt32) async throws {
-        try await runner.runChecked(.forward(serial: serial, localPort: port, scid: scid), timeout: 10)
+    public func forward(serial: String, scid: UInt32) async throws -> String {
+        let socket = try runner.environment.newForwardSocket()
+        try await runner.runChecked(.forward(serial: serial, localSocket: socket, scid: scid), timeout: 10)
+        return socket
     }
 
-    public func removeForward(serial: String, port: UInt16) async {
-        _ = try? await runner.run(.removeForward(serial: serial, localPort: port), timeout: 5)
+    public func removeForward(serial: String, socket: String) async {
+        _ = try? await runner.run(.removeForward(serial: serial, localSocket: socket), timeout: 5)
+        runner.environment.removeSocket(socket)
     }
 
     public func startServer(serial: String, options: ServerOptions, setupLine: String) async throws -> any ServerHandle {

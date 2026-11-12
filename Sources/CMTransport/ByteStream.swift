@@ -18,7 +18,8 @@ public protocol ByteStream: AnyObject, Sendable {
 }
 
 /// Opens a stream to a local port.
-public typealias StreamConnector = @Sendable (UInt16) async throws -> any ByteStream
+/// Connects to a forwarded Unix-socket path.
+public typealias StreamConnector = @Sendable (String) async throws -> any ByteStream
 
 public enum StreamError: Error, Equatable {
     case connectFailed
@@ -40,7 +41,7 @@ extension ByteStream {
     }
 }
 
-/// BSD-socket stream to 127.0.0.1 (Linux tests and the virtual phone; the Mac app uses ``NWByteStream``).
+/// BSD-socket stream: the session's private Unix sockets (Mac and Linux) and the tests' loopback TCP.
 public final class POSIXStream: ByteStream, @unchecked Sendable {
     private let fd: Int32
     private let readQueue = DispatchQueue(label: "com.nomadicrebel.carbonmirror.stream.read")
@@ -61,15 +62,15 @@ public final class POSIXStream: ByteStream, @unchecked Sendable {
         sysClose(fd)
     }
 
-    /// Connects to 127.0.0.1:`port`.
-    public static func connect(port: UInt16) async throws -> POSIXStream {
+    /// Connects to the Unix-domain socket at `path` (the private `adb forward` socket).
+    public static func connect(unixPath path: String) async throws -> POSIXStream {
         try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
-                let fd = socket(AF_INET, Self.streamType, 0)
+                guard var address = unixAddress(path) else { return continuation.resume(throwing: StreamError.connectFailed) }
+                let fd = socket(AF_UNIX, Self.streamType, 0)
                 guard fd >= 0 else { return continuation.resume(throwing: StreamError.connectFailed) }
-                var address = Self.loopback(port: port)
                 let rc = withUnsafePointer(to: &address) {
-                    $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { sysConnect(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) }
+                    $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { sysConnect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size)) }
                 }
                 guard rc == 0 else {
                     sysClose(fd)
@@ -78,6 +79,22 @@ public final class POSIXStream: ByteStream, @unchecked Sendable {
                 continuation.resume(returning: POSIXStream(fd: fd))
             }
         }
+    }
+
+    /// `sockaddr_un` for `path`; nil when it does not fit `sun_path`.
+    static func unixAddress(_ path: String) -> sockaddr_un? {
+        var address = sockaddr_un()
+        address.sun_family = sa_family_t(AF_UNIX)
+        let bytes = Array(path.utf8)
+        guard !bytes.isEmpty, bytes.count < MemoryLayout.size(ofValue: address.sun_path) else { return nil }
+        withUnsafeMutableBytes(of: &address.sun_path) { raw in
+            raw.copyBytes(from: bytes)
+            raw[bytes.count] = 0
+        }
+        #if canImport(Darwin)
+        address.sun_len = UInt8(MemoryLayout<sockaddr_un>.size)
+        #endif
+        return address
     }
 
     static var streamType: Int32 {
