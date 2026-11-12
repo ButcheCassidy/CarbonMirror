@@ -8,6 +8,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ServiceInfo;
 import android.database.ContentObserver;
 import android.net.ConnectivityManager;
@@ -113,7 +114,8 @@ public final class ReadyService extends Service {
     private void evaluate() {
         String current = subnet;
         boolean on = WirelessDebugging.on(this);
-        if (current != null && on && WirelessDebugging.mirroring(this)) {
+        // Only a wireless session marks the network trusted: a USB session may run while on any Wi-Fi.
+        if (current != null && on && WirelessDebugging.mirroring(this) && !usbConnected()) {
             TrustedNetworks.add(this, current);
         }
         boolean triedHere = current != null && current.equals(tried);
@@ -136,6 +138,12 @@ public final class ReadyService extends Service {
                 break;
         }
         getSystemService(NotificationManager.class).notify(NOTIFICATION, notification());
+    }
+
+    /** Sticky USB state broadcast (no permission needed to read it); true while a USB data cable is attached. */
+    private boolean usbConnected() {
+        Intent state = registerReceiver(null, new IntentFilter("android.hardware.usb.action.USB_STATE"), Context.RECEIVER_NOT_EXPORTED);
+        return state != null && state.getBooleanExtra("connected", false);
     }
 
     enum Change { TURN_ON, TURN_OFF, RELEASE, NONE }
