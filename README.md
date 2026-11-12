@@ -21,7 +21,7 @@ What you do on the Mac happens on the phone, and what you do on the phone shows 
 Plug in a cable for up to 120 frames per second. Unplug and it carries on over Wi-Fi, switching automatically in about a second without closing the window. Wi-Fi uses Android's own encrypted *Wireless debugging* only — the old unencrypted `adb tcpip` mode is detected and refused.
 
 ### Encrypted twice, pinned to your phone
-On top of Android's encryption, CarbonMirror wraps the video and controls in its own TLS 1.3 tunnel (AES-256-GCM with post-quantum key exchange), using keys pinned to your phone and your Mac. It's on for USB too. Pairing is a QR code you scan once; after that, any other phone — or anyone pretending to be yours — is refused.
+On top of Android's encryption, CarbonMirror wraps the video and controls in its own TLS 1.3 tunnel (AES-256-GCM with post-quantum key exchange), using keys pinned to your phone and your Mac. Over USB it's off by default — the cable is a physical link — and one switch (Settings → Security → *Encrypt over USB too*) turns it on. Pairing is a QR code you scan once; after that, any other phone — or anyone pretending to be yours — is refused.
 
 ### Works with Mullvad VPN always on
 Turn on *Local network sharing* in Mullvad on both devices and CarbonMirror talks to your phone over the local network only, never through the VPN tunnel, and never to the internet.

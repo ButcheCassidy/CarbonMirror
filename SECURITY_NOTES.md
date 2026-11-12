@@ -21,7 +21,7 @@ What CarbonMirror protects, how, and where the limits are. Everything here descr
 | Path | Protection |
 |---|---|
 | Wireless (always) | adb TLS (Android Wireless debugging) **plus** inner TLS 1.3 from `carbon-core::tls`: suites `TLS_AES_256_GCM_SHA384` then `TLS_CHACHA20_POLY1305_SHA256` only; key exchange `X25519MLKEM768` (hybrid post-quantum) then `X25519`; mutual authentication with pinned certificates; ALPN `carbonmirror/1` required; no resumption, no 0-RTT; KeyUpdate every 15 min or 4 GiB; handshake timeout 10 s; any alert or decrypt error ends the session. |
-| USB | Inner TLS **on by default** (owner decision — the spec defaulted it off). Toggle: Settings → Security → *Encrypt over USB too*. |
+| USB | Inner TLS **off by default** (spec 7.3; owner decision). Toggle: Settings → Security → *Encrypt over USB too*. The session secret and device-key provisioning still run on every USB session. |
 | Session keys | Mac: fresh Ed25519 client certificate per session, signed by the long-term identity. Phone: fresh Ed25519 certificate per server start; its pin travels over the authenticated adb channel (`CM-PIN` on stdout). Secrets in Rust are `zeroize`d on drop. |
 | Long-term identity | ECDSA P-384, created with `SecKeyCreateRandomKey` in the login Keychain, `kSecAttrIsExtractable = false`. rustls signs through a Swift callback (`ecdsaSignatureMessageX962SHA384`); the private key never enters Rust or app memory. |
 | Session setup | One line on the adb shell's **stdin** (`CM1 <tls|plain> <secret> <mac-ca>`), never in argv or files on the phone. |

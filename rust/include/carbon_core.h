@@ -356,6 +356,14 @@ enum CmUiState
   CmUiState_IdentityChanged = 9,
   CmUiState_RetryingSilently = 10,
   CmUiState_InsecureConnectionRefused = 11,
+  /**
+   * Auto-connect verified the pinned phone and holds an encrypted link; one button starts mirroring.
+   */
+  CmUiState_PhoneReady = 12,
+  /**
+   * Paired, auto-connect off: waits for USB or the Connect button.
+   */
+  CmUiState_NotConnected = 13,
 };
 #if __STDC_VERSION__ >= 202311L
 typedef enum CmUiState CmUiState;

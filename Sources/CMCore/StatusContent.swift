@@ -5,7 +5,7 @@ import CMCoreBridge
 public struct StatusContent: Equatable, Sendable {
     /// Button identities; the UI wires each to its action.
     public enum Action: String, Sendable, CaseIterable {
-        case openSettings, useUSB, pair, howWirelessDebugging, howLANSharing, reconnect, retry, createNewKey, howInsecure
+        case openSettings, useUSB, pair, howWirelessDebugging, howLANSharing, reconnect, retry, createNewKey, howInsecure, mirror, connect
     }
 
     public struct Button: Equatable, Sendable {
@@ -60,6 +60,12 @@ public struct StatusContent: Equatable, Sendable {
                           subtitle: "Someone may be intercepting the connection.",
                           buttons: [Button(title: "Retry", action: .retry), Button(title: "Create new key", action: .createNewKey)],
                           showsSpinner: false)
+        case .phoneReady:
+            StatusContent(glyph: "lock.iphone", title: "Ready", subtitle: "Encrypted link to your Pixel is open.",
+                          buttons: [Button(title: "Mirror", action: .mirror)], showsSpinner: false)
+        case .notConnected:
+            StatusContent(glyph: "iphone.slash", title: "Not connected", subtitle: "Plug in USB or connect over Wi-Fi.",
+                          buttons: [Button(title: "Connect", action: .connect)], showsSpinner: false)
         case .insecureConnectionRefused:
             StatusContent(glyph: "lock.trianglebadge.exclamationmark", title: "Insecure connection refused",
                           subtitle: "Use Wireless debugging, not adb tcpip.",
