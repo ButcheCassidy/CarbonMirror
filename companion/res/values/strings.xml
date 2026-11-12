@@ -14,4 +14,10 @@
     <string name="developer_options">Developer options</string>
     <string name="add_tile">Add Quick Settings tile</string>
     <string name="tile_already_added">The tile is already in Quick Settings.</string>
+    <string name="channel_ready">Ready for auto-connect</string>
+    <string name="ready_trusted">Trusted Wi-Fi: Wireless debugging kept on for your Mac.</string>
+    <string name="ready_waiting">Waiting for a trusted Wi-Fi network.</string>
+    <string name="ready_setup">Connect to your Mac by USB once to finish setup.</string>
+    <string name="battery_hint">Set Battery to Unrestricted so auto-connect keeps working.</string>
+    <string name="forget_networks">Forget trusted Wi-Fi networks</string>
 </resources>

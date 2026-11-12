@@ -14,6 +14,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
@@ -43,10 +44,16 @@ public final class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
-        // Edge to edge on every Android version, so the animation is centred on the whole window.
-        getWindow().setDecorFitsSystemWindows(false);
+        // Edge to edge on every Android version (automatic from Android 15), so the animation is centred on the whole window.
+        if (Build.VERSION.SDK_INT < 35) {
+            legacyEdgeToEdge();
+        }
         root = new FrameLayout(this);
         setContentView(root);
+        ReadyService.start(this);
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[] {android.Manifest.permission.POST_NOTIFICATIONS}, 1);
+        }
         if (state == null) {
             playStartup();
         } else {
@@ -67,6 +74,11 @@ public final class MainActivity extends Activity {
         getContentResolver().unregisterContentObserver(observer);
         // A VideoView does not resume after its surface is destroyed; never come back to a black screen.
         showStatus();
+    }
+
+    @SuppressWarnings("deprecation")
+    private void legacyEdgeToEdge() {
+        getWindow().setDecorFitsSystemWindows(false);
     }
 
     private void playStartup() {
@@ -96,6 +108,11 @@ public final class MainActivity extends Activity {
         status.animate().alpha(1).setDuration(250);
         status.findViewById(R.id.primary).setOnClickListener(view -> primaryAction());
         status.findViewById(R.id.add_tile).setOnClickListener(view -> addTile());
+        status.findViewById(R.id.battery).setOnClickListener(view -> askUnrestricted());
+        status.findViewById(R.id.forget).setOnClickListener(view -> {
+            TrustedNetworks.forgetAll(this);
+            Toast.makeText(this, R.string.forget_networks, Toast.LENGTH_SHORT).show();
+        });
         refresh();
     }
 
@@ -116,6 +133,17 @@ public final class MainActivity extends Activity {
         // Turning Wireless debugging off would cut a wireless session; that is done from the Mac.
         primary.setVisibility(mirroring ? View.GONE : View.VISIBLE);
         status.findViewById(R.id.add_tile).setVisibility(Build.VERSION.SDK_INT >= 33 ? View.VISIBLE : View.GONE);
+        boolean unrestricted = getSystemService(PowerManager.class).isIgnoringBatteryOptimizations(getPackageName());
+        status.findViewById(R.id.battery).setVisibility(unrestricted ? View.GONE : View.VISIBLE);
+    }
+
+    /** System dialog that exempts the app from battery optimisation (Battery: Unrestricted). */
+    private void askUnrestricted() {
+        try {
+            startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + getPackageName())));
+        } catch (ActivityNotFoundException e) {
+            startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+        }
     }
 
     private void primaryAction() {
