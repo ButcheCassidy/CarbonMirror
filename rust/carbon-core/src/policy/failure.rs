@@ -67,6 +67,8 @@ pub enum UiState {
     PhoneReady = 12,
     /// Paired, auto-connect off: waits for USB or the Connect button.
     NotConnected = 13,
+    /// The bundled adb is missing or failed its code-signature check; nothing was started.
+    LaunchCheckFailed = 14,
 }
 
 /// Automatic retries allowed for failures that may be network blips rather than key problems.

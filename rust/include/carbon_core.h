@@ -364,6 +364,10 @@ enum CmUiState
    * Paired, auto-connect off: waits for USB or the Connect button.
    */
   CmUiState_NotConnected = 13,
+  /**
+   * The bundled adb is missing or failed its code-signature check; nothing was started.
+   */
+  CmUiState_LaunchCheckFailed = 14,
 };
 #if __STDC_VERSION__ >= 202311L
 typedef enum CmUiState CmUiState;

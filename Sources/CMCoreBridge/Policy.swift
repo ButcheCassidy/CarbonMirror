@@ -69,6 +69,7 @@ public enum UIStateCode: UInt32, Sendable, CaseIterable {
     case insecureConnectionRefused = 11
     case phoneReady = 12
     case notConnected = 13
+    case launchCheckFailed = 14
 }
 
 /// Failure → UI-state mapping from the Rust core.
