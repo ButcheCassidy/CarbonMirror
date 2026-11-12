@@ -57,6 +57,9 @@
 ### New/changed files (session 4)
 `Sources/CMTransport/AutoConnect.swift` · `Tests/CMTests/AutoConnectTests.swift` · companion `ReadyService.java`, `StartReceiver.java`, `TrustedNetworks.java`, `companion/test/CompanionTest.java` · `scripts/test-companion.sh`, `scripts/build-mac.sh` · `.github/workflows/release.yml` (rewritten), `ci.yml` (gitleaks only) · server `CleanUp.privateClassPath`, `Server.reportError`, `Controller.swipeUpForAppDrawer`, `PowerManager` fail-safe · UI states `phoneReady` 12, `notConnected` 13, `launchCheckFailed` 14 · `AppSettings.autoConnect`, `toolbarItems`/`setToolbarItem` · Settings tab **Shortcuts** · `LICENSE` = PolyForm Shield 1.0.0.
 
+### Commit signing
+From session 4's end, commits are SSH-signed (ed25519, `SHA256:X7rbPC4zCFhUw4lJwuixs0u2dCjlO4zYFTbvV6GlJPM`). The private key exists only in that cloud session's container (`~/.ssh/carbonmirror_signing`), so a new session needs a new key: `ssh-keygen -t ed25519 -f ~/.ssh/carbonmirror_signing`, `git config gpg.format ssh`, `git config user.signingkey ~/.ssh/carbonmirror_signing.pub`, `git config commit.gpgsign true`, and the public key added at github.com/settings/ssh/new as a **Signing Key**. Remove old keys there when a session ends. Earlier commits stay Unverified (history is never rewritten on `main`).
+
 ### NOT RUN (needs the user's Mac + phone)
 Everything in `REAL_DEVICE_CHECKS.md` A–F; the 1.0.1 deadlock fix on the real Pixel (Android 17, CP3A); companion service on device (battery, reboot, OS update, per-network prompt); Android 11 swipe; Developer ID/notarisation path; performance targets.
 
