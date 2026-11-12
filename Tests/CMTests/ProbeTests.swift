@@ -90,4 +90,15 @@ struct ProbeTests {
         #expect(WirelessProbe.check(ip: "10.64.0.1", port: 37_099) == .refusedAddress(.ipTunnelRangeRefused), "Mullvad tunnel range")
         #expect(WirelessProbe.check(ip: "phone.local", port: 37_099) == .refusedAddress(.ipHostnameRefused))
     }
+
+    @Test func networkIsIdentifiedBySubnetHashNeverSSID() throws {
+        #expect(NetworkIdentity.subnet(ip: "192.168.1.37", prefix: 24) == "192.168.1.0/24")
+        #expect(NetworkIdentity.subnet(ip: "10.20.30.40", prefix: 12) == "10.16.0.0/12")
+        #expect(NetworkIdentity.subnet(ip: "192.168.1", prefix: 24) == nil)
+        #expect(NetworkIdentity.subnet(ip: "192.168.1.1", prefix: 33) == nil)
+        let key = try NetworkIdentity.key(subnet: "192.168.1.0/24")
+        #expect(key.count == 64 && !key.contains("192"))
+        #expect(NetworkIdentity.hotspotGateway(subnet: "10.123.45.0/24") == "10.123.45.1")
+        #expect(NetworkIdentity.subnet(ofInterface: "lo") == "127.0.0.0/8")
+    }
 }

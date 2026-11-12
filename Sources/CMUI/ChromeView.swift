@@ -103,8 +103,18 @@ final class ChromeView: NSView {
         badge.toolTip = "Connection: \(text)"
     }
 
-    func setStatusLine(_ text: String, visible: Bool) {
-        statusLine.stringValue = text
+    /// Status line (spec 8.2.5) with an optional leading monochrome battery glyph.
+    func setStatusLine(_ text: String, batterySymbol: String?, visible: Bool) {
+        let line = NSMutableAttributedString()
+        if let batterySymbol, let image = Theme.symbol(batterySymbol, size: 10) {
+            let glyph = NSTextAttachment()
+            glyph.image = image
+            line.append(NSAttributedString(attachment: glyph))
+            line.append(NSAttributedString(string: " "))
+        }
+        line.append(NSAttributedString(string: text))
+        line.addAttributes([.font: Theme.statusLineFont, .foregroundColor: Theme.secondaryText], range: NSRange(location: 0, length: line.length))
+        statusLine.attributedStringValue = line
         statusLine.isHidden = !visible
     }
 
