@@ -3,6 +3,16 @@
 > **Resume instruction:** Paste this file plus the latest source bundle (repo `ButcheCassidy/CarbonMirror`, branch `main`) into a new chat and say: *Continue CarbonMirror from the Next steps in HANDOFF.md.*
 > Then: `source ~/carbonmirror-deps/env.sh` (Linux build env, §5) and start at **§12 Next steps, step 1**. The full spec is §14 (verbatim, with per-requirement status).
 
+## 0b. Session 5 (2026-11-13) — read this first
+
+- **Real-device pairing bug found and fixed (finding 43, High):** user recordings (Mac + phone, Mullvad LAN sharing on) showed `adb pair` succeeding on the phone, then the Mac at once showing "Untrusted device" → Pair → QR → loop. Cause: `TLSSession.capture()` (adbd key probe in `PairingController.finish` and `connectWireless`) used the PQ-only provider from finding 34; adbd (BoringSSL, classical groups) refuses it, so no key was captured. Fix: `tls::probe_provider()` (X25519MLKEM768, X25519, P-256, P-384) for the probe only; sessions stay PQ-only. Regression test `capture_reads_a_classical_only_adbd` (fails before, passes after).
+- Pairing failures now log their step: `log show --predicate 'subsystem == "com.nomadicrebel.carbonmirror"' | grep "pairing failed"`.
+- Settings: checkbox titles were black on the glass (glass content resolved to the light appearance) → explicit white `attributedTitle`; glass/blur/column get the dark appearance. AppKit code is not compiled on Linux: check on the Mac build.
+- Tests: `cargo test` 46, clippy clean; `swift test` 81 (Linux). No macOS CI used. Version stays **1.0.1** (unpublished), so the 1.0.1 phone parts still match; the phone side is unchanged.
+- Commits are SSH-signed with a new session-5 key (ed25519 `SHA256:g5Jso1MpxhGtp8rsRoFz0h1b3aWObBC6DcsdpXpJv0Y`, key only in the session-5 container); add its public key on GitHub as a Signing Key.
+- Not changed (audited, by design): auto-connect needs the companion key proof (`autoConditions`); manual **Mirror** after pairing does not.
+- **Next:** user runs `cd ~/CarbonMirror && git pull && bash scripts/build-mac.sh --install`, pairs again, then `REAL_DEVICE_CHECKS.md` A–F.
+
 ## 0a. Session 4 (2026-11-12 → 13) — read this first
 
 ### Latest (end of session 4)

@@ -79,6 +79,7 @@ What CarbonMirror protects, how, and where the limits are. Everything here descr
 ## 6. Known limits and deviations (honest list)
 
 0. **Post-quantum scope:** key exchange is post-quantum (hybrid `X25519MLKEM768`, enforced, tested: `only_post_quantum_hybrid_key_exchange_is_offered`, negotiated group `0x11EC` asserted in Rust and Swift tests), so recorded traffic stays safe against a future quantum computer. **Signatures are classical**: Mac identity ECDSA P-384, session certificates Ed25519, adb's own keys RSA/EC. Forging them needs a quantum computer *during* the handshake (no harvest-now-decrypt-later risk). ML-DSA certificates need rcgen/webpki/Keychain support that is not stable yet.
+   - Exception, by necessity: the adbd **key probe** (`Session::capture`, reads the phone's adb TLS public key right after `adb pair`) offers `X25519MLKEM768` first, then X25519/P-256/P-384, because adbd is Android's BoringSSL, not this core. It sends no data and aborts after the certificate; every CarbonMirror session stays hybrid-only.
 
 1. **Window capture:** `sharingType = .none` keeps the window out of `CGWindowListCreateImage`-style capture and most screen-sharing; newer ScreenCaptureKit-based recorders on recent macOS versions may still capture it. **NOT RUN** — test 13 in `REAL_DEVICE_CHECKS.md` records what it blocks.
 2. **Data-protection Keychain / Secure Enclave** need an Apple Developer Team ID; a self-signed certificate has none. The identity lives in the login Keychain instead. Future upgrade.

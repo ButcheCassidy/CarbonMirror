@@ -119,6 +119,39 @@ fn capture_records_peer_key_and_aborts() {
     assert_eq!(c.write_plain(b"x"), Err(CmStatus::InvalidArgument));
 }
 
+/// Real adbd is BoringSSL with classical groups only; the fingerprint probe must still read its key.
+#[test]
+fn capture_reads_a_classical_only_adbd() {
+    use rustls::crypto::{aws_lc_rs as lc, CryptoProvider};
+    use std::sync::Arc;
+    let key = rcgen::KeyPair::generate_for(&rcgen::PKCS_ECDSA_P256_SHA256).unwrap();
+    let cert = rcgen::CertificateParams::new(Vec::<String>::new()).unwrap().self_signed(&key).unwrap();
+    let classical = CryptoProvider { kx_groups: vec![lc::kx_group::X25519, lc::kx_group::SECP256R1], ..lc::default_provider() };
+    let config = rustls::ServerConfig::builder_with_provider(Arc::new(classical))
+        .with_protocol_versions(&[&rustls::version::TLS13])
+        .unwrap()
+        .with_no_client_auth()
+        .with_single_cert(vec![cert.der().clone()], rustls::pki_types::PrivatePkcs8KeyDer::from(key.serialize_der()).into())
+        .unwrap();
+    let mut server = rustls::ServerConnection::new(Arc::new(config)).unwrap();
+    let mut c = Session::capture().unwrap();
+    let mut buf = vec![0u8; 64 * 1024];
+    for _ in 0..8 {
+        let n = c.write_tls(&mut buf).unwrap_or(0);
+        if n > 0 && (server.read_tls(&mut &buf[..n]).is_err() || server.process_new_packets().is_err()) {
+            break;
+        }
+        let mut out = Vec::new();
+        while server.wants_write() {
+            server.write_tls(&mut out).unwrap();
+        }
+        if !out.is_empty() && c.read_tls(&out).is_err() {
+            break;
+        }
+    }
+    assert_eq!(c.captured(), tls::spki_hash(cert.der()).ok());
+}
+
 #[test]
 fn garbage_and_plaintext_are_refused() {
     let (_, _, server_id) = pair();

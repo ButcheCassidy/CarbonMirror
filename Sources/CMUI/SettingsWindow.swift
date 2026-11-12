@@ -70,6 +70,7 @@ final class SettingsWindowController {
         scroll.autohidesScrollers = true
 
         let column = NSStackView(views: [picker, scroll])
+        column.appearance = Theme.darkAppearance
         column.orientation = .vertical
         column.alignment = .centerX
         column.spacing = 12
@@ -81,6 +82,7 @@ final class SettingsWindowController {
         if #available(macOS 26.0, *) {
             let glass = NSGlassEffectView()
             glass.tintColor = NSColor(white: 0, alpha: 0.45)
+            glass.appearance = Theme.darkAppearance
             glass.contentView = column
             backdrop = glass
         } else {
@@ -88,6 +90,7 @@ final class SettingsWindowController {
             blur.material = .hudWindow
             blur.blendingMode = .behindWindow
             blur.state = .active
+            blur.appearance = Theme.darkAppearance
             column.frame = blur.bounds
             column.autoresizingMask = [.width, .height]
             blur.addSubview(column)
@@ -276,6 +279,9 @@ final class SettingsWindowController {
         let box = NSButton(checkboxWithTitle: title, target: nil, action: nil)
         box.state = on ? .on : .off
         box.contentTintColor = Theme.primaryText
+        // Glass content can resolve to the light appearance (system label colour = black): explicit white.
+        box.attributedTitle = NSAttributedString(string: title, attributes: [.foregroundColor: Theme.primaryText,
+                                                                            .font: NSFont.systemFont(ofSize: 13)])
         bind(box) { set(($0 as? NSButton)?.state == .on) }
         return box
     }

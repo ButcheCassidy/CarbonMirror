@@ -88,6 +88,21 @@ pub fn provider() -> CryptoProvider {
     }
 }
 
+/// The adbd fingerprint probe only: the phone's adbd (BoringSSL, not this core) may not offer the hybrid
+/// group, so classical groups follow it. The probe sends no data and only records the peer's public key,
+/// which `adb pair` has just authenticated; CarbonMirror's own sessions stay hybrid-only (`provider`).
+pub fn probe_provider() -> CryptoProvider {
+    CryptoProvider {
+        kx_groups: vec![
+            aws_lc_rs::kx_group::X25519MLKEM768,
+            aws_lc_rs::kx_group::X25519,
+            aws_lc_rs::kx_group::SECP256R1,
+            aws_lc_rs::kx_group::SECP384R1,
+        ],
+        ..provider()
+    }
+}
+
 fn tls_err(_: rustls::Error) -> CmStatus {
     CmStatus::TlsHandshakeFailed
 }
@@ -315,7 +330,7 @@ impl Session {
 
     /// Client that only records the peer's public-key hash (adb TLS fingerprint probe).
     pub fn capture() -> CmResult<Self> {
-        let p = Arc::new(provider());
+        let p = Arc::new(probe_provider());
         let captured = Arc::new(Mutex::new(None));
         let verifier = Arc::new(CaptureVerifier { captured: captured.clone(), algorithms: p.signature_verification_algorithms });
         let mut config = client_builder(p)?.dangerous().with_custom_certificate_verifier(verifier).with_no_client_auth();

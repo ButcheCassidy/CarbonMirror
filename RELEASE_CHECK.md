@@ -48,6 +48,7 @@
 | 40 | `identity-changed` could be overwritten by `serverFailed` (buffer of newest 1) | Medium | `MirrorSession.swift` | keep oldest | tests |
 | 41 | H.265 fallback only on `serverFailed` | Medium | `SessionController.swift` | any failure before the first frame | review |
 | 42 | File streams not closed when reading the pin/key files | Low | `SessionSetup.java` | try-with-resources | builds |
+| 43 | adbd key probe used the PQ-only provider; real adbd (classical groups) refused it, so every pairing ended in "Untrusted device" (found on the real phone, session 5) | High | `tls.rs` (`capture`) | `probe_provider()`: X25519MLKEM768 first, then X25519/P-256/P-384, probe only; sessions unchanged | test `capture_reads_a_classical_only_adbd` fails before, passes after; `cargo test` 46, clippy clean; `swift test` 81 |
 
 Sweep by two read-only agents (Mac / Android), every finding re-checked against the code: false positive rejected — clean-up child "deletes the shared jar" (in the child `SERVER_PATH` is its own link). Not fixed (Low/by design): wireless TOFU without a device key, adb start without retry, decoder/Metal failures only logged.
 

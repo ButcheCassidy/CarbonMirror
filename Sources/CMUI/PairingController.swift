@@ -133,7 +133,7 @@ final class PairingController {
     /// New code every 120 s until the phone's pairing service with this code's name appears.
     private func runQR() async {
         while !Task.isCancelled {
-            guard let code = try? PairingCode(now: Self.now) else { return fail() }
+            guard let code = try? PairingCode(now: Self.now) else { return fail("code") }
             let expires = Date().addingTimeInterval(120)
             view.show(payload: code.qrPayload, secondsLeft: 120)
             while !Task.isCancelled, Date() < expires {
@@ -141,7 +141,7 @@ final class PairingController {
                 let services = await Bonjour.browse(type: Bonjour.pairingType, for: .seconds(2))
                 guard let service = services.first(where: { $0.name == code.serviceName }) else { continue }
                 guard let endpoint = await Bonjour.resolve(service), WirelessProbe.check(ip: endpoint.ip, port: endpoint.port) == nil,
-                      (try? code.consume(now: Self.now)) != nil else { return fail() }
+                      (try? code.consume(now: Self.now)) != nil else { return fail("pairing service") }
                 return await finish(ip: endpoint.ip, port: endpoint.port, secret: code.password)
             }
         }
@@ -158,9 +158,9 @@ final class PairingController {
     }
 
     private func finish(ip: String, port: UInt16, secret: String) async {
-        guard let guid = await session.pair(ip: ip, port: port, secret: secret) else { return fail() }
+        guard let guid = await session.pair(ip: ip, port: port, secret: secret) else { return fail("adb pair") }
         let serialPart = guid.dropFirst(4)
-        guard let dash = serialPart.lastIndex(of: "-") else { return fail() }
+        guard let dash = serialPart.lastIndex(of: "-") else { return fail("guid") }
         let serial = String(serialPart[..<dash])
         var connect: Device.Endpoint?
         for _ in 0..<5 where connect == nil {
@@ -177,14 +177,17 @@ final class PairingController {
                 connect = fields.endpoint
             }
         }
-        guard let connect, case let .wirelessDebugging(keyHash) = await session.probeKey(ip: connect.ip, port: connect.port) else { return fail() }
+        guard let connect else { return fail("connect endpoint") }
+        guard case let .wirelessDebugging(keyHash) = await session.probeKey(ip: connect.ip, port: connect.port) else { return fail("key probe") }
         let device = Device(serial: serial, model: "", androidVersion: "", connection: .wireless,
                             pins: Device.Pins(adbKeySHA256: CoreCrypto.hex(keyHash), serial: serial))
         stop()
         session.paired(device, endpoint: connect)
     }
 
-    private func fail() {
+    /// `step` names where it stopped (log only; no addresses or secrets).
+    private func fail(_ step: String) {
+        Log.error(.security, "pairing failed", ["step": step])
         stop()
         phone.show(state: .untrustedDevice)
     }

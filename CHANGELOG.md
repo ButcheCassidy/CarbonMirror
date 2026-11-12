@@ -5,6 +5,8 @@ All notable changes to CarbonMirror. Versions follow `CFBundleShortVersionString
 ## [1.0.1] — 2026-11-13
 
 ### Fixed
+- **Pairing looped back to the QR code ("Untrusted device") on a real phone:** after `adb pair` succeeded, the Mac read the phone's adb TLS key with a post-quantum-only handshake that adbd (classical key exchange) refuses. The key probe now also offers X25519/P-256/P-384; it carries no data, and CarbonMirror's own sessions stay `X25519MLKEM768`-only. Each pairing failure now logs the step where it stopped.
+- Settings: checkbox labels were black on the dark glass; the whole Settings content now uses the dark appearance.
 - **Mirroring never started on a real phone:** the Mac waited for the phone's device info before opening the control connection, while the phone sends it only after both connections are open (deadlock; the phone showed "Mirroring", the Mac nothing). The Mac now opens both first, and gives up after 15 s instead of waiting forever. The virtual test phone now follows the real order.
 - Phone (Android 17 crash): the clean-up helper loads from its own link to the server file, so it can't vanish underneath it; the companion's "Mirroring" flag is also cleared when the server exits.
 - Phone: an unknown screen state no longer makes the session press POWER (which could turn the screen off).
