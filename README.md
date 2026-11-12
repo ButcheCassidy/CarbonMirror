@@ -241,6 +241,10 @@ Copy the companion APK.
 ```bash
 cp Resources/CarbonMirrorCompanion.apk build/CarbonMirror.app/Contents/Resources/CarbonMirrorCompanion.apk
 ```
+Copy the startup animation.
+```bash
+cp Resources/CarbonMirror-startup.mp4 build/CarbonMirror.app/Contents/Resources/CarbonMirror-startup.mp4
+```
 Check the settings file is valid.
 ```bash
 plutil -lint build/CarbonMirror.app/Contents/Info.plist

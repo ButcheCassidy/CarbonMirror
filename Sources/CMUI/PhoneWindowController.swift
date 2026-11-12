@@ -45,6 +45,12 @@ final class PhoneWindowController: NSObject, NSWindowDelegate {
         window.makeKeyAndOrderFront(nil)
     }
 
+    /// First show after launch: the startup animation plays at once, before the window is on screen.
+    func showWindowWithSplash() {
+        content.screen.playSplash()
+        showWindow()
+    }
+
     // MARK: States
 
     func show(state: UIStateCode) {
@@ -100,7 +106,7 @@ final class PhoneWindowController: NSObject, NSWindowDelegate {
 
     /// Grows (or shrinks) the window around the unmoved, unscaled screen in 200 ms, ease-out.
     func setChrome(shown: Bool) {
-        guard shown != content.chromeShown, !window.inLiveResize else { return }
+        guard shown != content.chromeShown, !window.inLiveResize, !content.screen.splashPlaying else { return }
         let i = Theme.chromeInsets(progress: 1)
         let screenRect = content.convert(content.screen.frame, to: nil)
         let screenOnDesktop = window.convertToScreen(screenRect)

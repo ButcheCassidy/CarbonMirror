@@ -64,6 +64,16 @@ final class ScreenView: NSView {
         videoView?.isHidden = glass
     }
 
+    /// Startup animation on OLED black above everything, until the clip ends.
+    func playSplash() {
+        guard let splash = SplashView(frame: bounds) else { return }
+        splash.autoresizingMask = [.width, .height]
+        addSubview(splash)
+    }
+
+    /// The hover chrome stays hidden meanwhile.
+    var splashPlaying: Bool { subviews.contains { $0 is SplashView } }
+
     /// A full-screen view on the status glass (QR pairing); nil returns to the current state.
     func showOverlay(_ view: NSView?) {
         overlay?.removeFromSuperview()

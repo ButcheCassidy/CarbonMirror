@@ -18,7 +18,7 @@ APP=build/CarbonMirror.app
 fail() { printf 'build.sh: %s\n' "$*" >&2; exit 1; }
 
 [ "$(uname -s)" = "Darwin" ] || fail "run this on the Mac (Linux builds use swift build / cargo test only)."
-for input in Resources/adb Resources/carbonmirror-server Resources/libcarbon_core.so Resources/CarbonMirrorCompanion.apk Resources/CarbonMirror-icon-1024.png; do
+for input in Resources/adb Resources/carbonmirror-server Resources/libcarbon_core.so Resources/CarbonMirrorCompanion.apk Resources/CarbonMirror-icon-1024.png Resources/CarbonMirror-startup.mp4; do
   [ -f "$input" ] || fail "missing $input — see README (Step A-2, scripts/build-server.sh, scripts/build-apk.sh)."
 done
 
@@ -48,6 +48,7 @@ cp Resources/adb "$APP/Contents/Helpers/adb"
 cp Resources/carbonmirror-server "$APP/Contents/Resources/carbonmirror-server"
 cp Resources/libcarbon_core.so "$APP/Contents/Resources/libcarbon_core.so"
 cp Resources/CarbonMirrorCompanion.apk "$APP/Contents/Resources/CarbonMirrorCompanion.apk"
+cp Resources/CarbonMirror-startup.mp4 "$APP/Contents/Resources/CarbonMirror-startup.mp4"
 plutil -replace CMServerSHA256 -string "$(shasum -a 256 Resources/carbonmirror-server | cut -d' ' -f1)" "$APP/Contents/Info.plist"
 plutil -replace CMCoreLibSHA256 -string "$(shasum -a 256 Resources/libcarbon_core.so | cut -d' ' -f1)" "$APP/Contents/Info.plist"
 plutil -lint "$APP/Contents/Info.plist"
