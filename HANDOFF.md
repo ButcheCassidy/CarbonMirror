@@ -3,17 +3,69 @@
 > **Resume instruction:** Paste this file plus the latest source bundle (repo `ButcheCassidy/CarbonMirror`, branch `main`) into a new chat and say: *Continue CarbonMirror from the Next steps in HANDOFF.md.*
 > Then: `source ~/carbonmirror-deps/env.sh` (Linux build env, §5) and start at **§12 Next steps, step 1**. The full spec is §14 (verbatim, with per-requirement status).
 
-## 0a. Session 4 (2026-11-12) — read this first
+## 0a. Session 4 (2026-11-12 → 13) — read this first
 
-**User build changes (override spec where they conflict):** inner TLS over USB **off** by default (toggle *Encrypt over USB too*); **auto-connect** (Mac checkbox *Auto-connect to my phone at launch*, default on); **companion foreground service + boot receiver + watchdog alarm** (deviates from spec 9.2/9.3 "no service/boot/alarm", owner decision); macOS CI manual, ≤ 100 macOS runner-minutes in total (≈ 20 used before session 4).
-**User answers:** CI cap = 100 runner-minutes total; DMG signed in CI with an **ephemeral** self-signed "CarbonMirror Dev"; APK with `release` environment secrets (found **empty** → one-time P-384 key per run, warning in the log); companion trusts **subnets, no Location**; version **1.0.0**; **published** release; Mac finds the port by **mDNS + pin checks**; cleanup to bare minimum (template workflows, Dependabot, `docs/RELEASING.md` removed; Dependabot PRs 2–6 closed; branch `claude/release-workflows` kept — unmerged history).
-**Assumptions logged:** "do not modify previously written code" read as *additive changes; existing lines changed only where a requested feature or a fix needs it*. With auto-connect on, the Mac no longer turns Wireless debugging off after Disconnect/idle (the companion owns it per trusted Wi-Fi). Server writes the same `carbonmirror_session` for USB and Wi-Fi, so a USB session on an untrusted Wi-Fi with Wireless debugging on also trusts that subnet (Low, documented).
+### State in one paragraph
+**v1.0.0 is published** (`680ab05`, https://github.com/ButcheCassidy/CarbonMirror/releases/tag/v1.0.0). `main` is ahead with the **1.0.1** work (version 1.0.1 in `Resources/Info.plist`, CHANGELOG `[1.0.1]`): the real-phone session deadlock fix, the Android 17 clean-up crash fix, the toolbar "Shortcuts" settings, the PolyForm Shield licence and build/doc fixes. Release run 9 (publish) was triggered for `f175e97`; its macOS job sat **queued** waiting for a `macos-26` runner (run 8 did the same and was cancelled for the licence change). If v1.0.1 is not on the releases page, re-run **Actions → Release → Run workflow (publish = true)**. The user built the app on their own Mac (M4 Pro) with `scripts/build-mac.sh`, installed it, and saw the phone server start ("Mirroring") but no picture on the Mac → root cause found and fixed in 1.0.1 (finding 36), **not yet re-tested by the user**.
 
-**New code:** `Sources/CMTransport/AutoConnect.swift` (pure state machine, 10 tests in `Tests/CMTests/AutoConnectTests.swift`); `SessionController` auto-connect section (`autoConditions`, `apply`, `link`, `stillWanted`, `openMirror`); UI states `phoneReady` 12, `notConnected` 13, `launchCheckFailed` 14 (Rust `UiState`, C header, Swift, `StatusContent`); companion `ReadyService`, `StartReceiver`, `TrustedNetworks` + `companion/test/CompanionTest.java` run by `scripts/test-companion.sh` (19 checks); server `Controller.swipeUpForAppDrawer` (Android 11); `.github/workflows/release.yml` (phone → mac → publish).
-**Findings 25–30** (RELEASE_CHECK): auto-connect connect-after-lock race, refusal screen over a live session, companion read the VPN instead of Wi-Fi, companion re-enable loop vs Android's per-network prompt, lock-screen notification, stale probe results.
+### User rules added in session 4 (keep obeying, together with §3 and CLAUDE.md)
+- Token-minimal: code, tests, fixes; no narration; replies only at milestones; task list kept for the user.
+- Swift 6 / Rust strict, zero warnings; `unsafe` only in `ffi`; no TODO/stubs; every line has a purpose.
+- Keep finished code; change it only for a requested feature, a bug, or a vulnerability (list it).
+- Commit and push to `main` after each step, as ButcheCassidy, **no** AI attribution in commits/PRs/docs.
+- Sub-agents: only when the user asks; Haiku preferred; audit every result yourself.
+- macOS CI: manual, batched, ≤ 100 macOS runner-minutes in total (≈ 20 before session 4).
+- Fix vulnerabilities of any severity as long as no feature breaks; bug-sweep what changed; then publish.
 
-**Released:** v1.0.0 at `680ab05` (DMG `a7b988b9…dd72`, APK `7cd9377c…9627`). macOS CI ≈ 9 runner-minutes this session (≈ 29 of 100 total).
-**Next:** user runs `REAL_DEVICE_CHECKS.md` A–F; add a release keystore to environment `release` (secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`) before the next release; ML-DSA signatures when rcgen/webpki/Keychain support them.
+### User decisions (session 4)
+| Topic | Decision |
+|---|---|
+| USB inner TLS | **Off by default**, Settings → Security → *Encrypt over USB too* |
+| Auto-connect | Mac checkbox *Auto-connect to my phone at launch* (default on); mDNS + pinned-key checks; locked endpoint; one **Mirror** button |
+| Companion | Foreground service + boot receiver + watchdog alarm allowed (deviates from spec 9.2/9.3); battery **Unrestricted** documented |
+| Trusted Wi-Fi | **Subnet hash, no Location permission** |
+| CI cap | 100 macOS runner-minutes total |
+| DMG signing | Ephemeral self-signed "CarbonMirror Dev" in CI; Developer ID + notarisation automatically when its secrets exist |
+| APK signing | `release` environment secrets — found **empty** → one-time P-384 key per run (warning in the log) |
+| Version / publish | 1.0.0, published release; now 1.0.1 |
+| Repo | Cleaned to the minimum (template workflows, Dependabot, `docs/RELEASING.md` removed; Dependabot PRs #2–#6 closed); branch `claude/release-workflows` merged into `main` **history only** (`f7ad105`, `-s ours`), branch kept |
+| Toolbar | **No app keyboard shortcuts** for phone actions; Settings → **Shortcuts** chooses toolbar buttons; default **Home** only (+ connection badge + Settings, fixed) |
+| Licence | **PolyForm Shield 1.0.0** (was Noncommercial); SPDX + Required Notice in every CarbonMirror source file; forked scrcpy files stay Apache-2.0 |
+| Window | Standard 12 pt corners while the toolbar shows; phone shape at rest |
+
+### Assumptions logged
+- "Don't modify previously written code" = additive changes; existing lines changed only where a requested feature, bug or vulnerability needs it.
+- With auto-connect on, the Mac does not turn Wireless debugging off after Disconnect/idle (the companion owns it per trusted Wi-Fi).
+- Standard macOS menu keys (⌘Q ⌘H ⌘M ⌘W ⌘, and Edit ⌘C/⌘V/⌘X/⌘A) are kept; all phone-action shortcuts are gone.
+
+### Session 4 log (commits, oldest first)
+`95c5617` USB TLS off + auto-connect state machine + UI states Ready/Not connected · `abcfff7` auto-connect wired in (Settings, Ready/Mirror, Not connected/Connect) · `4f27d7e` companion `ReadyService`/`StartReceiver`/`TrustedNetworks` + `scripts/test-companion.sh` · `a491df2` uninstall note · `86fecdd` Android 11 app-drawer swipe + "Can't start safely" state · `3e1fcb3` auto-connect hardening, companion watches Wi-Fi (not the VPN) · `aa5c217` repo cleanup + Release workflow + 1.0.0 · `2cdcd61` companion one try per network; findings 25–30; checks F1–F8 · `cf257bb` one-time APK key fallback · `de3f213` receiver crash fix · `f73edf2`/`00e2f3d`/`c942e62` docs, `build.sh` `codesign -dvv` fix · `ebadb4d` actions pinned to SHAs, findings 31–33 · `1a60c2a` evidence table · `81ccd65` **PQ-only key exchange** · `680ab05` companion trusts only wireless sessions → **v1.0.0 published** · `f4d2369` checksums · `f7ad105` branch merge · `78c2b00`/`1ef47cc` build docs (Step 0, Android tools, licences) · `d2cafe5` `scripts/build-mac.sh` · `bde6522` Developer ID + notarisation · `f61abf0` 12 pt window corners · `e12107d` git clone instructions · `f016c65` build-mac phone parts from app/DMG/GitHub · `d0ebebe` cbindgen quiet · `01c8604` clean-up hard link + companion Pair button · `1514596` **1.0.1 deadlock fix** etc. · `0ac9428` PolyForm Shield · `f175e97` toolbar Shortcuts.
+
+### GitHub state
+- Releases: **v1.0.0** (DMG `a7b988b952cd68809fd9593fc4c1fb99d8b0d352a2c8b2b37f7a327639ffdd72`, APK `7cd9377c798e1270de853e195d4e64b7d0f4be10b3050b78dd8f301beefc9627`, source zip `d117b63bb03889afe7740e16c4fa12f5e1eab2919d0c2eeba095f15e48716955`, SHA256SUMS.txt). v1.0.1: see release run 9.
+- Workflows: `ci.yml` (gitleaks on push), `release.yml` (manual; jobs `phone` → `mac` → `publish`; actions pinned by commit SHA). Release runs: 1 failed (APK secrets empty), 2 failed (adb check `-dv`), 3 ✓ verify, 4 cancelled (security review first), 5 cancelled (extra fix), 6 ✓ **published v1.0.0**, 7 ✓ verify (Developer ID path fallback), 8 cancelled (licence), 9 publish 1.0.1 (macOS job queued at hand-off time).
+- Secrets needed in environment `release` (none set): `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`; for warning-free DMGs `MACOS_CERT_P12_BASE64`, `MACOS_CERT_PASSWORD`, `APPLE_ID`, `APPLE_TEAM_ID`, `APPLE_APP_SPECIFIC_PASSWORD` (README "Public releases that open without warnings").
+- PRs: Dependabot #2–#6 closed. Branches: `main`, `claude/release-workflows` (kept), Dependabot branches (auto).
+- macOS CI minutes: ≈ 12 runner-minutes in session 4 (≈ 32 of 100 in total).
+
+### Security & bug findings 25–42 (details in RELEASE_CHECK.md)
+25 connect after lock mid-probe (M) · 26 refusal over live session (L) · 27 companion read the VPN not Wi-Fi (M) · 28 companion prompt loop (M) · 29 lock-screen notification (L) · 30 stale probe results (M) · 31 actions by tag (M) · 32 `build.sh` adb check always failed (M) · 33 receiver crash (L) · 34 classical X25519 accepted → **PQ-only** (M) · 35 USB session trusted Wi-Fi (L) · **36 session deadlock: Mac read device meta before opening the control socket — no video on a real phone (H)** · **37 clean-up child ClassNotFoundException on Android 17 → private hard link; flag cleared by the server (H)** · **38 unknown screen state pressed POWER (H)** · 39 server errors invisible → `CM-ERROR server …` logged on the Mac (M) · 40 identity warning overwritten (M) · 41 H.265 fallback too narrow (M) · 42 file streams not closed (L). Two Haiku sweep agents (Mac / Android) were audited: one false positive rejected (clean-up child deletes its own link, not the shared jar). Not fixed (Low/by design): wireless TOFU without device key, adb start without retry, decoder/Metal failures only logged, hidden-API `AssertionError`s (now reported to the Mac log).
+
+### Tests (Linux, end of session 4)
+`cargo test` 45 (incl. PQ-only), clippy clean (host + Android), `cargo audit` clean · `swift test` **80** (incl. 10 auto-connect, toolbar settings; virtual phone now uses the real server socket order — the old Mac code hangs on it) · soak 300 s (and 60 s after the deadlock fix) · companion 19 · TLS downgrade 8/8 refused · capture "nothing readable" · virtual LAN PASS · adb exposure PASS · fuzz 14 × 120 s PASS. macOS CI (run 3/6/7): build 0 warnings, signatures valid, app alive, screenshots of every status screen and the splash.
+
+### New/changed files (session 4)
+`Sources/CMTransport/AutoConnect.swift` · `Tests/CMTests/AutoConnectTests.swift` · companion `ReadyService.java`, `StartReceiver.java`, `TrustedNetworks.java`, `companion/test/CompanionTest.java` · `scripts/test-companion.sh`, `scripts/build-mac.sh` · `.github/workflows/release.yml` (rewritten), `ci.yml` (gitleaks only) · server `CleanUp.privateClassPath`, `Server.reportError`, `Controller.swipeUpForAppDrawer`, `PowerManager` fail-safe · UI states `phoneReady` 12, `notConnected` 13, `launchCheckFailed` 14 · `AppSettings.autoConnect`, `toolbarItems`/`setToolbarItem` · Settings tab **Shortcuts** · `LICENSE` = PolyForm Shield 1.0.0.
+
+### NOT RUN (needs the user's Mac + phone)
+Everything in `REAL_DEVICE_CHECKS.md` A–F; the 1.0.1 deadlock fix on the real Pixel (Android 17, CP3A); companion service on device (battery, reboot, OS update, per-network prompt); Android 11 swipe; Developer ID/notarisation path; performance targets.
+
+### Next steps
+1. Confirm v1.0.1 is published (else re-run Release with publish = true).
+2. User: `cd ~/CarbonMirror && git pull && bash scripts/build-mac.sh --install` (or install the v1.0.1 DMG), mirror over USB; if no picture, send `log show --last 15m --predicate 'subsystem == "com.nomadicrebel.carbonmirror"' | tail -40` (now includes the phone server's stop reason).
+3. Run `REAL_DEVICE_CHECKS.md` A–F; record results in RELEASE_CHECK.md.
+4. Add the `release` secrets (APK keystore; Developer ID + notarisation) before a public release.
+5. Later: ML-DSA signatures when rcgen/webpki/Keychain support them.
 
 ## 0. Where things stand (end of session 3, 2026-11-12)
 
