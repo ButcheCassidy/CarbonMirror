@@ -36,6 +36,11 @@
 | 28 | Companion would re-enable Wireless debugging in a loop on a Wi-Fi Android doesn't trust yet (Android reverts to 0 and prompts each time) | Medium | `ReadyService.java` | one try per network join (`decide(…, triedHere)`) | `scripts/test-companion.sh` (19 checks) |
 | 29 | Companion status notification visible on the lock screen | Low | `ReadyService.java` | `VISIBILITY_SECRET` | builds |
 | 30 | Stale auto-connect results (an old probe finishing after the network changed) could mark the wrong endpoint ready | Medium | `AutoConnect.swift` | results carry their endpoint; ignored unless it is the one being verified | `AutoConnectTests.staleVerificationIsIgnored` |
+| 31 | Release workflow handled the signing keystore with third-party actions referenced by movable tags (supply chain) | Medium | `.github/workflows/*.yml` | every action pinned to a commit SHA | release run after the change |
+| 32 | `build.sh` checked the adb signer with `codesign -dv`, which never prints `Authority=`, so the build always stopped ("not signed by Google LLC"); `grep -q` in a pipefail pipe could also fail spuriously | Medium (build blocker) | `scripts/build.sh` | `codesign -dvv`, full read by grep | macOS CI: build, sign, DMG pass |
+| 33 | Companion watchdog alarm could crash the receiver when Android refuses a background service start (battery restricted) | Low | `StartReceiver.java` | catch `IllegalStateException` | builds |
+
+**Condensed sweep (session 4):** unsafe outside `ffi` 0 (only `forbid(unsafe_code)`), unwrap/expect/panic outside tests 0, shell/`Process` with interpolation 0, secrets/keystores in git 0, untrusted workflow contexts 0, TCP/UDP listeners in production Swift 0, companion exported = launcher activity + tile (system-permission protected) only, `allowBackup=false`, `usesCleartextTraffic=false`, not debuggable, every `PendingIntent` immutable and explicit, no `exec`/WebView/world-readable files/content logging.
 
 No Critical findings. Every High finding is fixed; the macOS-only ones are fixed by inspection and stay NOT RUN until the first Mac build.
 
