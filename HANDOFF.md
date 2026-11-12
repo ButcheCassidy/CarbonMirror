@@ -23,7 +23,7 @@
 | Phase 8 Settings, menu bar, icon, extras | ✅ code · uncompiled |
 | Phase 9 Companion APK | ✅ builds + verifies on Linux (test key) · device NOT RUN |
 | Phase 10 Docs & delivery | ✅ docs · DMG NOT RUN · performance targets unmeasured |
-| Phase 11 Release check | 🟡 Stages 1–4 on Linux ✅ re-run in session 3 (21 findings, all High/Medium fixed) · release gate ⬜ |
+| Phase 11 Release check | 🟡 Stages 1–4 on Linux ✅ re-run in session 3 (23 findings, all High/Medium fixed) · release gate ⬜ |
 | Startup animation | ✅ both apps (session 3) |
 
 **One-line state:** every spec feature has code; all Linux tests and attack harnesses pass; the Mac app **compiles with zero warnings and launches (`--demo`) on a macOS 26 GitHub runner**; nothing has run on the user's Mac or the Pixel yet (signing, sandbox, adb, Keychain, Metal with a real phone).
@@ -52,11 +52,11 @@
     - `6f895ef` no Resume snapshots, no Universal Clipboard, non-synchronizable Keychain items, adb keys out of backups.
     - `f66e3d3` RELEASE_CHECK.md, docs, edge test; then this HANDOFF.
 
-**Session 3 (2026-11-12)** — user answers: animation = **slide & settle**; Android gets a **minimal launcher Activity**; Mac splash **fits inside the phone window**; **macOS CI allowed**, budget ≤ 100 runner-minutes total (used ≈ 12), job is manual-only.
+**Session 3 (2026-11-12)** — user answers: animation = **slide & settle**; Android gets a **minimal launcher Activity**; Mac splash **fits inside the phone window**; **macOS CI allowed**, budget ≤ 100 runner-minutes total (used ≈ 16 over 10 runs; billed ×10 against the included quota on a private repo), job is manual-only.
 13. `7321add`…`d6c33b7` macOS job in CI (`macos-26`, Xcode 26.6); first Mac compile: 8 errors fixed (`Theme`/`EndpointPrompt.Fields` isolation, slider value, deprecated `String(cString:)`); job made manual (`workflow_dispatch`) after the user's budget note.
 14. `1a59ac5` startup animation: `tools/startup/render_carbonmirror.py` (user's script + multiprocessing; both variants 2 min 24 s), `Resources/CarbonMirror-startup.mp4`, `SplashView`. `8895797` companion launcher screen.
 15. Security re-run (all harnesses pass) + self-attack: `9de3a7c` finding 18 (adb emulator scan / adb mDNS), `621c3b2` finding 19 (device key proof), 20, 21.
-16. `416b035` UI audit by one sub-agent (12 findings) + sweep, all fixed; window-size floor found from the CI screenshots.
+16. `416b035` UI audit by one sub-agent (12 findings) + sweep, all fixed; from the CI screenshots: window-size floor, centred pills (`46aa4d0`), **Settings crash** (`a5e2676`), Settings rows top-aligned (`8c0e0a7`). Final CI run: build 0 warnings, `APP ALIVE after Settings`.
 
 ## 3. User rules (mandatory — keep obeying)
 - **Token economy:** one-line progress notes, shortest possible replies, no long tool output.
@@ -183,6 +183,8 @@
 | 19 | Wireless pin taken from an unauthenticated mDNS answer; a LAN device could be pinned as the phone | **Medium** | device key + proof, pairing IP binding (`621c3b2`) | 2 new tests; impostor refused |
 | 20 | Phone: per-read handshake timeout, none for the secret | Low | one 10 s deadline (`621c3b2`) | builds; NOT RUN (device) |
 | 21 | Rust C objects built for macOS 26.5, linked for 15.0 | Low | `.cargo/config.toml` (`9de3a7c`) | macOS CI: 0 linker notes |
+| 22 | App crashed on opening Settings (exclusive-access trap in `SettingsWindow.show`) | **High** | `a5e2676` | macOS CI: `APP ALIVE after Settings` + screenshot |
+| 23 | UI audit + sweep (13 layout/appearance bugs) | Medium | `416b035`, `46aa4d0`, `a5e2676`, Settings top-align | macOS CI screenshots |
 
 Open, documented (SECURITY_NOTES §6): wireless TOFU for a phone never connected by USB; USB identity = serial; phone → Mac clipboard injection by design.
 
