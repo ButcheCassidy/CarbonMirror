@@ -71,7 +71,7 @@ Other ⌘ shortcuts (⌘C, ⌘V, ⌘A, ⌘Z …) go to the phone as Ctrl, so cop
 GrapheneOS notes: its default *USB-C port: charging-only when locked* stops USB mirroring while the phone is locked (Wi-Fi keeps working). After an OS update ("Optimizing apps"), the companion tile works straight away; if the update reset its permission, the tile opens Developer options and the Mac re-grants it the next time you plug in USB.
 
 ### The companion app (optional)
-*CarbonMirror Companion* is a tiny app with one Quick Settings tile that turns Wireless debugging on and shows **Off / Ready / Mirroring**. It has no internet permission and stores nothing. Install it from CarbonMirror → Settings → Connection → *Install over USB…*.
+*CarbonMirror Companion* is a tiny app with one Quick Settings tile that turns Wireless debugging on and shows **Off / Ready / Mirroring**. Opening it from the app drawer plays the startup animation and shows the same status with a **Turn on** button and **Add Quick Settings tile**. It has no internet permission and stores nothing. Install it from CarbonMirror → Settings → Connection → *Install over USB…*.
 
 ---
 
