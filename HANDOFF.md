@@ -1,9 +1,18 @@
-# CarbonMirror — HANDOFF (full spec · Phases 1–10 built · Mac app compiles and launches on macOS 26 CI · Phase 11 Linux stages re-run · real Mac + phone checks NOT RUN)
+# CarbonMirror — HANDOFF (v1.0.0 · auto-connect + companion service · release workflow · real Mac + phone checks NOT RUN)
 
 > **Resume instruction:** Paste this file plus the latest source bundle (repo `ButcheCassidy/CarbonMirror`, branch `main`) into a new chat and say: *Continue CarbonMirror from the Next steps in HANDOFF.md.*
 > Then: `source ~/carbonmirror-deps/env.sh` (Linux build env, §5) and start at **§12 Next steps, step 1**. The full spec is §14 (verbatim, with per-requirement status).
 
-## 0. Where things stand (end of session 3, 2026-11-12) — read this first
+## 0a. Session 4 (2026-11-12) — read this first
+
+**User build changes (override spec where they conflict):** inner TLS over USB **off** by default (toggle *Encrypt over USB too*); **auto-connect** (Mac checkbox *Auto-connect to my phone at launch*, default on); **companion foreground service + boot receiver + watchdog alarm** (deviates from spec 9.2/9.3 "no service/boot/alarm", owner decision); macOS CI manual, ≤ 100 macOS runner-minutes in total (≈ 20 used before session 4).
+**User answers:** CI cap = 100 runner-minutes total; DMG signed in CI with an **ephemeral** self-signed "CarbonMirror Dev"; APK with `release` environment secrets (found **empty** → one-time P-384 key per run, warning in the log); companion trusts **subnets, no Location**; version **1.0.0**; **published** release; Mac finds the port by **mDNS + pin checks**; cleanup to bare minimum (template workflows, Dependabot, `docs/RELEASING.md` removed; Dependabot PRs 2–6 closed; branch `claude/release-workflows` kept — unmerged history).
+**Assumptions logged:** "do not modify previously written code" read as *additive changes; existing lines changed only where a requested feature or a fix needs it*. With auto-connect on, the Mac no longer turns Wireless debugging off after Disconnect/idle (the companion owns it per trusted Wi-Fi). Server writes the same `carbonmirror_session` for USB and Wi-Fi, so a USB session on an untrusted Wi-Fi with Wireless debugging on also trusts that subnet (Low, documented).
+
+**New code:** `Sources/CMTransport/AutoConnect.swift` (pure state machine, 10 tests in `Tests/CMTests/AutoConnectTests.swift`); `SessionController` auto-connect section (`autoConditions`, `apply`, `link`, `stillWanted`, `openMirror`); UI states `phoneReady` 12, `notConnected` 13, `launchCheckFailed` 14 (Rust `UiState`, C header, Swift, `StatusContent`); companion `ReadyService`, `StartReceiver`, `TrustedNetworks` + `companion/test/CompanionTest.java` run by `scripts/test-companion.sh` (19 checks); server `Controller.swipeUpForAppDrawer` (Android 11); `.github/workflows/release.yml` (phone → mac → publish).
+**Findings 25–30** (RELEASE_CHECK): auto-connect connect-after-lock race, refusal screen over a live session, companion read the VPN instead of Wi-Fi, companion re-enable loop vs Android's per-network prompt, lock-screen notification, stale probe results.
+
+## 0. Where things stand (end of session 3, 2026-11-12)
 
 **Stopped by the user (usage limit). Nothing is mid-edit; `main` is clean and pushed (last code commit `7cbfccb`).**
 
