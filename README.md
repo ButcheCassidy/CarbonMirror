@@ -1,5 +1,5 @@
 # CarbonMirror
-
+**Not operation or yet, still working on this project!**
 **Your Android phone, live on your Mac — and back again.**
 A small native macOS app that mirrors and controls an Android phone with the feel of Apple's iPhone Mirroring. Tuned for the Google Pixel 10 Pro XL (stock Android or GrapheneOS); works with any Android 11+ phone.
 
