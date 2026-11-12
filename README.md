@@ -84,6 +84,25 @@ GrapheneOS notes: its default *USB-C port: charging-only when locked* stops USB 
 
 Everything is built from the command line — no Xcode, no Homebrew. The full step-by-step guide, including signing and the sizes of everything, is in [`INSTALL.md`](INSTALL.md). The scripts run the same commands as below: `scripts/make-cert.sh` (Step A), `scripts/build-server.sh`, `scripts/build-apk.sh`, `scripts/build.sh` (Steps B–F).
 
+### Step 0. Every Terminal window: go to the project folder
+Every command below runs **inside the project folder**; a new Terminal window starts in your home folder, so do this first each time.
+Download `CarbonMirror-<version>-source.zip` from the release page in Safari, then unpack it into your home folder (skip this if Safari already made a `CarbonMirror-<version>` folder in Downloads — move that folder to your home folder instead).
+```bash
+ditto -x -k ~/Downloads/CarbonMirror-1.0.0-source.zip ~/
+```
+Go into it.
+```bash
+cd ~/CarbonMirror-1.0.0
+```
+Check you are in the right place (it must print `Package.swift`).
+```bash
+ls Package.swift
+```
+In a new window, also reload Rust and the Android paths (after Steps A-3 and INSTALL §8.4 are done).
+```bash
+source "$HOME/.cargo/env"; export ANDROID_HOME="$HOME/Library/Android/sdk"; export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/30.0.16248370"
+```
+
 ### Step A. One-time: create the local "CarbonMirror Dev" signing certificate
 Strongest settings available without an Apple Developer account: an ECDSA P-384 key with SHA-384, for code signing only, valid 5 years, imported so it can't be exported and only `codesign` can use it.
 
@@ -160,7 +179,7 @@ ditto -x -k deps/platform-tools-latest-darwin.zip deps/
 ```
 Check it is signed by Google (the line should mention Google LLC).
 ```bash
-codesign -dv deps/platform-tools/adb 2>&1 | grep Authority
+codesign -dvv deps/platform-tools/adb 2>&1 | grep Authority
 ```
 Put adb where the build expects it.
 ```bash
@@ -186,13 +205,23 @@ cargo install cbindgen --locked
 ```
 
 ### Phone parts: server, core library and companion
-These need a JDK and the Android SDK command-line tools (see [`INSTALL.md`](INSTALL.md)). Build the phone server and its core library.
+**Shortcut (no Android tools):** reuse the phone parts from the installed release app (built by the release workflow from the same source).
 ```bash
-scripts/build-server.sh
+cp /Applications/CarbonMirror.app/Contents/Resources/carbonmirror-server Resources/
+```
+```bash
+cp /Applications/CarbonMirror.app/Contents/Resources/libcarbon_core.so Resources/
+```
+```bash
+cp /Applications/CarbonMirror.app/Contents/Resources/CarbonMirrorCompanion.apk Resources/
+```
+**Or build them yourself:** this needs a JDK and the Android SDK (INSTALL.md §8.4). Build the phone server and its core library.
+```bash
+bash scripts/build-server.sh
 ```
 Build and sign the companion with your own key (it asks for the keystore password).
 ```bash
-scripts/build-apk.sh
+bash scripts/build-apk.sh
 ```
 
 ### Step B. Build the Rust core, then the app binary
