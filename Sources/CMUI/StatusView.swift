@@ -130,7 +130,9 @@ final class StatusView: NSView {
         titleLabel.font = Theme.titleFont
         titleLabel.textColor = Theme.primaryText
         titleLabel.alignment = .center
-        titleLabel.lineBreakMode = .byTruncatingTail
+        titleLabel.cell?.wraps = true
+        titleLabel.lineBreakMode = .byWordWrapping
+        titleLabel.maximumNumberOfLines = 2
         subtitleLabel.font = Theme.subtitleFont
         subtitleLabel.textColor = Theme.secondaryText
         subtitleLabel.alignment = .center
@@ -190,6 +192,7 @@ final class StatusView: NSView {
 
     override func layout() {
         super.layout()
+        titleLabel.preferredMaxLayoutWidth = max(0, bounds.width - 32)
         subtitleLabel.preferredMaxLayoutWidth = max(0, bounds.width - 32)
         buttonRow.orientation = .horizontal
         if buttonRow.fittingSize.width > bounds.width - 32 {

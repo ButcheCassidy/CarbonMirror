@@ -38,6 +38,14 @@ enum Theme {
         return NSEdgeInsets(top: i.top, left: i.left, bottom: i.bottom, right: i.right)
     }
 
+    /// One line that ends in "…" instead of clipping or wrapping (attributed titles drop the control's own setting).
+    static func singleLine(_ alignment: NSTextAlignment) -> NSParagraphStyle {
+        let style = NSMutableParagraphStyle()
+        style.alignment = alignment
+        style.lineBreakMode = .byTruncatingTail
+        return style
+    }
+
     /// Monochrome SF Symbol image at a point size.
     static func symbol(_ name: String, size: CGFloat, weight: NSFont.Weight = .regular) -> NSImage? {
         NSImage(systemSymbolName: name, accessibilityDescription: nil)?

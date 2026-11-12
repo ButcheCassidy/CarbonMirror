@@ -98,7 +98,8 @@ final class ChromeView: NSView {
     /// Connection badge text (`USB · 120`, `Wi-Fi`) with an optional trailing symbol (lock for encrypted).
     func setConnectionBadge(text: String, symbol: String?) {
         guard let badge = buttons[.connection] else { return }
-        badge.attributedTitle = NSAttributedString(string: text, attributes: [.font: Theme.statusLineFont, .foregroundColor: Theme.primaryText])
+        badge.attributedTitle = NSAttributedString(string: text, attributes: [.font: Theme.statusLineFont, .foregroundColor: Theme.primaryText,
+                                                                              .paragraphStyle: Theme.singleLine(.center)])
         badge.image = symbol.flatMap { Theme.symbol($0, size: 10, weight: .semibold) }
         badge.toolTip = "Connection: \(text)"
     }
@@ -113,7 +114,8 @@ final class ChromeView: NSView {
             line.append(NSAttributedString(string: " "))
         }
         line.append(NSAttributedString(string: text))
-        line.addAttributes([.font: Theme.statusLineFont, .foregroundColor: Theme.secondaryText], range: NSRange(location: 0, length: line.length))
+        line.addAttributes([.font: Theme.statusLineFont, .foregroundColor: Theme.secondaryText, .paragraphStyle: Theme.singleLine(.center)],
+                           range: NSRange(location: 0, length: line.length))
         statusLine.attributedStringValue = line
         statusLine.isHidden = !visible
     }
@@ -158,7 +160,7 @@ final class ChromeView: NSView {
         if let x = result.overflowX {
             overflowButton.frame = NSRect(x: x, y: (toolbarHeight - side) / 2, width: side, height: side)
         }
-        statusLine.frame = NSRect(x: Theme.chromeMargin, y: toolbarHeight - 2, width: max(0, bounds.width - 2 * Theme.chromeMargin),
+        statusLine.frame = NSRect(x: Theme.chromeMargin, y: toolbarHeight, width: max(0, bounds.width - 2 * Theme.chromeMargin),
                                   height: Theme.statusLineHeight)
     }
 
