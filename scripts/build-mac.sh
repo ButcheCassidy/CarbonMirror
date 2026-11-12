@@ -31,12 +31,38 @@ rustup target add aarch64-apple-darwin
 command -v cbindgen > /dev/null || cargo install cbindgen --locked
 
 echo "==> 4/5 Phone parts (server, phone core library, companion APK)"
-RELEASE=/Applications/CarbonMirror.app/Contents/Resources
-for part in carbonmirror-server libcarbon_core.so CarbonMirrorCompanion.apk; do
-  [ -f "Resources/$part" ] && continue
-  [ -f "$RELEASE/$part" ] || fail "missing Resources/$part: install the release DMG once (it contains the phone parts) or build them (INSTALL.md 8.4)."
-  cp "$RELEASE/$part" "Resources/$part"
-done
+PARTS="carbonmirror-server libcarbon_core.so CarbonMirrorCompanion.apk"
+VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
+# Copies the parts from a release CarbonMirror.app of the same version (the phone server must match the app's version).
+parts_from() {
+  local app="$1" part
+  [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist" 2>/dev/null)" = "$VERSION" ] || return 1
+  codesign --verify --deep --strict "$app" 2>/dev/null || return 1
+  for part in $PARTS; do [ -f "$app/Contents/Resources/$part" ] || return 1; done
+  for part in $PARTS; do cp "$app/Contents/Resources/$part" "Resources/$part" && xattr -c "Resources/$part"; done
+}
+# Same, from a release DMG: mounted read-only and hidden, then detached.
+parts_from_dmg() {
+  local mount ok=1
+  mount="$(mktemp -d)"
+  hdiutil attach -nobrowse -readonly -noautoopen -mountpoint "$mount" "$1" > /dev/null || { rmdir "$mount"; return 1; }
+  parts_from "$mount/CarbonMirror.app" && ok=0
+  hdiutil detach -quiet "$mount" || true
+  rmdir "$mount" 2> /dev/null || true
+  return $ok
+}
+missing=0
+for part in $PARTS; do [ -f "Resources/$part" ] || missing=1; done
+if [ "$missing" = 1 ]; then
+  DMG="$HOME/Downloads/CarbonMirror-$VERSION.dmg"
+  if ! parts_from /Applications/CarbonMirror.app && ! { [ -f "$DMG" ] && parts_from_dmg "$DMG"; }; then
+    mkdir -p deps
+    curl -fL --retry 5 -o "deps/CarbonMirror-$VERSION.dmg" "https://github.com/ButcheCassidy/CarbonMirror/releases/download/v$VERSION/CarbonMirror-$VERSION.dmg" \
+      && parts_from_dmg "deps/CarbonMirror-$VERSION.dmg" \
+      || fail "no CarbonMirror $VERSION release found (Applications, ~/Downloads/CarbonMirror-$VERSION.dmg or GitHub). Download that DMG into Downloads, or build the phone parts (INSTALL.md 8.4)."
+  fi
+fi
+for part in $PARTS; do [ -f "Resources/$part" ] || fail "missing Resources/$part"; done
 
 echo "==> 5/5 App, signature and DMG"
 bash scripts/build.sh "$@"

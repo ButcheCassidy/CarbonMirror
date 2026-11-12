@@ -86,7 +86,7 @@ Get the latest changes later on.
 ```bash
 git pull
 ```
-Build, sign, make the DMG and install (needs the release app in Applications once for the phone parts; see README "Quick build").
+Build, sign, make the DMG and install (the phone parts come from the matching release: installed app, the DMG in Downloads, or GitHub).
 ```bash
 bash scripts/build-mac.sh --install
 ```

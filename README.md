@@ -110,7 +110,7 @@ CM_SIGN_IDENTITY="Developer ID Application: <your name> (<team ID>)" CM_NOTARY_P
 ```
 
 ### Quick build: one command
-From the source folder (Step 0), after installing the release DMG once (it supplies the phone parts):
+From the source folder (Step 0). The phone parts come from the matching release (installed app, `~/Downloads/CarbonMirror-<version>.dmg`, or downloaded from GitHub automatically):
 ```bash
 bash scripts/build-mac.sh --install
 ```
