@@ -93,7 +93,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValid
             if let url = URL(string: "x-apple.systempreferences:com.apple.wifi-settings-extension") { NSWorkspace.shared.open(url) }
         case .useUSB: session?.useUSBOnly()
         case .pair: pairing?.start()
-        case .reconnect, .retry: session?.reconnect()
+        case .reconnect, .retry, .connect: session?.reconnect()
+        case .mirror: session?.openMirror()
         case .createNewKey: confirmCreateNewKey()
         case .howWirelessDebugging:
             inform("Turn on Wireless debugging",

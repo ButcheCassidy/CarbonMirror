@@ -96,7 +96,8 @@ struct AutoConnectTests {
         #expect(a.phase == .halted)
         #expect(a.update(Self.ready()) == .none)
         #expect(a.retry() == .none)
-        #expect(a.reset(Self.ready()) == .browse)
+        a.resume()
+        #expect(a.update(Self.ready()) == .browse)
     }
 
     @Test func staleVerificationIsIgnored() {

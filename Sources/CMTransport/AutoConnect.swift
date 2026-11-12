@@ -170,10 +170,9 @@ public struct AutoConnect: Equatable, Sendable {
         phase == .searching ? .browse : .none
     }
 
-    /// The user pressed Retry after a refusal: search again under the current conditions.
-    public mutating func reset(_ c: Conditions) -> Step {
+    /// The user pressed Retry or Connect: a refusal no longer blocks the next ``update(_:)``.
+    public mutating func resume() {
         if phase == .halted { phase = .waiting }
-        return update(c)
     }
 
     private mutating func miss() -> Step {
