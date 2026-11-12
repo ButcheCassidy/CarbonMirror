@@ -62,7 +62,7 @@ public actor AdbSupervisor {
     /// Stops the watch, kills the server and every child process.
     public func stop() async {
         watchTask?.cancel()
-        if let pid = watchPID { kill(pid, SIGTERM) }
+        if let pid = watchPID { ChildProcesses.shared.stop(pid) }
         await watchTask?.value
         watchTask = nil
         _ = try? await runner.run(.killServer, timeout: 5)
@@ -144,9 +144,8 @@ public actor AdbSupervisor {
                 buffer.removeFirst(frame.upperBound)
             }
         }
-        kill(pid, SIGTERM)
+        ChildProcesses.shared.stop(pid)
         process.waitUntilExit()
-        ChildProcesses.shared.remove(pid)
         watchPID = nil
     }
 
