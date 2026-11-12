@@ -35,6 +35,8 @@ public final class ReadyService extends Service {
     private ConnectivityManager connectivity;
     /** Subnet of the current Wi-Fi network, or null when not on Wi-Fi. */
     private volatile String subnet;
+    /** The network this service last tried to turn Wireless debugging on for (one try per network join). */
+    private String tried;
     private boolean registered;
 
     private final ContentObserver settings = new ContentObserver(main) {
@@ -100,6 +102,9 @@ public final class ReadyService extends Service {
     }
 
     private void changed(String newSubnet) {
+        if (newSubnet == null || !newSubnet.equals(subnet)) {
+            tried = null;
+        }
         subnet = newSubnet;
         evaluate();
     }
@@ -111,8 +116,10 @@ public final class ReadyService extends Service {
         if (current != null && on && WirelessDebugging.mirroring(this)) {
             TrustedNetworks.add(this, current);
         }
-        switch (decide(TrustedNetworks.contains(this, current), on, WirelessDebugging.mirroring(this), TrustedNetworks.enabledByUs(this))) {
+        boolean triedHere = current != null && current.equals(tried);
+        switch (decide(TrustedNetworks.contains(this, current), on, WirelessDebugging.mirroring(this), TrustedNetworks.enabledByUs(this), triedHere)) {
             case TURN_ON:
+                tried = current;
                 if (WirelessDebugging.set(this, true)) {
                     TrustedNetworks.setEnabledByUs(this, true);
                 }
@@ -134,11 +141,13 @@ public final class ReadyService extends Service {
     enum Change { TURN_ON, TURN_OFF, RELEASE, NONE }
 
     /**
-     * On a trusted network: turn on. Elsewhere: turn off only what this service turned on and never during a
-     * session. Turned off by the user or the system: stop owning it.
+     * On a trusted network: turn on, once per network join (Android turns it straight off again and asks
+     * "Allow wireless debugging on this network?" for a Wi-Fi it doesn't trust yet; never ask twice). Elsewhere:
+     * turn off only what this service turned on and never during a session. Turned off by the user or the
+     * system: stop owning it.
      */
-    static Change decide(boolean trusted, boolean on, boolean mirroring, boolean enabledByUs) {
-        if (trusted && !on) {
+    static Change decide(boolean trusted, boolean on, boolean mirroring, boolean enabledByUs, boolean triedHere) {
+        if (trusted && !on && !triedHere) {
             return Change.TURN_ON;
         }
         if (!trusted && on && enabledByUs && !mirroring) {

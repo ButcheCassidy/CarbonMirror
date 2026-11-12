@@ -2,9 +2,27 @@
 
 All notable changes to CarbonMirror. Versions follow `CFBundleShortVersionString`.
 
-## 0.1.0 — unreleased
+## [1.0.0] — 2026-11-12
 
-First build, not yet released (Phase 11 release check pending).
+First release.
+
+### Added
+- **Auto-connect:** after QR pairing and one USB connection, the Mac finds the paired phone at launch (mDNS only, known subnet, private addresses), verifies its pinned key, locks the endpoint and shows **Ready** — one click on **Mirror** starts the encrypted session. Settings → Connection → *Auto-connect to my phone at launch*.
+- **Companion service:** keeps Wireless debugging on for trusted Wi-Fi only, off elsewhere; starts after boot, OS and app updates and after being killed; battery Unrestricted and *Forget trusted Wi-Fi networks* buttons.
+- App drawer swipe-up fallback on Android 11.
+- "Can't start safely" screen when the bundled adb is missing or fails its signature check; "Ready" and "Not connected" screens.
+- Release workflow: companion APK signed with the release key, app and DMG signed on macOS, checksums, source zip.
+
+### Changed
+- Inner TLS over USB is **off by default** (Settings → Security → *Encrypt over USB too*); always on over Wi-Fi.
+
+### Security
+- Auto-connect never connects while the Mac is locked or asleep, re-checks conditions before connecting, ignores stale results and halts on an identity mismatch.
+- Companion watches the Wi-Fi network itself (Mullvad's VPN is the default network) and asks Android at most once per network.
+
+## 0.1.0 — not released
+
+Development builds.
 
 ### Added
 - Startup animation on both apps (1024 px clip, shown at most 512 pt, OLED black, centred); `tools/startup/render_carbonmirror.py` renders it.

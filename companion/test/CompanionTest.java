@@ -29,13 +29,15 @@ public final class CompanionTest {
         check(!key.equals(TrustedNetworks.key("192.168.2.0/24")), "keys differ per subnet");
         check(!key.contains("192"), "subnet not stored in plaintext");
 
-        check(ReadyService.decide(true, false, false, false) == TURN_ON, "trusted, off: turn on");
-        check(ReadyService.decide(true, true, false, true) == NONE, "trusted, on: keep");
-        check(ReadyService.decide(false, true, false, true) == TURN_OFF, "left trusted Wi-Fi: turn off what we turned on");
-        check(ReadyService.decide(false, true, false, false) == NONE, "user turned it on: never touched");
-        check(ReadyService.decide(false, true, true, true) == NONE, "never cut a running session");
-        check(ReadyService.decide(false, false, false, true) == RELEASE, "turned off elsewhere: release ownership");
-        check(ReadyService.decide(false, false, false, false) == NONE, "untrusted, off: nothing");
+        check(ReadyService.decide(true, false, false, false, false) == TURN_ON, "trusted, off: turn on");
+        check(ReadyService.decide(true, true, false, true, false) == NONE, "trusted, on: keep");
+        check(ReadyService.decide(false, true, false, true, false) == TURN_OFF, "left trusted Wi-Fi: turn off what we turned on");
+        check(ReadyService.decide(false, true, false, false, false) == NONE, "user turned it on: never touched");
+        check(ReadyService.decide(false, true, true, true, false) == NONE, "never cut a running session");
+        check(ReadyService.decide(false, false, false, true, false) == RELEASE, "turned off elsewhere: release ownership");
+        check(ReadyService.decide(false, false, false, false, false) == NONE, "untrusted, off: nothing");
+        check(ReadyService.decide(true, false, false, false, true) == NONE, "Android said no on this network: never ask twice");
+        check(ReadyService.decide(true, false, false, true, true) == RELEASE, "turned off by Android after our try: release");
         System.out.println("companion tests: " + passed + " passed");
     }
 }
