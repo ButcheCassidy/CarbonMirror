@@ -88,7 +88,23 @@ SOAK done: 23 sessions, 142900 events, key rotated: true, fds 40 → 44, RSS 36.
 ```
 Every event arrived in order, byte-exact; every frame sent was received; descriptors and memory plateau. Glass-to-glass latency, Mac CPU and idle memory (10.1) can only be measured on the Mac → `REAL_DEVICE_CHECKS.md` E. `tc netem` is not available in this environment, so packet loss/latency spikes were not simulated.
 
-## Release gate (open)
-1. First Mac build: fix compile errors in the macOS-only files, zero warnings.
-2. `REAL_DEVICE_CHECKS.md` A–E on the Mac and the Pixel.
-3. Bump version, CHANGELOG, signed DMG + APK, checksums, final evidence table.
+## Release gate — 1.0.0
+
+| Claim | Evidence (command → output) |
+|---|---|
+| Rust core tests | `cargo test --release` → 25 + 5 + 9 + 5 passed (44) |
+| Rust lint/audit | `cargo clippy --all-targets -D warnings` (host + Android) → clean; `cargo audit` → no advisories (126 crates) |
+| Swift tests (Linux) | `swift build --build-tests` → 0 warnings; `swift test --skip soak` → 79 tests in 11 suites passed (incl. 10 auto-connect) |
+| Soak | `CM_SOAK_SECONDS=300 swift test --filter soak` → passed after 302.2 s |
+| Companion logic | `bash scripts/test-companion.sh` → 19 passed (javac `-Xlint:all -Werror`) |
+| TLS downgrade / impersonation | `tools/sectest/tls_downgrade.sh` → all PASS (refused; pin mismatch without the Mac cert) |
+| No plaintext on the wire | `capture_session.sh` → entropy 7.87–8.00, 0 start codes, "nothing readable" |
+| Virtual LAN | `virtual_lan.sh` → PASS (fake `utun9` TX 0) |
+| adb local exposure | `adb_local_exposure.sh` → emulator devices 0, adb UDP 0, PASS |
+| C-ABI fuzz | `ffi_fuzz.sh 120` → every entry point PASS (e.g. `hmac_verify` 314 000 examples, `tls_client_parser` 250 000) |
+| Mac build | Release workflow run 3 (macOS 26): `swift build -c release` 0 warnings, 0 errors |
+| Mac signing | `codesign -dvvv` → `Authority=CarbonMirror Dev`, `flags=0x10000(runtime)`, SHA-256 CodeDirectory; entitlements = sandbox, pictures, usb, network.client, network.server; adb helper = sandbox + inherit; `--verify --deep --strict` → valid on disk, satisfies its Designated Requirement; DMG valid |
+| Mac launch | `APP ALIVE after real launch + Settings`, `APP ALIVE in demo`; window absent from `screencapture` with *Hide from capture* on |
+| Mac UI | 44 demo screenshots: startup animation (slide & settle), every status screen incl. Ready / Not connected / Can't start safely; Settings shows *Auto-connect to my phone at launch* under Mode |
+| APK | `apksigner verify` v2 + v3; permissions exactly the 8 in the manifest; exported = launcher activity + tile |
+| Real hardware | `REAL_DEVICE_CHECKS.md` A–F — **NOT RUN, needs your Mac and phone** |
