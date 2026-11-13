@@ -96,7 +96,12 @@ jobs:
         run: |
           VERSION="$(grep -A1 '<key>CFBundleShortVersionString</key>' Resources/Info.plist | sed -n 's/.*<string>\(.*\)<\/string>.*/\1/p')"
           (cd out && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
-          awk -v v="## [$VERSION]" 'index($0, v) == 1 {on=1; next} on && /^## \[/ {exit} on' CHANGELOG.md > notes.md
+          # A short description in .github/release-notes/v<version>.md wins over the full CHANGELOG section.
+          if [ -f ".github/release-notes/v$VERSION.md" ]; then
+            cp ".github/release-notes/v$VERSION.md" notes.md
+          else
+            awk -v v="## [$VERSION]" 'index($0, v) == 1 {on=1; next} on && /^## \[/ {exit} on' CHANGELOG.md > notes.md
+          fi
           cat >> notes.md <<'NOTES'
 
           ### Install or update (build it yourself, one command)
