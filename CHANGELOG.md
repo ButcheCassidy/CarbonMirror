@@ -22,6 +22,7 @@ All notable changes to CarbonMirror. Versions follow `CFBundleShortVersionString
 - The "identity changed" warning can no longer be replaced by a generic error; H.265 falls back to H.264 on any failure before the first frame; file handles closed on the phone.
 
 ### Added
+- Phone encoder: above 60 fps the frame rate is also set as the encoder's operating rate (falls back to the encoder's default if refused), so 90/120 fps sessions are not paced at 60.
 - **Companion install from the Mac:** Settings → Connection → *Install / Reinstall over USB…* now replaces a companion signed by another build automatically (uninstall is allowlisted for the companion package only, over USB, after confirmation) and says exactly what happened.
 - **Light mode:** Settings → General → **Appearance**: Automatic (follows macOS), Light or Dark (default Dark). Every text, pill, hairline, toolbar and glass tint follows it; the phone screen stays on black. Nothing forces dark any more (that also removes the cause of black Settings text on a dark background).
 - Companion: *Pair with your Mac (QR code)* button.

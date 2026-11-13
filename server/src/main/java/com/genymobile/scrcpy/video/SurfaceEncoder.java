@@ -124,7 +124,18 @@ public class SurfaceEncoder implements AsyncProcessor {
                 boolean mediaCodecStarted = false;
                 boolean captureStarted = false;
                 try {
-                    mediaCodec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+                    try {
+                        mediaCodec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+                    } catch (IllegalArgumentException | IllegalStateException e) {
+                        if (Build.VERSION.SDK_INT < AndroidVersions.API_29_ANDROID_10 || !format.containsKey(MediaFormat.KEY_OPERATING_RATE)) {
+                            throw e;
+                        }
+                        // CarbonMirror: an encoder that refuses the operating rate runs at its default pace instead.
+                        Ln.w("Encoder refused operating rate " + format.getInteger(MediaFormat.KEY_OPERATING_RATE) + ", using its default");
+                        format.removeKey(MediaFormat.KEY_OPERATING_RATE);
+                        mediaCodec.reset();
+                        mediaCodec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+                    }
                     surface = mediaCodec.createInputSurface();
 
                     capture.start(surface);
@@ -311,8 +322,13 @@ public class SurfaceEncoder implements AsyncProcessor {
         MediaFormat format = new MediaFormat();
         format.setString(MediaFormat.KEY_MIME, videoMimeType);
         format.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
-        // must be present to configure the encoder, but does not impact the actual frame rate, which is variable
-        format.setInteger(MediaFormat.KEY_FRAME_RATE, 60);
+        // must be present to configure the encoder; the actual frame rate is variable. CarbonMirror: above 60 fps the
+        // rate is also passed as the operating rate, so hardware encoders that size their clock from it keep up at 120.
+        int frameRate = maxFps > 60 ? Math.round(maxFps) : 60;
+        format.setInteger(MediaFormat.KEY_FRAME_RATE, frameRate);
+        if (frameRate > 60 && Build.VERSION.SDK_INT >= AndroidVersions.API_29_ANDROID_10) {
+            format.setInteger(MediaFormat.KEY_OPERATING_RATE, frameRate);
+        }
         format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
         if (Build.VERSION.SDK_INT >= AndroidVersions.API_24_ANDROID_7_0) {
             format.setInteger(MediaFormat.KEY_COLOR_RANGE, MediaFormat.COLOR_RANGE_LIMITED);
