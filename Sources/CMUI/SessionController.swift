@@ -70,6 +70,10 @@ final class SessionController {
     private var reconnectAttempt = 0
     private var reconnectStarted: Date?
     private var connecting = false
+    /// A session is being torn down (its clean-up still talks to the phone).
+    private var ending = false
+    /// A start was asked for while a session was being set up or torn down; run it once that finishes.
+    private var evaluatePending = false
     private var macLocked = false
     private var macAsleep = false
     private var wifiUp = true
@@ -182,7 +186,8 @@ final class SessionController {
 
     /// Picks the transport and (re)starts the session when it should change.
     private func evaluate() {
-        guard services != nil, !connecting, !macLocked, !macAsleep else { return }
+        if connecting || ending { evaluatePending = true }
+        guard services != nil, !connecting, !ending, !macLocked, !macAsleep else { return }
         let usb = usbDevice
         if let usb, let pinned, pinned.serial != usb.serial, transport == nil {
             phone.show(state: .untrustedDevice)
@@ -218,6 +223,7 @@ final class SessionController {
             }
             await start()
             connecting = false
+            runPendingEvaluate()
         }
     }
 
@@ -289,7 +295,7 @@ final class SessionController {
         return AutoConnect.Conditions(enabled: settings.autoConnect && settings.connectionMode != .usbOnly,
                                       paired: device?.pins != nil && proof, macLocked: macLocked, macAsleep: macAsleep,
                                       subnet: subnet, knownNetwork: key.map { device?.lastKnownEndpoints[$0] != nil } ?? false,
-                                      busy: session != nil || connecting || reconnectTask != nil
+                                      busy: session != nil || connecting || ending || reconnectTask != nil
                                           || (usbDevice != nil && settings.connectionMode != .wirelessOnly))
     }
 
@@ -524,8 +530,15 @@ final class SessionController {
         }
     }
 
+    private func runPendingEvaluate() {
+        guard evaluatePending else { return }
+        evaluatePending = false
+        evaluate()
+    }
+
     private func ended(_ reason: SessionEnd, session source: MirrorSession) {
         guard source === session else { return }
+        if reason.failureClass != nil { Log.error(.transport, "session failed", ["reason": "\(reason)"]) }
         session = nil
         mirror.sender = nil
         _ = mirror.engine.releaseAll()
@@ -603,7 +616,11 @@ final class SessionController {
         sessionLive = false
         transport = nil
         mirror.sender = nil
+        // No new session until this teardown is done: its clean-up removes the server files from the phone, which
+        // would delete a new session's freshly pushed server (USB restart → "Connection lost", black screen).
+        ending = true
         await current.stop()
+        ending = false
         mirror.video.reset()
         status = StatusLine.Snapshot()
         // With auto-connect the companion keeps Wireless debugging on for the trusted network only.
@@ -612,6 +629,7 @@ final class SessionController {
         }
         phone.show(state: .disconnected)
         Log.info(.transport, "session ended", ["by": "\(reason)"])
+        runPendingEvaluate()
     }
 
     // MARK: Adaptive USB profile (4.5)
