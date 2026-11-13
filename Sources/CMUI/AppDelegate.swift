@@ -50,6 +50,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValid
             let session = SessionController(settings: settings, phone: phone)
             let pairing = PairingController(session: session, phone: phone)
             session.onPairRequested = { [weak pairing] in pairing?.start() }
+            session.onCreateKeyRequested = { [weak self] in self?.confirmCreateNewKey() }
             session.askEndpoint = { ip in EndpointPrompt.ask(suggestedIP: ip) }
             self.session = session
             self.pairing = pairing
@@ -157,7 +158,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValid
             case .installed:
                 inform("Companion installed", "Add the CarbonMirror tile from the phone's Quick Settings editor.")
             case .replaced:
-                inform("Companion replaced", "Open it on the phone once, then add the CarbonMirror tile from the Quick Settings editor.")
+                inform("Companion replaced", "The companion from another build was removed, with its trusted Wi-Fi networks. "
+                           + "Open the new one on the phone once, then add the CarbonMirror tile from the Quick Settings editor.")
+            case .notGranted:
+                inform("Permission not granted", "The companion is installed but can't turn Wireless debugging on and off yet. "
+                           + "Keep the phone unlocked and connected, then choose Reinstall Over USB… in Settings → Connection.")
             case .noPhone:
                 inform("No phone on USB", "Connect the phone by USB, unlock it, allow USB debugging and try again.")
             case .failed:

@@ -37,12 +37,12 @@ final class MirrorView: NSView {
         video.autoresizingMask = [.width, .height]
         addSubview(video)
         lockGlyph.image = Theme.symbol("lock.fill", size: 28, weight: .semibold)
-        lockGlyph.contentTintColor = Theme.primaryText
+        lockGlyph.contentTintColor = .white  // on the always-black screen, in both appearances
         lockGlyph.isHidden = true
         lockGlyph.setAccessibilityLabel("Screen hidden. Click to reveal.")
         addSubview(lockGlyph)
         hud.font = NSFont.monospacedSystemFont(ofSize: 10, weight: .regular)
-        hud.textColor = Theme.primaryText
+        hud.textColor = .white
         hud.drawsBackground = true
         hud.backgroundColor = NSColor(white: 0, alpha: 0.6)
         hud.isHidden = true

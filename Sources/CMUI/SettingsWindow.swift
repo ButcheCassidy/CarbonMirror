@@ -136,7 +136,7 @@ final class SettingsWindowController {
     private func connectionRows() -> [(String, NSView)] {
         let s = settings
         return [
-            ("Mode", popup(["Auto", "USB only", "Wireless only"], AppSettings.ConnectionMode.allCases.firstIndex(of: s.connectionMode) ?? 0) {
+            ("Mode", popup(["Auto", "USB only", "Wi-Fi only"], AppSettings.ConnectionMode.allCases.firstIndex(of: s.connectionMode) ?? 0) {
                 s.connectionMode = AppSettings.ConnectionMode.allCases[$0]
             }),
             ("", toggle("Auto-connect to my phone at launch", s.autoConnect) { s.autoConnect = $0 }),
@@ -155,7 +155,7 @@ final class SettingsWindowController {
                 s.wirelessProfile.bitrateMbps = Self.wifiRates[$0]
             }),
             ("Wi-Fi codec", popup(["H.264", "H.265"], s.wirelessProfile.codec == .h264 ? 0 : 1) { s.wirelessProfile.codec = $0 == 0 ? .h264 : .h265 }),
-            ("Phone companion", button(s.companionInstalled ? "Reinstall over USB…" : "Install over USB…") { [weak self] _ in
+            ("Phone companion", button(s.companionInstalled ? "Reinstall Over USB…" : "Install Over USB…") { [weak self] _ in
                 self?.onInstallCompanion?()
             }),
         ]
@@ -200,6 +200,7 @@ final class SettingsWindowController {
     private func securityRows() -> [(String, NSView)] {
         let s = settings
         let idle = NSTextField(labelWithString: "\(s.idleTimeoutMinutes) min")
+        idle.textColor = Theme.primaryText
         let stepper = NSStepper()
         stepper.minValue = Double(AppSettings.idleTimeoutRange.lowerBound)
         stepper.maxValue = Double(AppSettings.idleTimeoutRange.upperBound)

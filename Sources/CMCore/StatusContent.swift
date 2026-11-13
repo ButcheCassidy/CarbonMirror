@@ -29,10 +29,10 @@ public struct StatusContent: Equatable, Sendable {
         case .mirroring, .retryingSilently:
             nil
         case .wifiOff:
-            StatusContent(glyph: "wifi.slash", title: "Wi-Fi Off", subtitle: "Turn on Mac Wi-Fi to connect.",
+            StatusContent(glyph: "wifi.slash", title: "Wi-Fi off", subtitle: "Turn on Mac Wi-Fi to connect.",
                           buttons: [Button(title: "Settings", action: .openSettings)], showsSpinner: false)
         case .searching:
-            StatusContent(glyph: "iphone.radiowaves.left.and.right", title: "Searching", subtitle: "Looking for your Pixel…",
+            StatusContent(glyph: "iphone.radiowaves.left.and.right", title: "Searching", subtitle: "Looking for your phone…",
                           buttons: [Button(title: "Use USB instead", action: .useUSB)], showsSpinner: true)
         case .notPaired:
             StatusContent(glyph: "qrcode", title: "Not paired", subtitle: "Pair your phone to get started.",
@@ -63,7 +63,7 @@ public struct StatusContent: Equatable, Sendable {
                           buttons: [Button(title: "Retry", action: .retry), Button(title: "Create new key", action: .createNewKey)],
                           showsSpinner: false)
         case .phoneReady:
-            StatusContent(glyph: "lock.iphone", title: "Ready", subtitle: "Encrypted link to your Pixel is open.",
+            StatusContent(glyph: "lock.iphone", title: "Ready", subtitle: "Encrypted link to your phone is open.",
                           buttons: [Button(title: "Mirror", action: .mirror)], showsSpinner: false)
         case .notConnected:
             StatusContent(glyph: "iphone.slash", title: "Not connected", subtitle: "Plug in USB or connect over Wi-Fi.",

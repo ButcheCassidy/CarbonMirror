@@ -27,6 +27,8 @@ final class SessionController {
     private enum EndReason { case user, guardEvent, idle }
 
     var onPairRequested: (() -> Void)?
+    /// "Create New Key" from the rotation reminder goes through the app's confirmation (identity warning, phone steps).
+    var onCreateKeyRequested: (() -> Void)?
     /// Asks for the IP address and port shown in the phone's Wireless debugging screen (mDNS replies may be
     /// blocked, spec 6.2); `suggestedIP` is the last known address or, on a phone hotspot, the gateway.
     var askEndpoint: ((_ suggestedIP: String) async -> Device.Endpoint?)?
@@ -646,7 +648,7 @@ final class SessionController {
 
     /// Judged on the round trip, never on frame rate (the phone's adaptive display sends fewer frames on purpose).
     private func adapt(latencyMs: Double) {
-        guard transport == .usb, latencyMs > AdaptiveProfile.thresholdMs else { slowSince = nil; return }
+        guard transport == .usb, !connecting, !ending, latencyMs > AdaptiveProfile.thresholdMs else { slowSince = nil; return }
         let since = slowSince ?? Date()
         slowSince = since
         guard Date().timeIntervalSince(since) >= AdaptiveProfile.window, let next = AdaptiveProfile.next(maxSize: maxSize, maxFPS: maxFPS),
@@ -789,7 +791,7 @@ final class SessionController {
     }
 
     /// Installs the companion over USB after the user confirmed, then grants its one permission (9.1).
-    enum CompanionInstall { case installed, replaced, noPhone, failed }
+    enum CompanionInstall { case installed, replaced, notGranted, noPhone, failed }
 
     /// A companion signed with another key (each build without the release keystore has its own) cannot be
     /// updated in place: it is removed first (its trusted Wi-Fi networks are cleared), then installed.
@@ -800,14 +802,19 @@ final class SessionController {
         guard var result = try? await runner.run(install, usb: true, confirmed: true, timeout: 120) else { return .failed }
         var replaced = false
         if !result.succeeded, result.text.contains("INSTALL_FAILED_UPDATE_INCOMPATIBLE") {
-            guard (try? await runner.runChecked(.uninstallCompanion(serial: usb.serial), usb: true, confirmed: true, timeout: 60)) != nil,
-                  let again = try? await runner.run(install, usb: true, confirmed: true, timeout: 120) else { return .failed }
+            guard (try? await runner.runChecked(.uninstallCompanion(serial: usb.serial), usb: true, confirmed: true, timeout: 60)) != nil else { return .failed }
+            settings.companionInstalled = false
+            guard let again = try? await runner.run(install, usb: true, confirmed: true, timeout: 120) else { return .failed }
             result = again
             replaced = true
         }
-        guard result.succeeded, (try? await runner.runChecked(.grantCompanionPermission(serial: usb.serial), timeout: 10)) != nil else {
+        guard result.succeeded else {
             Log.error(.adb, "companion install failed")
             return .failed
+        }
+        guard (try? await runner.runChecked(.grantCompanionPermission(serial: usb.serial), timeout: 10)) != nil else {
+            Log.error(.adb, "companion permission not granted")
+            return .notGranted
         }
         settings.companionInstalled = true
         return replaced ? .replaced : .installed
@@ -1019,9 +1026,9 @@ final class SessionController {
         let alert = NSAlert()
         alert.messageText = "Time for a new key"
         alert.informativeText = "It has been \(settings.rotationReminderDays) days since this Mac's key was created. Create a new key and pair your phone again?"
-        alert.addButton(withTitle: "Create new key")
+        alert.addButton(withTitle: "Create New Key…")
         alert.addButton(withTitle: "Later")
-        if alert.runModal() == .alertFirstButtonReturn { createNewKey() } else { settings.lastKeyRotation = Date() }
+        if alert.runModal() == .alertFirstButtonReturn { onCreateKeyRequested?() } else { settings.lastKeyRotation = Date() }
     }
 }
 #endif
