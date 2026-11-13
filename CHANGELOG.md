@@ -9,6 +9,7 @@ All notable changes to CarbonMirror. Versions follow `CFBundleShortVersionString
 - Settings: checkbox labels were black on the dark glass (even with a white title); each checkbox title is now a plain white label (click toggles), and the Settings content uses the dark appearance.
 - **Mac keyboard did not type on the phone:** the hardware keyboard was created on the first key (Android reconfigured and closed an open app drawer, and the key was lost), and after the first session it was never created again. It is now created at every session start.
 - **Quality "Poor" and silent downgrades on USB:** both screens are adaptive (phone 1–120 Hz, ProMotion), so a quiet screen sends few frames. Quality now comes from the round trip only, and the adaptive USB profile steps down on a round trip above 50 ms for 3 s instead of on frame rate (it used to restart the session at lower size/fps, e.g. "USB · 90"). The Mac's display link runs 1–120 Hz.
+- Phone keyboard mode: keys held when the window lost focus stayed pressed (and repeated) on the phone; they are now released.
 - **Restarting over USB failed ("Connection lost", black screen):** Disconnect cleared the session before its teardown finished, so a new session could start meanwhile, and the old teardown then deleted the server just pushed for it. New sessions now wait for the teardown; a start requested meanwhile runs right after. Failed sessions log their reason.
 - Phone: the clean-up helper crashed at session start (`app_process` ClassNotFoundException `CleanUp`): SELinux denies the hard link, and the fallback path was already gone. It now runs from its own copy of the server; without one it is not started.
 - **Mirroring never started on a real phone:** the Mac waited for the phone's device info before opening the control connection, while the phone sends it only after both connections are open (deadlock; the phone showed "Mirroring", the Mac nothing). The Mac now opens both first, and gives up after 15 s instead of waiting forever. The virtual test phone now follows the real order.
@@ -18,6 +19,7 @@ All notable changes to CarbonMirror. Versions follow `CFBundleShortVersionString
 - The "identity changed" warning can no longer be replaced by a generic error; H.265 falls back to H.264 on any failure before the first frame; file handles closed on the phone.
 
 ### Added
+- **Light mode:** Settings → General → **Appearance**: Automatic (follows macOS), Light or Dark (default Dark). Every text, pill, hairline, toolbar and glass tint follows it; the phone screen stays on black. Nothing forces dark any more (that also removes the cause of black Settings text on a dark background).
 - Companion: *Pair with your Mac (QR code)* button.
 - **Settings → Shortcuts:** choose which buttons the toolbar shows. By default only **Home** (plus the connection badge and Settings); add Back, Recents, App drawer, Notifications, Quick Settings, Screenshot, Clipboard sync, Privacy blur, Typing mode, Rotate, Volume, Mute, Lock and Pin on top as you like.
 
