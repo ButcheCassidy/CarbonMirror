@@ -3,7 +3,7 @@
 **Your Android phone, live on your Mac — and back again.**
 A small native macOS app that mirrors and controls an Android phone with the feel of Apple's iPhone Mirroring. Tuned for the Google Pixel 10 Pro XL (stock Android or GrapheneOS); works with any Android 11+ phone.
 
-> Status: 1.0.0. Built and tested on Linux and on a macOS 26 GitHub runner (build, signing, launch, screenshots); the checks on your Mac and phone are in [`REAL_DEVICE_CHECKS.md`](REAL_DEVICE_CHECKS.md).
+> Status: 1.0.2. Built and tested on Linux; the Mac app is compiled on your Mac when you install it. The checks on your Mac and phone are in [`REAL_DEVICE_CHECKS.md`](REAL_DEVICE_CHECKS.md).
 
 By **ButcheCassidy - The Nomadic Rebel** · [PolyForm Shield 1.0.0](LICENSE)
 

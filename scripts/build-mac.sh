@@ -74,6 +74,7 @@ if [ "$missing" = 1 ]; then
   elif ! parts_from /Applications/CarbonMirror.app && ! { [ -f "$ZIP" ] && parts_from_zip "$ZIP"; } \
       && ! { [ -f "$DMG" ] && parts_from_dmg "$DMG"; }; then
     # From the GitHub release of this version: the source zip (1.0.1 on), else the DMG of older releases.
+    # Parts are tied to the version number, so every release that changes them bumps the version.
     mkdir -p deps
     RELEASE="https://github.com/ButcheCassidy/CarbonMirror/releases/download/v$VERSION"
     { curl -fsL --retry 5 -o "deps/CarbonMirror-$VERSION-source.zip" "$RELEASE/CarbonMirror-$VERSION-source.zip" \

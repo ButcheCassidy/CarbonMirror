@@ -2,6 +2,11 @@
 
 All notable changes to CarbonMirror. Versions follow `CFBundleShortVersionString`.
 
+## [1.0.2] — 2026-11-13
+
+### Fixed
+- **Phone server crashed at start (`ClassNotFoundException: com.genymobile.scrcpy.Server`):** a rebuild in an existing folder kept the phone parts of the same version number, so the older 1.0.1 server stayed in use; its clean-up helper deleted the shared server file, and the next session's server could vanish before Android loaded it. 1.0.2 ships fresh phone parts (server, phone library, companion) that `build-mac.sh` picks up automatically, and the clean-up helper only ever deletes its own private copy.
+
 ## [1.0.1] — 2026-11-13
 
 ### Fixed
