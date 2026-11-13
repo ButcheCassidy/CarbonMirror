@@ -61,7 +61,7 @@ rustup self uninstall
 
 ## 4. Installing and updating the Mac app
 
-Releases contain only the source code: `CarbonMirror-<version>-source.zip` on the [Releases page](https://github.com/ButcheCassidy/CarbonMirror/releases), with the phone parts (server, phone core library, companion app) already inside. You build and sign the app on your own Mac with one command; there is no DMG to drag and no "unverified developer" prompt for your own build.
+Saddle up, partner. Releases contain only the source code: `CarbonMirror-<version>-source.zip` on the [Releases page](https://github.com/ButcheCassidy/CarbonMirror/releases), with the phone parts (server, phone core library, companion app) already inside. You build and sign the app on your own Mac with one command; there is no DMG to drag and no "unverified developer" prompt for your own build.
 
 1. Once: Apple's Command Line Tools (skip if installed).
 ```bash
@@ -81,6 +81,8 @@ cd ~/CarbonMirror-<version> && bash scripts/build-mac.sh --install
 ```
 The first run installs Rust, fetches and checks Google's adb and creates a local "CarbonMirror Dev" signing certificate (macOS asks for your password once); later runs take about a minute. CarbonMirror opens when it is done.
 5. Plug the phone in by USB, then CarbonMirror → Settings → Connection → **Install Over USB…** for the companion.
+
+That's the whole trail. Happy riding.
 
 **Updating:** quit CarbonMirror and repeat steps 2–5 with the new zip. Settings, keys and pairing stay (same local certificate). If the app asks for Keychain access, click **Always Allow**. Choose **Reinstall Over USB…** after each update so the companion matches.
 
