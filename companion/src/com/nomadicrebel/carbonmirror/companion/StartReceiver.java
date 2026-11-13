@@ -16,7 +16,7 @@ public final class StartReceiver extends BroadcastReceiver {
         if (Intent.ACTION_BOOT_COMPLETED.equals(action) || Intent.ACTION_MY_PACKAGE_REPLACED.equals(action) || WATCHDOG.equals(action)) {
             try {
                 ReadyService.start(context);
-            } catch (IllegalStateException e) {
+            } catch (IllegalStateException | SecurityException e) {
                 // Android refuses a background start while battery use is restricted; the next boot or app open starts it.
             }
         }

@@ -157,6 +157,9 @@ fn check_shell(rest: &[&str]) -> CmResult<()> {
         ["settings", "put", "global", "adb_wifi_enabled", "0"] => Ok(()),
         ["pm", "grant", pkg, perm] if *pkg == COMPANION_PACKAGE && *perm == COMPANION_PERMISSION => Ok(()),
         ["dumpsys", "display"] => Ok(()),
+        // Phone internet over USB: read whether USB tethering is on; open its settings screen for the user.
+        ["getprop", "sys.usb.config"] => Ok(()),
+        ["am", "start", "-a", "android.settings.TETHER_SETTINGS"] => Ok(()),
         ["rm", "-f", a, b] if *a == REMOTE_SERVER_PATH && *b == REMOTE_CORE_LIB_PATH => Ok(()),
         ["rm", "-f", a] if *a == REMOTE_MAC_PIN_PATH => Ok(()),
         [first, ..] if first.starts_with("CLASSPATH=") => check_start_server(rest),

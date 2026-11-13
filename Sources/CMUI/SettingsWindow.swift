@@ -155,6 +155,7 @@ final class SettingsWindowController {
                 s.wirelessProfile.bitrateMbps = Self.wifiRates[$0]
             }),
             ("Wi-Fi codec", popup(["H.264", "H.265"], s.wirelessProfile.codec == .h264 ? 0 : 1) { s.wirelessProfile.codec = $0 == 0 ? .h264 : .h265 }),
+            ("", toggle("Share the phone's internet over USB", s.shareInternetOverUSB) { s.shareInternetOverUSB = $0 }),
             ("Phone companion", button(s.companionInstalled ? "Reinstall Over USB…" : "Install Over USB…") { [weak self] _ in
                 self?.onInstallCompanion?()
             }),
@@ -239,6 +240,9 @@ final class SettingsWindowController {
         return [
             ("Appearance", popup(["Automatic", "Light", "Dark"], AppSettings.Appearance.allCases.firstIndex(of: s.appearance) ?? 0) {
                 s.appearance = AppSettings.Appearance.allCases[$0]
+            }),
+            ("Compatibility", toggle("Compatibility mode (only if mirroring broke after an update)", s.compatibilityMode) {
+                s.compatibilityMode = $0
             }),
             ("", toggle("Launch at login", SMAppService.mainApp.status == .enabled) { [weak self] on in
                 do {

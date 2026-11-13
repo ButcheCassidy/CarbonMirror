@@ -25,6 +25,11 @@ public final class WirelessDebuggingTile extends TileService {
 
     @Override
     public void onClick() {
+        // Never cut a running wireless mirroring session from the tile (the app's own button refuses too).
+        if (WirelessDebugging.on(this) && WirelessDebugging.mirroring(this)) {
+            refresh();
+            return;
+        }
         if (WirelessDebugging.set(this, !WirelessDebugging.on(this))) {
             refresh();
         } else {

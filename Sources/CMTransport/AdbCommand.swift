@@ -73,6 +73,8 @@ public enum AdbCommand: Equatable, Sendable {
     case removeServerFiles(serial: String)
     /// "Create new key": lets the phone pin the new Mac identity on the next session.
     case removeMacPin(serial: String)
+    case readUSBConfig(serial: String)
+    case openTetherSettings(serial: String)
     case installCompanion(serial: String, apkPath: String)
     case uninstallCompanion(serial: String)
 
@@ -109,6 +111,8 @@ public enum AdbCommand: Equatable, Sendable {
         case let .readDisplayInfo(serial): ["-s", serial, "shell", "dumpsys", "display"]
         case let .removeServerFiles(serial): ["-s", serial, "shell", "rm", "-f", Self.remoteServerPath, Self.remoteCoreLibraryPath]
         case let .removeMacPin(serial): ["-s", serial, "shell", "rm", "-f", Self.remoteMacPinPath]
+        case let .readUSBConfig(serial): ["-s", serial, "shell", "getprop", "sys.usb.config"]
+        case let .openTetherSettings(serial): ["-s", serial, "shell", "am", "start", "-a", "android.settings.TETHER_SETTINGS"]
         case let .installCompanion(serial, path): ["-s", serial, "install", "-r", path]
         case let .uninstallCompanion(serial): ["-s", serial, "uninstall", Self.companionPackage]
         }

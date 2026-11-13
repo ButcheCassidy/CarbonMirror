@@ -46,6 +46,7 @@ struct TransportTests {
             (.disableWirelessDebugging(serial: Self.serial), false, false), (.grantCompanionPermission(serial: Self.serial), false, false),
             (.readDisplayInfo(serial: Self.serial), false, false), (.removeServerFiles(serial: Self.serial), false, false),
             (.removeMacPin(serial: Self.serial), false, false),
+            (.readUSBConfig(serial: Self.serial), false, false), (.openTetherSettings(serial: Self.serial), false, false),
             (.installCompanion(serial: Self.serial, apkPath: "\(Self.resources)/CarbonMirrorCompanion.apk"), true, true),
             (.uninstallCompanion(serial: Self.serial), true, true),
         ]

@@ -22,6 +22,10 @@ All notable changes to CarbonMirror. Versions follow `CFBundleShortVersionString
 - The "identity changed" warning can no longer be replaced by a generic error; H.265 falls back to H.264 on any failure before the first frame; file handles closed on the phone.
 
 ### Added
+- **Trackpad scrolling like a finger:** two-finger scrolls drive a finger drag on the phone, so lists and home-screen pages move smoothly and fling on release (mouse wheels still scroll in steps).
+- **Compatibility mode** (Settings → General, off): a last resort if an OS update breaks mirroring — H.264, up to 60 fps, scroll-wheel scrolling and text typing; encryption unchanged. Offered automatically after three failed starts in a row.
+- **Share the phone's internet over USB** (Settings → Connection, off): when USB tethering is off, the phone's tethering screen opens in the mirror window to switch it on; mirroring reconnects by itself after the phone's USB re-enumerates.
+- While mirroring, macOS is asked not to nap or coalesce timers (latency-critical activity).
 - Phone encoder: above 60 fps the frame rate is also set as the encoder's operating rate (falls back to the encoder's default if refused), so 90/120 fps sessions are not paced at 60.
 - **Companion install from the Mac:** Settings → Connection → *Install / Reinstall over USB…* now replaces a companion signed by another build automatically (uninstall is allowlisted for the companion package only, over USB, after confirmation) and says exactly what happened.
 - **Light mode:** Settings → General → **Appearance**: Automatic (follows macOS), Light or Dark (default Dark). Every text, pill, hairline, toolbar and glass tint follows it; the phone screen stays on black. Nothing forces dark any more (that also removes the cause of black Settings text on a dark background).

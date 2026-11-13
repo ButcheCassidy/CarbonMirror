@@ -3,6 +3,9 @@
 import CMCore
 import CMCoreBridge
 
+/// Phase of a trackpad scroll gesture (momentum is left to Android, which flings from the release velocity).
+public enum ScrollPhase: Equatable, Sendable { case began, changed, ended }
+
 /// Pointer input in view coordinates (points, origin top-left).
 public enum PointerInput: Equatable, Sendable {
     case down(x: Double, y: Double)
@@ -10,6 +13,8 @@ public enum PointerInput: Equatable, Sendable {
     case up(x: Double, y: Double)
     case secondaryClick
     case scroll(x: Double, y: Double, dx: Double, dy: Double, precise: Bool)
+    /// Trackpad two-finger scroll with its gesture phase: driven as a finger drag on the phone.
+    case trackpadScroll(x: Double, y: Double, dx: Double, dy: Double, phase: ScrollPhase)
     case pinchBegan(x: Double, y: Double)
     case pinchChanged(magnification: Double)
     case pinchEnded
@@ -39,6 +44,8 @@ public final class InputEngine {
     /// Where the video sits inside the view.
     public var content = ViewRect(x: 0, y: 0, width: 0, height: 0)
     public var rightClickBack = true
+    /// Trackpad scroll as a finger drag (off in compatibility mode: plain scroll-wheel events instead).
+    public var scrollAsTouch = true
     public private(set) var typingMode: AppSettings.TypingMode = .hardware
     /// Privacy blur: everything is dropped while true.
     public private(set) var blocked = false
@@ -48,6 +55,8 @@ public final class InputEngine {
     private var pinchSpread = InputEngine.pinchStartSpread
     private var heldKeys: [UInt16] = []
     private var keyboardCreated = false
+    /// Finger position (phone pixels, unrounded) while a trackpad scroll is driven as a drag.
+    private var scrollFinger: (x: Double, y: Double)?
 
     public init() {}
 
@@ -76,6 +85,10 @@ public final class InputEngine {
     /// Lifts fingers and keys (focus loss, blur, session end).
     public func releaseAll() -> [[UInt8]] {
         var out: [[UInt8]] = []
+        if let f = scrollFinger {
+            out += [try? ControlMessage.touch(.up, at: phonePoint(f.x, f.y), pressure: 0)].compactMap { $0 }
+            scrollFinger = nil
+        }
         if touching, let last = lastTouch {
             out += [try? ControlMessage.touch(.up, at: last, pressure: 0)].compactMap { $0 }
             touching = false
@@ -131,8 +144,10 @@ public final class InputEngine {
             let v = InputMapping.scrollUnits(dy, precise: precise)
             guard h != 0 || v != 0, let m = try? ControlMessage.scroll(at: p, horizontal: h, vertical: v) else { return [] }
             return [m]
+        case let .trackpadScroll(x, y, dx, dy, phase):
+            return trackpadScroll(x: x, y: y, dx: dx, dy: dy, phase: phase)
         case let .pinchBegan(x, y):
-            guard pinchCenter == nil, let c = map(x, y, clamp: false) else { return [] }
+            guard pinchCenter == nil, scrollFinger == nil, let c = map(x, y, clamp: false) else { return [] }
             pinchCenter = c
             pinchSpread = Self.pinchStartSpread
             return pinchMessages(.down)
@@ -145,6 +160,33 @@ public final class InputEngine {
             pinchCenter = nil
             return out
         }
+    }
+
+    /// Two-finger scroll = one finger dragging the content (natural direction, as macOS already delivers it), so
+    /// lists, pages and the launcher scroll at native smoothness and fling on release like a real swipe.
+    private func trackpadScroll(x: Double, y: Double, dx: Double, dy: Double, phase: ScrollPhase) -> [[UInt8]] {
+        switch phase {
+        case .began:
+            guard scrollFinger == nil, !touching, pinchCenter == nil, let p = map(x, y, clamp: false),
+                  let m = try? ControlMessage.touch(.down, at: p, pressure: 1) else { return [] }
+            scrollFinger = (Double(p.x), Double(p.y))
+            return [m]
+        case .changed:
+            guard let f = scrollFinger, content.width > 0, content.height > 0 else { return [] }
+            let nx = min(max(f.x + dx * Double(frameWidth) / content.width, 0), Double(frameWidth - 1))
+            let ny = min(max(f.y + dy * Double(frameHeight) / content.height, 0), Double(frameHeight - 1))
+            guard nx != f.x || ny != f.y else { return [] }
+            scrollFinger = (nx, ny)
+            return [try? ControlMessage.touch(.move, at: phonePoint(nx, ny), pressure: 1)].compactMap { $0 }
+        case .ended:
+            guard let f = scrollFinger else { return [] }
+            scrollFinger = nil
+            return [try? ControlMessage.touch(.up, at: phonePoint(f.x, f.y), pressure: 0)].compactMap { $0 }
+        }
+    }
+
+    private func phonePoint(_ x: Double, _ y: Double) -> PhonePoint {
+        PhonePoint(x: Int32(x.rounded()), y: Int32(y.rounded()), frameWidth: UInt16(clamping: frameWidth), frameHeight: UInt16(clamping: frameHeight))
     }
 
     private func pinchMessages(_ action: ControlMessage.TouchAction) -> [[UInt8]] {
@@ -175,6 +217,7 @@ public final class InputEngine {
     public func sessionStarted(typingMode mode: AppSettings.TypingMode) -> [[UInt8]] {
         touching = false
         pinchCenter = nil
+        scrollFinger = nil
         heldKeys = []
         keyboardCreated = false
         typingMode = mode

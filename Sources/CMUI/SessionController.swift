@@ -62,6 +62,11 @@ final class SessionController {
     private var landscapeDismissed = false
     /// Short message shown in the status line for 5 s instead of the usual text.
     private var notice: (text: String, at: Date)?
+    /// Sessions in a row that failed before the first frame (compatibility-mode offer after 3).
+    private var startFailures = 0
+    private var compatibilityOffered = false
+    /// Keeps macOS from napping or coalescing timers while mirroring (smooth video and input).
+    private var activity: NSObjectProtocol?
 
     private var reconnectTask: Task<Void, Never>?
     /// Auto-connect (owner addition): background search, verified link, one-press mirroring.
@@ -489,12 +494,14 @@ final class SessionController {
         let stored = (wireless ? pinned?.serial : serial).flatMap { services.keys.deviceKey(serial: $0) }
         let deviceKey = stored ?? (wireless ? nil : try? CoreCrypto.randomBytes(32))
         pendingDeviceKey = stored == nil ? deviceKey : nil
-        let codec: VideoCodec = profile.codec == .h265 && !h265Failed ? .h265 : .h264
+        let compatible = settings.compatibilityMode
+        if !wireless, compatible { maxFPS = min(maxFPS, 60) }
+        let codec: VideoCodec = profile.codec == .h265 && !h265Failed && !compatible ? .h265 : .h264
         requestedMaxSize = wireless ? AdaptiveProfile.sizeSteps[0] : maxSize
         let parameters = SessionParameters(serial: serial, wireless: wireless,
                                            serverVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0",
                                            codec: codec, maxSize: requestedMaxSize,
-                                           maxFPS: wireless ? profile.maxFPS : maxFPS, bitRate: profile.bitrateMbps * 1_000_000,
+                                           maxFPS: wireless ? (compatible ? min(profile.maxFPS, 60) : profile.maxFPS) : maxFPS, bitRate: profile.bitrateMbps * 1_000_000,
                                            clipboardSync: settings.clipboardSync, encryption: encryption, deviceKey: deviceKey)
         let session = MirrorSession(parameters: parameters, link: services.link, connector: { path in try await POSIXStream.connect(unixPath: path) },
                                     video: decoder)
@@ -531,7 +538,11 @@ final class SessionController {
             status.reconnecting = false
             mirror.video.dimmed = false
             mirror.sender = { [source] message in source.send(message) }
-            mirror.sessionStarted(typingMode: settings.typingMode)
+            mirror.engine.scrollAsTouch = !settings.compatibilityMode
+            mirror.sessionStarted(typingMode: settings.compatibilityMode ? .phone : settings.typingMode)
+            startFailures = 0
+            beginLatencyCritical()
+            if transport == .usb, settings.shareInternetOverUSB, let serial = sessionSerial { Task { await offerTethering(serial: serial) } }
             if settings.phoneScreenOff { mirror.deliver([try? ControlMessage.simple(.displayPowerOff)].compactMap { $0 }) }
             phone.show(state: .mirroring)
             phone.content.chrome.setConnectionBadge(text: transport == .usb ? "USB · \(maxFPS)" : "Wi-Fi",
@@ -568,6 +579,44 @@ final class SessionController {
         }
     }
 
+    private func beginLatencyCritical() {
+        guard activity == nil else { return }
+        activity = ProcessInfo.processInfo.beginActivity(options: [.userInitiated, .latencyCritical], reason: "Mirroring the phone")
+    }
+
+    private func endLatencyCritical() {
+        if let activity { ProcessInfo.processInfo.endActivity(activity) }
+        activity = nil
+    }
+
+    /// Phone internet over USB: when USB tethering is off, open its switch on the phone (shown in the mirror window).
+    /// Turning it on re-enumerates the phone's USB, so the session reconnects by itself a moment later.
+    private func offerTethering(serial: String) async {
+        guard let runner = services?.runner, let result = try? await runner.run(.readUSBConfig(serial: serial), timeout: 5),
+              result.succeeded else { return }
+        let config = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        Log.info(.transport, "phone usb functions", ["config": config])
+        guard !config.contains("ncm"), !config.contains("rndis") else { return }
+        _ = try? await runner.run(.openTetherSettings(serial: serial), timeout: 5)
+        notice = ("Turn on USB tethering on the phone", Date())
+    }
+
+    /// Several sessions in a row failed before their first frame: offer compatibility mode once (a last resort).
+    private func startFailed() {
+        startFailures += 1
+        guard startFailures >= 3, !settings.compatibilityMode, !compatibilityOffered else { return }
+        compatibilityOffered = true
+        Task {
+            let alert = NSAlert()
+            alert.messageText = "Mirroring keeps failing"
+            alert.informativeText = "If this started after a macOS or Android update, Compatibility mode may help: H.264, up to 60 fps, "
+                + "scroll-wheel scrolling and text typing. Encryption stays the same. Turn it off again in Settings → General."
+            alert.addButton(withTitle: "Use Compatibility Mode")
+            alert.addButton(withTitle: "Not Now")
+            if alert.runModal() == .alertFirstButtonReturn { settings.compatibilityMode = true }
+        }
+    }
+
     private func runPendingEvaluate() {
         guard evaluatePending else { return }
         evaluatePending = false
@@ -577,6 +626,8 @@ final class SessionController {
     private func ended(_ reason: SessionEnd, session source: MirrorSession) {
         guard source === session else { return }
         if reason.failureClass != nil { Log.error(.transport, "session failed", ["reason": "\(reason)"]) }
+        endLatencyCritical()
+        if reason.failureClass != nil, !sessionLive { startFailed() }
         session = nil
         mirror.sender = nil
         _ = mirror.engine.releaseAll()
@@ -670,6 +721,7 @@ final class SessionController {
         ending = true
         await current.stop()
         ending = false
+        endLatencyCritical()
         mirror.video.reset()
         status = StatusLine.Snapshot()
         // With auto-connect the companion keeps Wireless debugging on for the trusted network only.
@@ -910,6 +962,13 @@ final class SessionController {
             refreshHUD()
         case .autoConnect:
             refreshAuto()
+        case .compatibilityMode:
+            guard let serial = sessionSerial, let current = transport, !ending else { return }
+            if current == .usb { maxFPS = settings.usbProfile.maxFPS }
+            switchSession { await self.startSession(serial: serial, wireless: current == .wifi) }
+        case .shareInternetOverUSB:
+            guard settings.shareInternetOverUSB, transport == .usb, sessionLive, let serial = sessionSerial else { return }
+            Task { await offerTethering(serial: serial) }
         default:
             break
         }

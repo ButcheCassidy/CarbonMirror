@@ -27,6 +27,7 @@ public final class AppSettings {
     }
 
     public enum Key: String, CaseIterable, Sendable {
+        case compatibilityMode, shareInternetOverUSB
         case connectionMode, autoConnect, usbFPS, usbBitrate, usbCodec, wifiFPS, wifiBitrate, wifiCodec
         case cornerFineTune, rememberSize
         case autoBlurSeconds, touchIDToReveal, typingMode, landscapeOffer, landscapeBehaviour, powerSavingWhenHidden
@@ -84,6 +85,19 @@ public final class AppSettings {
     public var autoConnect: Bool {
         get { bool(.autoConnect, true) }
         set { set(newValue, .autoConnect) }
+    }
+
+    /// Last resort after an OS update breaks something: H.264, at most 60 fps, scroll-wheel events and text
+    /// typing instead of the finger-drag scroll and the virtual hardware keyboard. Encryption is unchanged.
+    public var compatibilityMode: Bool {
+        get { bool(.compatibilityMode, false) }
+        set { set(newValue, .compatibilityMode) }
+    }
+
+    /// Over USB, open the phone's tethering screen when USB tethering is off (the phone shares its internet).
+    public var shareInternetOverUSB: Bool {
+        get { bool(.shareInternetOverUSB, false) }
+        set { set(newValue, .shareInternetOverUSB) }
     }
 
     /// Toolbar buttons the user chose (Settings → Shortcuts), in toolbar order, plus the fixed ones.

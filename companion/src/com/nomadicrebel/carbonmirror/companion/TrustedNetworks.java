@@ -11,7 +11,9 @@ import java.net.Inet4Address;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -22,6 +24,8 @@ final class TrustedNetworks {
     static final int LIMIT = 8;
     private static final String PREFS = "trusted_networks";
     private static final String KEY = "subnets";
+    /** Comma-separated keys, oldest first, so the limit evicts one network instead of all of them. */
+    private static final String ORDER = "subnet_order";
     private static final String ENABLED_BY_US = "enabled_by_us";
 
     private TrustedNetworks() {
@@ -71,21 +75,42 @@ final class TrustedNetworks {
         return subnet != null && prefs(context).getStringSet(KEY, Set.of()).contains(key(subnet));
     }
 
-    /** Adds `subnet`; the oldest-unknown order is not kept, so at the limit the set is cleared first. */
+    /** Adds `subnet`; at the limit the oldest trusted network is dropped (entries from before the order existed first). */
     static void add(Context context, String subnet) {
         if (subnet == null || contains(context, subnet)) {
             return;
         }
-        Set<String> set = new HashSet<>(prefs(context).getStringSet(KEY, Set.of()));
-        if (set.size() >= LIMIT) {
-            set.clear();
+        SharedPreferences prefs = prefs(context);
+        Set<String> set = new HashSet<>(prefs.getStringSet(KEY, Set.of()));
+        List<String> order = new ArrayList<>();
+        for (String k : prefs.getString(ORDER, "").split(",")) {
+            if (set.contains(k)) {
+                order.add(k);
+            }
         }
-        set.add(key(subnet));
-        prefs(context).edit().putStringSet(KEY, set).apply();
+        while (set.size() >= LIMIT) {
+            String oldest = null;
+            for (String k : set) {
+                if (!order.contains(k)) {
+                    oldest = k;
+                    break;
+                }
+            }
+            if (oldest == null) {
+                oldest = order.get(0);
+            }
+            set.remove(oldest);
+            order.remove(oldest);
+        }
+        String key = key(subnet);
+        set.add(key);
+        order.add(key);
+        prefs.edit().putStringSet(KEY, set).putString(ORDER, String.join(",", order)).apply();
     }
 
+    /** Forgets the trusted networks only; whether this app turned Wireless debugging on is kept. */
     static void forgetAll(Context context) {
-        prefs(context).edit().clear().apply();
+        prefs(context).edit().remove(KEY).remove(ORDER).apply();
     }
 
     static boolean enabledByUs(Context context) {

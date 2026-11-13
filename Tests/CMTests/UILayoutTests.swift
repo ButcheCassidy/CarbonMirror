@@ -83,6 +83,7 @@ struct UILayoutTests {
         #expect(s.typingMode == .hardware)
         #expect(s.landscapeBehaviour == .ask)
         #expect(s.appearance == .dark)
+        #expect(!s.compatibilityMode && !s.shareInternetOverUSB)
     }
 
     @MainActor @Test func toolbarShowsHomeByDefaultAndTheChosenButtons() throws {

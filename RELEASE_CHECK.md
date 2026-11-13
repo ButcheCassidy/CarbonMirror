@@ -65,6 +65,12 @@
 | 57 | Reconnect refused while the Mac was locked/asleep left the "retrying" screen and dimmed video up | Low | `SessionController.scheduleReconnect` | reset to Disconnected; unlock/wake evaluates again | idem |
 | 58 | "Launch at login" kept its new state when macOS refused the change | Low | `SettingsWindow.generalRows` | rows rebuilt from the real state | idem |
 | 59 | Clean-up copy created through `delete` + `FileOutputStream` (follows a planted link, default mode) | Low | `CleanUp.java` | `O_CREAT\|O_EXCL\|O_NOFOLLOW`, mode 0600 | server build OK; real phone NOT RUN |
+| 60 | Trackpad two-finger scroll sent scroll-wheel steps: jerky lists, launcher pages flipping abruptly | Medium | `MirrorView.scrollWheel`, `InputEngine` | gesture phases → finger drag (down/move/up), Android flings from release velocity; mouse wheels unchanged | test `trackpadScrollIsAFingerDrag`; `swift test` 84 |
+| 61 | Server scroll left AXIS_HSCROLL/VSCROLL on the pointer slot that touch events reuse | Low | `Controller.injectScroll` | axes reset after each scroll | server build OK |
+| 62 | Companion tile turned Wireless debugging off during a wireless mirroring session | Medium | `WirelessDebuggingTile.onClick` | refuses while mirroring | companion tests 19 |
+| 63 | Companion "Forget" cleared `enabled_by_us`, leaving Wireless debugging on | Low | `TrustedNetworks.forgetAll` | removes networks only | idem |
+| 64 | Ninth trusted network cleared all eight others | Low | `TrustedNetworks.add` | oldest evicted (order kept) | idem |
+| 65 | Boot/update start could crash on a SecurityException | Low | `StartReceiver` | caught with IllegalStateException | idem |
 
 Sweep by two read-only agents (Mac / Android), every finding re-checked against the code: false positive rejected — clean-up child "deletes the shared jar" (in the child `SERVER_PATH` is its own link). Not fixed (Low/by design): wireless TOFU without a device key, adb start without retry, decoder/Metal failures only logged.
 

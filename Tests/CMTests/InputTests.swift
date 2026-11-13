@@ -105,6 +105,19 @@ struct InputTests {
         #expect(e.sessionStarted(typingMode: .phone).isEmpty)
     }
 
+    @Test func trackpadScrollIsAFingerDrag() throws {
+        let e = Self.engine()
+        let down = e.pointer(.trackpadScroll(x: 100, y: 100, dx: 0, dy: 0, phase: .began))
+        let reference = Self.engine().pointer(.down(x: 100, y: 100))
+        #expect(down == reference, "the gesture starts as a finger down where the pointer is")
+        #expect(e.pointer(.trackpadScroll(x: 100, y: 100, dx: 0, dy: -30, phase: .changed)).count == 1, "moves the finger")
+        #expect(e.pointer(.pinchBegan(x: 100, y: 100)).isEmpty, "no pinch on the same finger mid-scroll")
+        #expect(e.pointer(.trackpadScroll(x: 100, y: 100, dx: 0, dy: 0, phase: .ended)).count == 1, "lifts it; Android flings")
+        #expect(e.pointer(.trackpadScroll(x: 100, y: 100, dx: 0, dy: 0, phase: .ended)).isEmpty)
+        _ = e.pointer(.trackpadScroll(x: 100, y: 100, dx: 0, dy: 0, phase: .began))
+        #expect(e.releaseAll().count == 1, "focus loss lifts a scrolling finger")
+    }
+
     @Test func phoneKeyboardLiftsHeldKeysOnRelease() throws {
         let e = Self.engine()
         _ = e.setTypingMode(.phone)

@@ -637,6 +637,9 @@ public class Controller implements AsyncProcessor, VirtualDisplayListener {
 
         MotionEvent event = MotionEvent.obtain(lastTouchDown, now, MotionEvent.ACTION_SCROLL, 1, pointerProperties, pointerCoords, 0, buttons, 1f, 1f,
                 DEFAULT_DEVICE_ID, 0, InputDevice.SOURCE_MOUSE, 0);
+        // CarbonMirror: touch events reuse this pointer slot; leave no scroll axes on it.
+        coords.setAxisValue(MotionEvent.AXIS_HSCROLL, 0);
+        coords.setAxisValue(MotionEvent.AXIS_VSCROLL, 0);
         return Device.injectEvent(event, targetDisplayId, Device.INJECT_MODE_ASYNC);
     }
 

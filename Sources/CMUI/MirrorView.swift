@@ -149,8 +149,20 @@ final class MirrorView: NSView {
 
     override func scrollWheel(with event: NSEvent) {
         let p = location(event)
-        pointer(.scroll(x: p.x, y: p.y, dx: Double(event.scrollingDeltaX), dy: Double(event.scrollingDeltaY),
-                        precise: event.hasPreciseScrollingDeltas))
+        let dx = Double(event.scrollingDeltaX), dy = Double(event.scrollingDeltaY)
+        // Trackpad gestures carry phases: drive them as a finger drag; Android makes its own fling from the
+        // release velocity, so the Mac's momentum events are not forwarded.
+        if engine.scrollAsTouch, event.hasPreciseScrollingDeltas, event.phase != [] || event.momentumPhase != [] {
+            guard event.momentumPhase == [] else { return }
+            switch event.phase {
+            case .began: pointer(.trackpadScroll(x: p.x, y: p.y, dx: 0, dy: 0, phase: .began))
+            case .changed: pointer(.trackpadScroll(x: p.x, y: p.y, dx: dx, dy: dy, phase: .changed))
+            case .ended, .cancelled: pointer(.trackpadScroll(x: p.x, y: p.y, dx: 0, dy: 0, phase: .ended))
+            default: break
+            }
+            return
+        }
+        pointer(.scroll(x: p.x, y: p.y, dx: dx, dy: dy, precise: event.hasPreciseScrollingDeltas))
     }
 
     override func magnify(with event: NSEvent) {
