@@ -14,7 +14,7 @@ private final class Action: NSObject {
     @objc func fire(_ sender: NSControl) { body(sender) }
 }
 
-/// Settings (spec 8.3): monochrome sections on Liquid Glass (`NSGlassEffectView`, macOS 26+; dark
+/// Settings (spec 8.3): monochrome sections on Liquid Glass (`NSGlassEffectView`, macOS 26 and later;
 /// behind-window blur on 15–25). Every control writes `AppSettings` directly, so changes apply live.
 @MainActor
 final class SettingsWindowController {
@@ -275,7 +275,7 @@ final class SettingsWindowController {
         control.action = #selector(Action.fire(_:))
     }
 
-    /// Checkbox with its title as a plain white label (clicking it toggles): on macOS 26 glass a checkbox draws its
+    /// Checkbox with its title as a plain label in the primary text colour (clicking it toggles): on macOS 26 glass a checkbox draws its
     /// own title black, even with a white attributed title, while labels keep their colour.
     private func toggle(_ title: String, _ on: Bool, icon: NSImage? = nil, _ set: @escaping (Bool) -> Void) -> NSView {
         let box = NSButton(checkboxWithTitle: "", target: nil, action: nil)

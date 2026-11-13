@@ -100,7 +100,7 @@ final class LandscapeOfferView: NSView {
 }
 
 /// Centred glyph + bold title + one-line subtitle + grey pill buttons (spec 2.4), on Liquid Glass
-/// (`NSGlassEffectView`, macOS 26+) or a dark behind-window blur on macOS 15–25. Only shown while not
+/// (`NSGlassEffectView`, macOS 26 and later) or a behind-window blur on macOS 15–25. Only shown while not
 /// connected; while mirroring this view is hidden and the screen is fully opaque.
 @MainActor
 final class StatusView: NSView {
