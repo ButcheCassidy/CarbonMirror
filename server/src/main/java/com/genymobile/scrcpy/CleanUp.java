@@ -10,10 +10,11 @@ import android.os.BatteryManager;
 import android.os.Looper;
 import android.system.ErrnoException;
 import android.system.Os;
+import android.system.OsConstants;
 
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -188,15 +189,31 @@ public final class CleanUp {
     private static String privateClassPath() throws IOException {
         File copy = new File(Server.SERVER_PATH + ".cleanup." + android.os.Process.myPid());
         copy.delete();
-        try (InputStream in = new FileInputStream(Server.SERVER_PATH); OutputStream out = new FileOutputStream(copy)) {
+        // Created fresh (never through a planted link) and owner-only.
+        FileDescriptor fd;
+        try {
+            fd = Os.open(copy.getPath(), OsConstants.O_WRONLY | OsConstants.O_CREAT | OsConstants.O_EXCL | OsConstants.O_NOFOLLOW, 0600);
+        } catch (ErrnoException e) {
+            throw new IOException("Could not create the clean-up copy", e);
+        }
+        try (InputStream in = new FileInputStream(Server.SERVER_PATH)) {
             byte[] buffer = new byte[64 * 1024];
             int n;
             while ((n = in.read(buffer)) != -1) {
-                out.write(buffer, 0, n);
+                int written = 0;
+                while (written < n) {
+                    written += Os.write(fd, buffer, written, n - written);
+                }
             }
-        } catch (IOException e) {
+        } catch (IOException | ErrnoException e) {
             copy.delete();
-            throw e;
+            throw new IOException("Could not copy the server for clean up", e);
+        } finally {
+            try {
+                Os.close(fd);
+            } catch (ErrnoException e) {
+                Ln.w("Could not close the clean-up copy");
+            }
         }
         return copy.getPath();
     }

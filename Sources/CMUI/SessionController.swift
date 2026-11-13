@@ -76,6 +76,10 @@ final class SessionController {
     private var ending = false
     /// A start was asked for while a session was being set up or torn down; run it once that finishes.
     private var evaluatePending = false
+    /// A restart asked for while another switch was running (settings change, adaptive step); runs right after it.
+    private var queuedStart: (@MainActor () async -> Void)?
+    /// The session was ended while a switch had no session yet (between stopping the old and starting the new).
+    private var stopPending = false
     private var macLocked = false
     private var macAsleep = false
     private var wifiUp = true
@@ -216,16 +220,38 @@ final class SessionController {
     /// Replaces any running session without closing the window: the last frame stays, dimmed.
     /// `connecting` is set before the task starts, so overlapping device events never start two sessions.
     private func switchSession(_ start: @escaping @MainActor () async -> Void) {
+        guard !connecting else {
+            queuedStart = start
+            return
+        }
         connecting = true
         Task {
-            if let old = session {
-                session = nil
-                mirror.video.dimmed = true
-                await old.stop()
+            var next: (@MainActor () async -> Void)? = start
+            while let run = next, !stopPending {
+                next = nil
+                if let old = session {
+                    session = nil
+                    mirror.video.dimmed = true
+                    await old.stop()
+                }
+                if stopPending { break }
+                await run()
+                next = queuedStart
+                queuedStart = nil
             }
-            await start()
             connecting = false
-            runPendingEvaluate()
+            queuedStart = nil
+            if stopPending {
+                stopPending = false
+                if session != nil {
+                    await end(.user)
+                } else {
+                    mirror.video.reset()
+                    phone.show(state: .disconnected)
+                }
+            } else {
+                runPendingEvaluate()
+            }
         }
     }
 
@@ -606,6 +632,12 @@ final class SessionController {
             guard !Task.isCancelled else { return }
             reconnectTask = nil
             guard ReconnectSchedule.allowed(macLocked: macLocked, macAsleep: macAsleep, targetIsPinned: pinned != nil || usbDevice != nil) else {
+                // Not now (Mac locked or asleep): leave the "retrying" screen; unlock or wake evaluates again.
+                status.reconnecting = false
+                reconnectStarted = nil
+                reconnectAttempt = 0
+                mirror.video.reset()
+                phone.show(state: .disconnected)
                 return
             }
             evaluate()
@@ -620,8 +652,13 @@ final class SessionController {
         reconnectTask = nil
         reconnectStarted = nil
         wantWireless = false
+        evaluatePending = false
         defer { refreshAuto() }
-        guard let current = session else { return }
+        guard let current = session else {
+            // Mid-switch (old session stopped, new one not started yet): stop once the switch reaches a safe point.
+            if connecting { stopPending = true }
+            return
+        }
         let serial = sessionSerial
         let wasWireless = transport == .wifi
         session = nil
@@ -861,12 +898,12 @@ final class SessionController {
                 evaluate()
             }
         case .usbFPS, .usbBitrate, .usbCodec, .encryptOverUSB:
-            guard transport == .usb, let serial = sessionSerial else { return }
+            guard transport == .usb, !ending, let serial = sessionSerial else { return }
             maxFPS = settings.usbProfile.maxFPS
             maxSize = AdaptiveProfile.sizeSteps[0]
             switchSession { await self.startSession(serial: serial, wireless: false) }
         case .wifiFPS, .wifiBitrate, .wifiCodec:
-            guard transport == .wifi, let serial = sessionSerial else { return }
+            guard transport == .wifi, !ending, let serial = sessionSerial else { return }
             h265Failed = false
             switchSession { await self.startSession(serial: serial, wireless: true) }
         case .showDebugHUD:

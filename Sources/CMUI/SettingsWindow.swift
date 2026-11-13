@@ -240,11 +240,13 @@ final class SettingsWindowController {
             ("Appearance", popup(["Automatic", "Light", "Dark"], AppSettings.Appearance.allCases.firstIndex(of: s.appearance) ?? 0) {
                 s.appearance = AppSettings.Appearance.allCases[$0]
             }),
-            ("", toggle("Launch at login", SMAppService.mainApp.status == .enabled) { on in
+            ("", toggle("Launch at login", SMAppService.mainApp.status == .enabled) { [weak self] on in
                 do {
                     if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
                 } catch {
                     Log.error(.app, "login item change failed")
+                    // Show the real state again (after this action returns: rebuilding the rows releases it).
+                    Task { [weak self] in self?.show(.general) }
                 }
             }),
         ]

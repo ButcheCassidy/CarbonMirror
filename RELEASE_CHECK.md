@@ -60,6 +60,11 @@
 | 52 | Companion install: flag stayed "installed" after uninstall + failed reinstall; a failed permission grant read as a refused install; a companion signed by another build could not be updated | Low | `SessionController.installCompanion`, `adb.rs` | uninstall allowlisted (companion only, USB + confirmation), flag cleared after uninstall, `.notGranted` result | `cargo test`, `swift test` 83 |
 | 53 | Lock glyph and debug HUD used the primary text colour on the always-black screen (invisible in light mode) | Low | `MirrorView.swift` | fixed white | Mac build NOT RUN |
 | 54 | Adaptive USB step could start a second session while one was being set up or torn down | Low | `SessionController.adapt` | skipped while `connecting`/`ending` | `swift test` 83 |
+| 55 | Disconnect between stopping the old and starting the new session of a switch was ignored | Medium | `SessionController.end/switchSession` | `stopPending`: the switch stops at its next safe point | `swift test` 83 (AppKit: Mac build NOT RUN) |
+| 56 | A settings change or adaptive step during a switch started a second, overlapping session | Low | `SessionController.switchSession` | one switch at a time; a restart asked meanwhile is queued and runs after it | idem |
+| 57 | Reconnect refused while the Mac was locked/asleep left the "retrying" screen and dimmed video up | Low | `SessionController.scheduleReconnect` | reset to Disconnected; unlock/wake evaluates again | idem |
+| 58 | "Launch at login" kept its new state when macOS refused the change | Low | `SettingsWindow.generalRows` | rows rebuilt from the real state | idem |
+| 59 | Clean-up copy created through `delete` + `FileOutputStream` (follows a planted link, default mode) | Low | `CleanUp.java` | `O_CREAT\|O_EXCL\|O_NOFOLLOW`, mode 0600 | server build OK; real phone NOT RUN |
 
 Sweep by two read-only agents (Mac / Android), every finding re-checked against the code: false positive rejected — clean-up child "deletes the shared jar" (in the child `SERVER_PATH` is its own link). Not fixed (Low/by design): wireless TOFU without a device key, adb start without retry, decoder/Metal failures only logged.
 
