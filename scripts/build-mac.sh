@@ -53,21 +53,34 @@ parts_from_dmg() {
   rmdir "$mount" 2> /dev/null || true
   return $ok
 }
+# Same, from a release source zip (the phone parts are inside it under Resources/).
+parts_from_zip() {
+  local zip="$1" part
+  for part in $PARTS; do
+    unzip -p "$zip" "CarbonMirror-$VERSION/Resources/$part" > "Resources/$part" 2> /dev/null && [ -s "Resources/$part" ] || return 1
+  done
+}
 # Parts are reused only when they belong to this version (marker written below); otherwise fetched again.
 missing=0
 [ "$(cat Resources/phone-parts.version 2> /dev/null)" = "$VERSION" ] || missing=1
 for part in $PARTS; do [ -f "Resources/$part" ] || missing=1; done
 if [ "$missing" = 1 ]; then
+  ZIP="$HOME/Downloads/CarbonMirror-$VERSION-source.zip"
   DMG="$HOME/Downloads/CarbonMirror-$VERSION.dmg"
   # The release workflow's "phone" artifact (Actions → Release run → Artifacts → phone), unpacked in Downloads.
   ARTIFACT="$HOME/Downloads/phone/Resources"
   if [ -f "$ARTIFACT/carbonmirror-server" ] && [ -f "$ARTIFACT/libcarbon_core.so" ] && [ -f "$ARTIFACT/CarbonMirrorCompanion.apk" ]; then
     for part in $PARTS; do cp "$ARTIFACT/$part" "Resources/$part" && xattr -c "Resources/$part"; done
-  elif ! parts_from /Applications/CarbonMirror.app && ! { [ -f "$DMG" ] && parts_from_dmg "$DMG"; }; then
+  elif ! parts_from /Applications/CarbonMirror.app && ! { [ -f "$ZIP" ] && parts_from_zip "$ZIP"; } \
+      && ! { [ -f "$DMG" ] && parts_from_dmg "$DMG"; }; then
+    # From the GitHub release of this version: the source zip (1.0.1 on), else the DMG of older releases.
     mkdir -p deps
-    curl -fL --retry 5 -o "deps/CarbonMirror-$VERSION.dmg" "https://github.com/ButcheCassidy/CarbonMirror/releases/download/v$VERSION/CarbonMirror-$VERSION.dmg" \
-      && parts_from_dmg "deps/CarbonMirror-$VERSION.dmg" \
-      || fail "no CarbonMirror $VERSION release found (Applications, ~/Downloads/CarbonMirror-$VERSION.dmg or GitHub). Download that DMG into Downloads, or build the phone parts (INSTALL.md 8.4)."
+    RELEASE="https://github.com/ButcheCassidy/CarbonMirror/releases/download/v$VERSION"
+    { curl -fsL --retry 5 -o "deps/CarbonMirror-$VERSION-source.zip" "$RELEASE/CarbonMirror-$VERSION-source.zip" \
+        && parts_from_zip "deps/CarbonMirror-$VERSION-source.zip"; } \
+      || { curl -fsL --retry 5 -o "deps/CarbonMirror-$VERSION.dmg" "$RELEASE/CarbonMirror-$VERSION.dmg" \
+        && parts_from_dmg "deps/CarbonMirror-$VERSION.dmg"; } \
+      || fail "no CarbonMirror $VERSION release found. Download CarbonMirror-$VERSION-source.zip from the GitHub releases page into Downloads, or build the phone parts (INSTALL.md 8.4)."
   fi
 fi
 for part in $PARTS; do [ -f "Resources/$part" ] || fail "missing Resources/$part"; done

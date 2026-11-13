@@ -72,39 +72,33 @@ GrapheneOS notes: its default *USB-C port: charging-only when locked* stops USB 
 
 ## Building
 
-Everything is built from the command line — no Xcode, no Homebrew. The full step-by-step guide, including signing and the sizes of everything, is in [`INSTALL.md`](INSTALL.md). The scripts run the same commands as below: `scripts/make-cert.sh` (Step A), `scripts/build-server.sh`, `scripts/build-apk.sh`, `scripts/build.sh` (Steps B–F).
+Everything is built from the command line — no Xcode, no Homebrew. The full step-by-step guide, including signing and the sizes of everything, is in [`INSTALL.md`](INSTALL.md). The scripts run the same commands as below: `scripts/make-cert.sh` (Step A), `scripts/build-server.sh`, `scripts/build-apk.sh`, `scripts/build.sh` (Steps B–F); `scripts/build-mac.sh` runs them all.
 
-### Public releases that open without warnings
-Anyone downloading CarbonMirror should never sign anything. For a DMG that opens on any Mac without the "Apple could not verify…" warning, it must be signed with an Apple **Developer ID Application** certificate (Apple Developer Program) and **notarised**; the self-signed "CarbonMirror Dev" certificate always triggers the warning.
+### Install or update: one command
+Releases contain only the source code: `CarbonMirror-<version>-source.zip` on the [Releases page](https://github.com/ButcheCassidy/CarbonMirror/releases), with the phone parts (server, phone core library, companion app) already inside. You build and sign the app on your own Mac with one command; there is no DMG to drag and no "unverified developer" prompt for your own build.
 
-One-time setup:
-1. In **Keychain Access**, right-click your *Developer ID Application* certificate → **Export…** → save as `cert.p12` with a password.
-2. Copy it as text.
+1. Once: Apple's Command Line Tools (skip if installed).
 ```bash
-base64 -i cert.p12 | pbcopy
+xcode-select --install
 ```
-3. Create an app-specific password at **account.apple.com** → Sign-In and Security → App-Specific Passwords.
-4. GitHub → repository **Settings → Environments → release → Add environment secret**, five times: `MACOS_CERT_P12_BASE64` (paste), `MACOS_CERT_PASSWORD`, `APPLE_ID`, `APPLE_TEAM_ID`, `APPLE_APP_SPECIFIC_PASSWORD`.
-5. Delete the exported file.
+2. Check the download against `SHA256SUMS.txt` on the release page (the line must match).
 ```bash
-rm -P cert.p12
+shasum -a 256 ~/Downloads/CarbonMirror-*-source.zip
 ```
-From then on, **Actions → Release → Run workflow** signs with your certificate, notarises and staples the DMG, and publishes it. Without these secrets the workflow still works but uses a throwaway self-signed certificate.
+3. Unzip it into your home folder.
+```bash
+ditto -x -k ~/Downloads/CarbonMirror-*-source.zip ~
+```
+4. Build, sign and install. Replace `<version>` with the version you downloaded.
+```bash
+cd ~/CarbonMirror-<version> && bash scripts/build-mac.sh --install
+```
+The first run installs Rust, fetches and checks Google's adb and creates a local "CarbonMirror Dev" signing certificate (macOS asks for your password once); later runs take about a minute. CarbonMirror opens when it is done.
+5. Plug the phone in by USB, then CarbonMirror → Settings → Connection → **Install Over USB…** for the companion.
 
-On your own Mac the same works with `scripts/build.sh`: store the notary login once, then build.
-```bash
-xcrun notarytool store-credentials carbonmirror --apple-id <your Apple ID> --team-id <your team ID>
-```
-```bash
-CM_SIGN_IDENTITY="Developer ID Application: <your name> (<team ID>)" CM_NOTARY_PROFILE=carbonmirror bash scripts/build.sh
-```
+**Updating:** quit CarbonMirror and repeat steps 2–5 with the new zip. Settings, keys and pairing stay (same local certificate). If the app asks for Keychain access, click **Always Allow**. Choose **Reinstall Over USB…** after each update so the companion matches.
 
-### Quick build: one command
-From the source folder (Step 0). The phone parts come from the matching release (installed app, `~/Downloads/CarbonMirror-<version>.dmg`, or downloaded from GitHub automatically):
-```bash
-bash scripts/build-mac.sh --install
-```
-It creates the certificate, fetches and checks Google's adb, installs Rust, copies the phone parts, then builds, signs and installs the app and `dist/CarbonMirror-<version>.dmg`. Steps A–F below are the same thing by hand.
+**From git instead of a zip:** `git clone https://github.com/ButcheCassidy/CarbonMirror.git ~/CarbonMirror`, then `cd ~/CarbonMirror && bash scripts/build-mac.sh --install`; update with `git pull` and the same command. The phone parts of that version are downloaded from its release automatically.
 
 ### Step 0. Every Terminal window: go to the project folder
 Every command below runs **inside the project folder**; a new Terminal window starts in your home folder, so do this first each time.

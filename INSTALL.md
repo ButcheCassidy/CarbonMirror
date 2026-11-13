@@ -59,67 +59,36 @@ Remove Rust completely if you stop rebuilding.
 rustup self uninstall
 ```
 
-## 4. Installing the Mac app
+## 4. Installing and updating the Mac app
 
-1. Open `CarbonMirror-1.0.0.dmg` (from the GitHub release, or `dist/` when you build it yourself) and drag **CarbonMirror** onto **Applications**.
-   - Check the download first: `shasum -a 256 ~/Downloads/CarbonMirror-1.0.0.dmg` must print the DMG line of `SHA256SUMS.txt` from the release.
-   - The release DMG is signed in GitHub Actions with a one-time "CarbonMirror Dev" certificate that was deleted after the build. It runs the same, but when you later switch to your own build (section 8), macOS asks once more for Keychain access and you pair the phone again (the identity key is tied to the app's signature).
-2. The first time, macOS says it can't verify the developer (the app is self-signed, not notarised). Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to CarbonMirror. Don't turn Gatekeeper off.
-3. Allow **Local Network** when asked (needed to find your phone on Wi-Fi). If macOS asks about the USB accessory, allow it.
+Releases contain only the source code: `CarbonMirror-<version>-source.zip` on the [Releases page](https://github.com/ButcheCassidy/CarbonMirror/releases), with the phone parts (server, phone core library, companion app) already inside. You build and sign the app on your own Mac with one command; there is no DMG to drag and no "unverified developer" prompt for your own build.
 
-You should see: the startup animation (3 seconds, on black, centred in the phone-shaped window), then the window saying "Not paired" (or your phone if it is plugged in), and a two-phone icon in the menu bar.
-
-### 4a. Or build it yourself from GitHub (one folder, one command)
-Install Apple's Command Line Tools (includes `git`; skip if already installed).
+1. Once: Apple's Command Line Tools (skip if installed).
 ```bash
 xcode-select --install
 ```
-Download the source into a folder in your home folder.
+2. Check the download against `SHA256SUMS.txt` on the release page (the line must match).
 ```bash
-git clone https://github.com/ButcheCassidy/CarbonMirror.git ~/CarbonMirror
+shasum -a 256 ~/Downloads/CarbonMirror-*-source.zip
 ```
-Go into it (do this first in every new Terminal window).
+3. Unzip it into your home folder.
 ```bash
-cd ~/CarbonMirror
+ditto -x -k ~/Downloads/CarbonMirror-*-source.zip ~
 ```
-Get the latest changes later on.
+4. Build, sign and install. Replace `<version>` with the version you downloaded.
 ```bash
-git pull
+cd ~/CarbonMirror-<version> && bash scripts/build-mac.sh --install
 ```
-Build, sign, make the DMG and install (the phone parts come from the matching release: installed app, the DMG in Downloads, or GitHub).
-```bash
-bash scripts/build-mac.sh --install
-```
-You should see `valid on disk`, `satisfies its Designated Requirement` and a SHA-256 line for `dist/CarbonMirror-<version>.dmg`; CarbonMirror opens. If the repository is private, `git clone` asks for your GitHub username and a personal access token (GitHub → Settings → Developer settings → Personal access tokens) instead of your password.
+The first run installs Rust, fetches and checks Google's adb and creates a local "CarbonMirror Dev" signing certificate (macOS asks for your password once); later runs take about a minute. CarbonMirror opens when it is done.
+5. Plug the phone in by USB, then CarbonMirror → Settings → Connection → **Install Over USB…** for the companion.
 
-### 4b. Updating to a new version (reinstall in a minute)
-Your pairing, settings and keys stay; only the app is replaced.
+**Updating:** quit CarbonMirror and repeat steps 2–5 with the new zip. Settings, keys and pairing stay (same local certificate). If the app asks for Keychain access, click **Always Allow**. Choose **Reinstall Over USB…** after each update so the companion matches.
 
-**From a release DMG** (download `CarbonMirror-<version>.dmg` from the releases page first).
-Quit CarbonMirror.
-```bash
-osascript -e 'tell application id "com.nomadicrebel.carbonmirror" to quit'
-```
-Check the download against `SHA256SUMS.txt` on the release page (the line must match).
-```bash
-shasum -a 256 ~/Downloads/CarbonMirror-*.dmg
-```
-Let macOS open it (only needed for DMGs that are not notarised).
-```bash
-xattr -d com.apple.quarantine ~/Downloads/CarbonMirror-*.dmg
-```
-Open it, then drag **CarbonMirror** onto **Applications** and choose **Replace**.
-```bash
-open ~/Downloads/CarbonMirror-*.dmg
-```
+**From git instead of a zip:** `git clone https://github.com/ButcheCassidy/CarbonMirror.git ~/CarbonMirror`, then `cd ~/CarbonMirror && bash scripts/build-mac.sh --install`; update with `git pull` and the same command. The phone parts of that version are downloaded from its release automatically.
 
-**From source** (one command; also builds your own signed DMG in `dist/`).
-```bash
-cd ~/CarbonMirror && git pull && bash scripts/build-mac.sh --install
-```
-If no release of the new version exists yet, download the **phone** artifact of the latest Release run (Actions → Release → newest run → Artifacts → phone) and unpack it in Downloads first (`~/Downloads/phone/Resources/…`); the script uses it.
+Allow **Local Network** when asked (needed to find your phone on Wi-Fi). You should see the startup animation, then the window saying "Not paired" (or your phone if it is plugged in), and a two-phone icon in the menu bar.
 
-**After every update:** plug the phone in by USB once and choose Settings → Connection → **Install over USB…**, so the companion matches the new version. If the app asks for Keychain access, click **Always Allow**; if the signature changed (a DMG from GitHub after your own build, or the other way round), pair the phone again (menu bar → Pair New Device…).
+Older releases (1.0.0) also shipped a DMG and an APK; from 1.0.1 on, releases are source-only.
 
 ## 5. Phone setup (GrapheneOS and stock Android)
 

@@ -33,6 +33,7 @@ All notable changes to CarbonMirror. Versions follow `CFBundleShortVersionString
 - **Settings → Shortcuts:** choose which buttons the toolbar shows. By default only **Home** (plus the connection badge and Settings); add Back, Recents, App drawer, Notifications, Quick Settings, Screenshot, Clipboard sync, Privacy blur, Typing mode, Rotate, Volume, Mute, Lock and Pin on top as you like.
 
 ### Removed
+- **Release DMG and APK.** Releases are source-only: `CarbonMirror-<version>-source.zip` with the phone parts inside; build and update with `bash scripts/build-mac.sh --install` (README → Install or update). The release workflow no longer uses a macOS runner.
 - App keyboard shortcuts for phone actions (⌘1, ⌘[, ⇧⌘H …); every action is a toolbar button and in the Phone menu. Standard macOS keys (⌘Q, ⌘H, ⌘M, ⌘W, ⌘,) stay; other ⌘ keys go to the phone as Ctrl.
 
 ### Licence
