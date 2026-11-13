@@ -91,7 +91,12 @@ final class ScreenView: NSView {
     /// 1 px inner hairline while the chrome is shown.
     func setInnerHairline(_ on: Bool) {
         layer?.borderWidth = on ? Theme.pixel(for: window) : 0
-        layer?.borderColor = Theme.hairline.cgColor
+        layer?.borderColor = Theme.cg(Theme.hairline, for: self)
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        layer?.borderColor = Theme.cg(Theme.hairline, for: self)
     }
 }
 
@@ -100,6 +105,12 @@ final class ScreenView: NSView {
 /// position (`ChromeGeometry.screenOrigin`), so the video never jumps or rescales.
 @MainActor
 final class PhoneContentView: NSView {
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        layer?.borderColor = Theme.cg(Theme.hairline, for: self)
+        needsLayout = true
+    }
+
     let screen = ScreenView()
     let chrome = ChromeView()
     /// Called on pointer moves with the distance below the window's top edge (nil = pointer left).
@@ -118,7 +129,7 @@ final class PhoneContentView: NSView {
         wantsLayer = true
         layer?.cornerCurve = .continuous
         layer?.masksToBounds = true
-        layer?.borderColor = Theme.hairline.cgColor
+        layer?.borderColor = Theme.cg(Theme.hairline, for: self)
         addSubview(screen)
         addSubview(chrome)
         chrome.wantsLayer = true
@@ -164,7 +175,7 @@ final class PhoneContentView: NSView {
         // Resting: the window is the phone's own shape. Toolbar shown: a normal window with standard corners.
         layer?.cornerRadius = margin > 0.5 ? Theme.windowCornerRadius : radius
         layer?.borderWidth = Theme.pixel(for: window)
-        layer?.backgroundColor = (margin > 0.5 ? Theme.chromeFill : NSColor.clear).cgColor
+        layer?.backgroundColor = Theme.cg(margin > 0.5 ? Theme.chromeFill : NSColor.clear, for: self)
         window?.invalidateShadow()
     }
 

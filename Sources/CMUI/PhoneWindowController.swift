@@ -75,6 +75,7 @@ final class PhoneWindowController: NSObject, NSWindowDelegate {
     // MARK: Settings applied live
 
     private func applySettings() {
+        NSApp.appearance = Theme.appearance(settings.appearance)
         window.sharingType = settings.hideFromCapture ? .none : .readOnly
         window.level = settings.pinOnTop ? .floating : .normal
         var behaviour: NSWindow.CollectionBehavior = [.managed, .fullScreenNone]

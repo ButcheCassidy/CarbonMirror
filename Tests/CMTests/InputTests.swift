@@ -105,6 +105,13 @@ struct InputTests {
         #expect(e.sessionStarted(typingMode: .phone).isEmpty)
     }
 
+    @Test func phoneKeyboardLiftsHeldKeysOnRelease() throws {
+        let e = Self.engine()
+        _ = e.setTypingMode(.phone)
+        _ = e.keyDown(keyCode: 0x33, flags: 0, characters: "\u{7f}", isRepeat: false)
+        #expect(e.releaseAll() == [try ControlMessage.keycode(down: false, keycode: 67, meta: 0)], "no key stays down after focus loss")
+    }
+
     @Test func phoneKeyboardTypesTextAndSendsKeysForEditing() throws {
         let e = Self.engine()
         let switched = e.setTypingMode(.phone)

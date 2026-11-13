@@ -33,7 +33,6 @@ final class ChromeView: NSView {
             NSWindow.standardWindowButton($0, for: mask)
         }
         super.init(frame: frame)
-        appearance = Theme.darkAppearance
         for (index, light) in trafficLights.enumerated() {
             light.target = self
             light.tag = index
@@ -199,7 +198,6 @@ final class ChromeView: NSView {
 
     @objc private func showOverflow(_ sender: NSButton) {
         let menu = NSMenu()
-        menu.appearance = Theme.darkAppearance
         for item in overflowItems {
             let entry = NSMenuItem(title: item == .connection ? (buttons[.connection]?.toolTip ?? item.title) : item.title,
                                    action: #selector(overflowPicked(_:)), keyEquivalent: "")

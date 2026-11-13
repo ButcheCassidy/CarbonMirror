@@ -86,9 +86,16 @@ public final class InputEngine {
             pinchCenter = nil
         }
         if !heldKeys.isEmpty {
+            let held = heldKeys
             heldKeys = []
             if typingMode == .hardware, keyboardCreated, let report = try? KeyboardMapping.hidReport(modifierFlags: 0, held: []) {
                 out += [try? ControlMessage.uhidInput(id: Self.keyboardID, report: report)].compactMap { $0 }
+            }
+            // Phone keyboard: lift every key still down, or it stays pressed (and repeats) on the phone.
+            if typingMode == .phone {
+                out += held.compactMap { code in
+                    KeyboardMapping.android(macKeyCode: code, modifierFlags: 0).flatMap { try? ControlMessage.keycode(down: false, keycode: $0.keycode, meta: 0) }
+                }
             }
         }
         return out

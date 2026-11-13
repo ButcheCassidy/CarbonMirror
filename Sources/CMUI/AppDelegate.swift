@@ -27,7 +27,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValid
     public func applicationDidFinishLaunching(_ notification: Notification) {
         ChildProcesses.shared.installSignalHandlers()
         NSApp.setActivationPolicy(.regular)
-        NSApp.appearance = Theme.darkAppearance
+        NSApp.appearance = Theme.appearance(settings.appearance)
         NSApp.mainMenu = buildMainMenu()
 
         let phone = PhoneWindowController(settings: settings)

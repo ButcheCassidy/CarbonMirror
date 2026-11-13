@@ -12,7 +12,7 @@ final class PillButton: NSButton {
         isBordered = false
         wantsLayer = true
         layer?.cornerCurve = .continuous
-        layer?.backgroundColor = Theme.pillFill.cgColor
+        layer?.backgroundColor = Theme.cg(Theme.pillFill, for: self)
         attributedTitle = NSAttributedString(string: title, attributes: [.font: Theme.pillFont, .foregroundColor: Theme.primaryText])
         setContentHuggingPriority(.required, for: .horizontal)
         setContentCompressionResistancePriority(.required, for: .horizontal)
@@ -29,13 +29,28 @@ final class PillButton: NSButton {
     }
 
     override var isHighlighted: Bool {
-        didSet { layer?.backgroundColor = (isHighlighted ? Theme.pillFillPressed : Theme.pillFill).cgColor }
+        didSet { layer?.backgroundColor = Theme.cg(isHighlighted ? Theme.pillFillPressed : Theme.pillFill, for: self) }
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        layer?.backgroundColor = Theme.cg(isHighlighted ? Theme.pillFillPressed : Theme.pillFill, for: self)
     }
 }
 
 /// "Switch to landscape · Not now" (spec 8.2.6): a small monochrome pill at the top of the screen.
 @MainActor
 final class LandscapeOfferView: NSView {
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applyColors()
+    }
+
+    private func applyColors() {
+        layer?.backgroundColor = Theme.cg(Theme.panelFill, for: self)
+        layer?.borderColor = Theme.cg(Theme.hairline, for: self)
+    }
+
     var onAccept: (() -> Void)?
     var onDismiss: (() -> Void)?
 
@@ -45,9 +60,8 @@ final class LandscapeOfferView: NSView {
         super.init(frame: frame)
         wantsLayer = true
         layer?.cornerCurve = .continuous
-        layer?.backgroundColor = NSColor(white: 0.12, alpha: 0.92).cgColor
         layer?.borderWidth = 1
-        layer?.borderColor = Theme.hairline.cgColor
+        applyColors()
         row.orientation = .horizontal
         row.spacing = 6
         row.edgeInsets = NSEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
@@ -109,17 +123,16 @@ final class StatusView: NSView {
     override init(frame: NSRect) {
         if #available(macOS 26.0, *) {
             let glass = NSGlassEffectView()
-            glass.tintColor = NSColor(white: 0, alpha: 0.45)
+            glass.tintColor = Theme.glassTint
             backdrop = glass
         } else {
             let blur = NSVisualEffectView()
-            blur.material = .hudWindow
+            blur.material = .underWindowBackground
             blur.blendingMode = .behindWindow
             blur.state = .active
             backdrop = blur
         }
         super.init(frame: frame)
-        appearance = Theme.darkAppearance
         backdrop.autoresizingMask = [.width, .height]
         backdrop.frame = bounds
         addSubview(backdrop)

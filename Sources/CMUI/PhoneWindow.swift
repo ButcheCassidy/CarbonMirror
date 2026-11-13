@@ -13,7 +13,6 @@ final class PhoneWindow: NSWindow {
         isOpaque = false
         backgroundColor = .clear
         hasShadow = true
-        appearance = Theme.darkAppearance
         sharingType = .none
         isReleasedWhenClosed = false
         // No "Resume" snapshot of the phone screen in ~/Library/Saved Application State (spec 7.6: no thumbnails).

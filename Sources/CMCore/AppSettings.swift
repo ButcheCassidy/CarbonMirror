@@ -10,6 +10,8 @@ public final class AppSettings {
     public enum Codec: String, CaseIterable, Sendable { case h264, h265 }
     public enum TypingMode: String, CaseIterable, Sendable { case hardware, phone }
     public enum LandscapeBehaviour: String, CaseIterable, Sendable { case ask, alwaysRotate, stayPortrait }
+    /// App appearance: follow macOS, or always light / always dark (the mirrored video stays on black either way).
+    public enum Appearance: String, CaseIterable, Sendable { case automatic, light, dark }
 
     /// Video profile for one transport.
     public struct Profile: Equatable, Sendable {
@@ -30,7 +32,7 @@ public final class AppSettings {
         case autoBlurSeconds, touchIDToReveal, typingMode, landscapeOffer, landscapeBehaviour, powerSavingWhenHidden
         case statusLine, pinAcrossSpaces, pinOnTop, phoneScreenOff, rightClickBack
         case encryptOverUSB, idleTimeoutMinutes, hideFromCapture, clipboardSync, rotationReminderDays, lastKeyRotation
-        case showDebugHUD, macPinResetPending, companionInstalled, toolbarItems
+        case showDebugHUD, macPinResetPending, companionInstalled, toolbarItems, appearance
     }
 
     /// Allowed values offered in Settings.
@@ -158,6 +160,11 @@ public final class AppSettings {
     public var typingMode: TypingMode {
         get { choice(.typingMode, .hardware) }
         set { set(newValue.rawValue, .typingMode) }
+    }
+
+    public var appearance: Appearance {
+        get { choice(.appearance, .dark) }
+        set { set(newValue.rawValue, .appearance) }
     }
 
     public var landscapeOffer: Bool {

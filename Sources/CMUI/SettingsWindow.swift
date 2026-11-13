@@ -51,7 +51,6 @@ final class SettingsWindowController {
                               styleMask: [.titled, .closable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
         window.title = "CarbonMirror Settings"
         window.titlebarAppearsTransparent = true
-        window.appearance = Theme.darkAppearance
         window.isReleasedWhenClosed = false
         window.isRestorable = false
         window.minSize = NSSize(width: 600, height: 360)
@@ -70,7 +69,6 @@ final class SettingsWindowController {
         scroll.autohidesScrollers = true
 
         let column = NSStackView(views: [picker, scroll])
-        column.appearance = Theme.darkAppearance
         column.orientation = .vertical
         column.alignment = .centerX
         column.spacing = 12
@@ -81,16 +79,14 @@ final class SettingsWindowController {
         let backdrop: NSView
         if #available(macOS 26.0, *) {
             let glass = NSGlassEffectView()
-            glass.tintColor = NSColor(white: 0, alpha: 0.45)
-            glass.appearance = Theme.darkAppearance
+            glass.tintColor = Theme.glassTint
             glass.contentView = column
             backdrop = glass
         } else {
             let blur = NSVisualEffectView()
-            blur.material = .hudWindow
+            blur.material = .underWindowBackground
             blur.blendingMode = .behindWindow
             blur.state = .active
-            blur.appearance = Theme.darkAppearance
             column.frame = blur.bounds
             column.autoresizingMask = [.width, .height]
             blur.addSubview(column)
@@ -236,7 +232,11 @@ final class SettingsWindowController {
     }
 
     private func generalRows() -> [(String, NSView)] {
-        [
+        let s = settings
+        return [
+            ("Appearance", popup(["Automatic", "Light", "Dark"], AppSettings.Appearance.allCases.firstIndex(of: s.appearance) ?? 0) {
+                s.appearance = AppSettings.Appearance.allCases[$0]
+            }),
             ("", toggle("Launch at login", SMAppService.mainApp.status == .enabled) { on in
                 do {
                     if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }

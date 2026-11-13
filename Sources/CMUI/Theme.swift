@@ -4,16 +4,30 @@
 import AppKit
 import CMCore
 
-/// Monochrome design tokens (spec 2.1): black, white and greys only; dark appearance always.
+/// Monochrome colour that follows the view's effective appearance: (white level, alpha) for dark and for light.
+/// Nonisolated on purpose: AppKit may resolve dynamic colours off the main thread.
+private func adaptive(dark: (CGFloat, CGFloat), light: (CGFloat, CGFloat)) -> NSColor {
+    NSColor(name: nil) { appearance in
+        let (white, alpha) = appearance.bestMatch(from: [.darkAqua, .aqua]) == .aqua ? light : dark
+        return NSColor(white: white, alpha: alpha)
+    }
+}
+
+/// Monochrome design tokens (spec 2.1): black, white and greys only, in a dark and a light appearance
+/// (Settings → General → Appearance). The phone screen itself stays black in both (mirroring UI opaque).
 @MainActor
 enum Theme {
     static let background = NSColor.black
-    static let primaryText = NSColor.white
-    static let secondaryText = NSColor(white: 1, alpha: 0.6)
-    static let hairline = NSColor(white: 1, alpha: 0.1)
-    static let pillFill = NSColor(white: 1, alpha: 0.16)
-    static let pillFillPressed = NSColor(white: 1, alpha: 0.28)
-    static let chromeFill = NSColor(white: 0.08, alpha: 1)
+    static let primaryText = adaptive(dark: (1, 1), light: (0, 1))
+    static let secondaryText = adaptive(dark: (1, 0.6), light: (0, 0.6))
+    static let hairline = adaptive(dark: (1, 0.1), light: (0, 0.12))
+    static let pillFill = adaptive(dark: (1, 0.16), light: (0, 0.08))
+    static let pillFillPressed = adaptive(dark: (1, 0.28), light: (0, 0.16))
+    static let chromeFill = adaptive(dark: (0.08, 1), light: (0.94, 1))
+    /// Tint of the Liquid Glass behind Settings and the not-connected status screens.
+    static let glassTint = adaptive(dark: (0, 0.45), light: (1, 0.45))
+    /// Small floating panels (landscape offer).
+    static let panelFill = adaptive(dark: (0.12, 0.92), light: (0.97, 0.92))
 
     static let titleFont = NSFont.systemFont(ofSize: 17, weight: .bold)
     static let subtitleFont = NSFont.systemFont(ofSize: 13, weight: .regular)
@@ -34,7 +48,21 @@ enum Theme {
     static let statusGlyphPointSize: CGFloat = 40
     static let toolbarGlyphPointSize: CGFloat = 13
 
-    static let darkAppearance = NSAppearance(named: .darkAqua)
+    /// The appearance for the setting; nil follows macOS.
+    static func appearance(_ mode: AppSettings.Appearance) -> NSAppearance? {
+        switch mode {
+        case .automatic: nil
+        case .light: NSAppearance(named: .aqua)
+        case .dark: NSAppearance(named: .darkAqua)
+        }
+    }
+
+    /// `color` resolved for `view`'s appearance (layer colours do not follow appearance changes by themselves).
+    static func cg(_ color: NSColor, for view: NSView) -> CGColor {
+        var resolved = color.cgColor
+        view.effectiveAppearance.performAsCurrentDrawingAppearance { resolved = color.cgColor }
+        return resolved
+    }
 
     /// Space the chrome adds around the screen for a reveal progress 0…1.
     static func chromeInsets(progress: CGFloat) -> NSEdgeInsets {

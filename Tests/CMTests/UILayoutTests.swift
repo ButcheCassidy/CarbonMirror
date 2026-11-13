@@ -82,6 +82,7 @@ struct UILayoutTests {
         #expect(s.rotationReminderDays == 180)
         #expect(s.typingMode == .hardware)
         #expect(s.landscapeBehaviour == .ask)
+        #expect(s.appearance == .dark)
     }
 
     @MainActor @Test func toolbarShowsHomeByDefaultAndTheChosenButtons() throws {
