@@ -149,12 +149,20 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValid
 
     private func confirmInstallCompanion() {
         guard confirm("Install the phone companion?",
-                      "Installs CarbonMirror Companion on the phone connected by USB and grants it permission to turn Wireless debugging on and off.",
+                      "Installs CarbonMirror Companion on the phone connected by USB and grants it permission to turn Wireless debugging on and off. "
+                          + "A companion from another build is replaced; its trusted Wi-Fi networks are cleared.",
                       "Install") else { return }
         Task {
-            let done = await session?.installCompanion() ?? false
-            inform(done ? "Companion installed" : "Companion not installed",
-                   done ? "Add the CarbonMirror tile from the phone's Quick Settings editor." : "Connect the phone by USB, unlock it and try again.")
+            switch await session?.installCompanion() ?? .noPhone {
+            case .installed:
+                inform("Companion installed", "Add the CarbonMirror tile from the phone's Quick Settings editor.")
+            case .replaced:
+                inform("Companion replaced", "Open it on the phone once, then add the CarbonMirror tile from the Quick Settings editor.")
+            case .noPhone:
+                inform("No phone on USB", "Connect the phone by USB, unlock it, allow USB debugging and try again.")
+            case .failed:
+                inform("Companion not installed", "The phone refused the install. Unlock it, keep it connected and try again.")
+            }
         }
     }
 

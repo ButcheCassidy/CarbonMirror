@@ -177,16 +177,23 @@ fn check_device_command(serial: &str, rest: &[&str], flags: u32) -> CmResult<()>
         ["shell", cmd @ ..] => check_shell(cmd),
         ["install", "-r", path] => {
             check_local_path(path, LOCAL_COMPANION_NAME)?;
-            if flags & FLAG_TRANSPORT_USB == 0 || serial_is_wireless(serial) {
-                return Err(CmStatus::AdbInstallNeedsUsb);
-            }
-            if flags & FLAG_USER_CONFIRMED == 0 {
-                return Err(CmStatus::AdbInstallNeedsConfirmation);
-            }
-            Ok(())
+            check_usb_confirmed(serial, flags)
         }
+        // Replacing a companion signed with another key (no in-place update possible): same rules as install.
+        ["uninstall", pkg] if *pkg == COMPANION_PACKAGE => check_usb_confirmed(serial, flags),
         _ => Err(CmStatus::AdbUnknownCommand),
     }
+}
+
+/// Package changes on the phone: USB only (never over the network) and only after the user confirmed.
+fn check_usb_confirmed(serial: &str, flags: u32) -> CmResult<()> {
+    if flags & FLAG_TRANSPORT_USB == 0 || serial_is_wireless(serial) {
+        return Err(CmStatus::AdbInstallNeedsUsb);
+    }
+    if flags & FLAG_USER_CONFIRMED == 0 {
+        return Err(CmStatus::AdbInstallNeedsConfirmation);
+    }
+    Ok(())
 }
 
 /// Validates one adb argv (without the adb binary itself) against the allowlist.

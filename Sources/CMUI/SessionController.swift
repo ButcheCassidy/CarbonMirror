@@ -235,20 +235,30 @@ final class SessionController {
         if interactive { phone.show(state: .searching) }
         let prompt = interactive ? askEndpoint : nil
         let networkKey = currentNetworkKey()
-        var endpoint: Device.Endpoint?
+        // Every mDNS answer for this phone, then the last endpoint on this network: the Wireless-debugging port
+        // changes on every phone restart, so a stale answer must not hide the live one.
+        var candidates: [Device.Endpoint] = []
         for service in await Bonjour.browse(type: Bonjour.connectType, for: .seconds(3)) where service.name.hasPrefix("adb-\(pins.serial)-") {
-            if let found = await Bonjour.resolve(service) { endpoint = Device.Endpoint(ip: found.ip, port: found.port) }
+            if let found = await Bonjour.resolve(service) {
+                let endpoint = Device.Endpoint(ip: found.ip, port: found.port)
+                if !candidates.contains(endpoint) { candidates.append(endpoint) }
+            }
         }
-        if endpoint == nil, let key = networkKey, let last = device.lastKnownEndpoints[key] { endpoint = last }
-        if endpoint == nil {
+        if let key = networkKey, let last = device.lastKnownEndpoints[key], !candidates.contains(last) { candidates.append(last) }
+        if candidates.isEmpty {
             let gateway = wifiInterface.flatMap(NetworkIdentity.subnet(ofInterface:)).flatMap(NetworkIdentity.hotspotGateway(subnet:))
-            endpoint = await prompt?(gateway ?? "")
+            if let entered = await prompt?(gateway ?? "") { candidates.append(entered) }
         }
-        guard var target = endpoint else {
+        guard var target = candidates.first else {
             show(failure: .wirelessDebuggingOff)
             return
         }
-        var result = await WirelessProbe.probe(ip: target.ip, port: target.port)
+        var result = ProbeResult.unreachable
+        for candidate in candidates {
+            target = candidate
+            result = await WirelessProbe.probe(ip: candidate.ip, port: candidate.port)
+            if case .wirelessDebugging = result { break }
+        }
         if result == .unreachable, let entered = await prompt?(target.ip) {
             target = entered
             result = await WirelessProbe.probe(ip: target.ip, port: target.port)
@@ -779,13 +789,28 @@ final class SessionController {
     }
 
     /// Installs the companion over USB after the user confirmed, then grants its one permission (9.1).
-    func installCompanion() async -> Bool {
+    enum CompanionInstall { case installed, replaced, noPhone, failed }
+
+    /// A companion signed with another key (each build without the release keystore has its own) cannot be
+    /// updated in place: it is removed first (its trusted Wi-Fi networks are cleared), then installed.
+    func installCompanion() async -> CompanionInstall {
         guard let runner = services?.runner, let usb = usbDevice,
-              let apk = Bundle.main.resourceURL?.appendingPathComponent("CarbonMirrorCompanion.apk") else { return false }
-        guard (try? await runner.runChecked(.installCompanion(serial: usb.serial, apkPath: apk.path), usb: true, confirmed: true, timeout: 120)) != nil,
-              (try? await runner.runChecked(.grantCompanionPermission(serial: usb.serial), timeout: 10)) != nil else { return false }
+              let apk = Bundle.main.resourceURL?.appendingPathComponent("CarbonMirrorCompanion.apk") else { return .noPhone }
+        let install = AdbCommand.installCompanion(serial: usb.serial, apkPath: apk.path)
+        guard var result = try? await runner.run(install, usb: true, confirmed: true, timeout: 120) else { return .failed }
+        var replaced = false
+        if !result.succeeded, result.text.contains("INSTALL_FAILED_UPDATE_INCOMPATIBLE") {
+            guard (try? await runner.runChecked(.uninstallCompanion(serial: usb.serial), usb: true, confirmed: true, timeout: 60)) != nil,
+                  let again = try? await runner.run(install, usb: true, confirmed: true, timeout: 120) else { return .failed }
+            result = again
+            replaced = true
+        }
+        guard result.succeeded, (try? await runner.runChecked(.grantCompanionPermission(serial: usb.serial), timeout: 10)) != nil else {
+            Log.error(.adb, "companion install failed")
+            return .failed
+        }
         settings.companionInstalled = true
-        return true
+        return replaced ? .replaced : .installed
     }
 
     /// GrapheneOS may reset special permissions after an update (9.3): re-grant silently on every USB connect.

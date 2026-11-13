@@ -47,6 +47,7 @@ struct TransportTests {
             (.readDisplayInfo(serial: Self.serial), false, false), (.removeServerFiles(serial: Self.serial), false, false),
             (.removeMacPin(serial: Self.serial), false, false),
             (.installCompanion(serial: Self.serial, apkPath: "\(Self.resources)/CarbonMirrorCompanion.apk"), true, true),
+            (.uninstallCompanion(serial: Self.serial), true, true),
         ]
         for (command, usb, confirmed) in commands {
             #expect(throws: Never.self, "\(command.argv)") { try AdbPolicy.validate(command.argv, usb: usb, confirmed: confirmed) }
@@ -82,6 +83,10 @@ struct TransportTests {
         let ok = try await fake.runner.run(install, usb: true, confirmed: true)
         #expect(ok.succeeded)
         #expect(fake.log == ["-s \(Self.serial) install -r \(Self.resources)/CarbonMirrorCompanion.apk"])
+        let remove = AdbCommand.uninstallCompanion(serial: Self.serial)
+        await #expect(throws: AdbRunError.refused(.adbInstallNeedsConfirmation)) { _ = try await fake.runner.run(remove, usb: true) }
+        await #expect(throws: AdbRunError.refused(.adbInstallNeedsUsb)) { _ = try await fake.runner.run(remove, confirmed: true) }
+        #expect(throws: (any Error).self) { try AdbPolicy.validate(["-s", Self.serial, "uninstall", "com.android.settings"], usb: true, confirmed: true) }
     }
 
     @Test func environmentIsPrivateAndLocalOnly() throws {

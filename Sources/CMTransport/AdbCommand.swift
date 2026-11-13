@@ -74,6 +74,7 @@ public enum AdbCommand: Equatable, Sendable {
     /// "Create new key": lets the phone pin the new Mac identity on the next session.
     case removeMacPin(serial: String)
     case installCompanion(serial: String, apkPath: String)
+    case uninstallCompanion(serial: String)
 
     public static let remoteServerPath = "/data/local/tmp/carbonmirror-server.jar"
     public static let remoteCoreLibraryPath = "/data/local/tmp/libcarbon_core.so"
@@ -109,6 +110,7 @@ public enum AdbCommand: Equatable, Sendable {
         case let .removeServerFiles(serial): ["-s", serial, "shell", "rm", "-f", Self.remoteServerPath, Self.remoteCoreLibraryPath]
         case let .removeMacPin(serial): ["-s", serial, "shell", "rm", "-f", Self.remoteMacPinPath]
         case let .installCompanion(serial, path): ["-s", serial, "install", "-r", path]
+        case let .uninstallCompanion(serial): ["-s", serial, "uninstall", Self.companionPackage]
         }
     }
 }

@@ -8,6 +8,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -74,6 +75,14 @@ public final class ReadyService extends Service {
                 new NotificationChannel(CHANNEL, getString(R.string.channel_ready), NotificationManager.IMPORTANCE_MIN));
     }
 
+    /** Cable plugged or unplugged: a Wi-Fi session that started with the cable in is trusted once it is out. */
+    private final BroadcastReceiver usb = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            evaluate();
+        }
+    };
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         startForeground(NOTIFICATION, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
@@ -82,6 +91,7 @@ public final class ReadyService extends Service {
             // Wi-Fi with or without internet access; VPNs are excluded by the request's default NOT_VPN capability.
             connectivity.registerNetworkCallback(new NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
                     .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build(), network, main);
+            registerReceiver(usb, new IntentFilter(USB_STATE), Context.RECEIVER_NOT_EXPORTED);
             registered = true;
         }
         scheduleWatchdog();
@@ -94,6 +104,7 @@ public final class ReadyService extends Service {
         if (registered) {
             getContentResolver().unregisterContentObserver(settings);
             connectivity.unregisterNetworkCallback(network);
+            unregisterReceiver(usb);
             registered = false;
         }
         super.onDestroy();
@@ -142,9 +153,11 @@ public final class ReadyService extends Service {
         getSystemService(NotificationManager.class).notify(NOTIFICATION, notification());
     }
 
+    private static final String USB_STATE = "android.hardware.usb.action.USB_STATE";
+
     /** Sticky USB state broadcast (no permission needed to read it); true while a USB data cable is attached. */
     private boolean usbConnected() {
-        Intent state = registerReceiver(null, new IntentFilter("android.hardware.usb.action.USB_STATE"), Context.RECEIVER_NOT_EXPORTED);
+        Intent state = registerReceiver(null, new IntentFilter(USB_STATE), Context.RECEIVER_NOT_EXPORTED);
         return state != null && state.getBooleanExtra("connected", false);
     }
 

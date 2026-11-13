@@ -155,7 +155,9 @@ final class SettingsWindowController {
                 s.wirelessProfile.bitrateMbps = Self.wifiRates[$0]
             }),
             ("Wi-Fi codec", popup(["H.264", "H.265"], s.wirelessProfile.codec == .h264 ? 0 : 1) { s.wirelessProfile.codec = $0 == 0 ? .h264 : .h265 }),
-            ("Phone companion", button("Install over USB…") { [weak self] _ in self?.onInstallCompanion?() }),
+            ("Phone companion", button(s.companionInstalled ? "Reinstall over USB…" : "Install over USB…") { [weak self] _ in
+                self?.onInstallCompanion?()
+            }),
         ]
     }
 
